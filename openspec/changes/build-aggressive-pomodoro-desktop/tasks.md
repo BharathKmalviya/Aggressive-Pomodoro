@@ -31,7 +31,7 @@
 ## 5. Windows packaging and release documentation
 
 - [x] 5.1 Establish Git history and the owner-selected public release destination for this workspace; verify the intended remote, version tag policy, and release permissions before configuring publication.
-- [ ] 5.2 Add app icon, application/version metadata, and About display; verify the same version appears in the running app and package metadata.
+- [x] 5.2 Add app icon, application/version metadata, and About display; verify the same version appears in the running app and package metadata.
 - [x] 5.3 Build the executable JAR with the pinned Kotlin Toolchain and package it into a runtime-bundled Windows app image and MSI using pinned JDK/jpackage and WiX tooling; verify the app image launches without a separate Java installation and the MSI installs and launches on a clean Windows environment.
 - [x] 5.4 Add Windows CI for build, tests, packaging smoke checks, checksum generation, and tag-bound release assets, with publication gated on successful validation; verify a failed packaging job cannot publish a release and the checksum matches the exact MSI.
 - [x] 5.5 Add `docs/RELEASING.md`, `CHANGELOG.md`, and README download/install guidance covering version/tag rules, checksums, unsigned installer warning, rollback, source-build support, and Windows-only package support; verify commands, links, and filenames against produced artifacts.
@@ -64,8 +64,10 @@ Section 8 verification (2026-09-28): complete Kotlin build and all 62 tests pass
 ## 9. Version 0.2.0 publication
 
 - [x] 9.1 Prepare versioned release notes and snapshot rollback guidance, incorporate remote changes, and validate release metadata and OpenSpec.
-- [ ] 9.2 Commit and push the release update to main; verify Windows CI and the release workflow build/test/package/install gates succeed for that exact commit.
-- [ ] 9.3 Read back the published v0.2.0 tag and assets, independently download and verify MSI checksum and license, and record release evidence with outstanding manual checks.
+- [x] 9.2 Commit and push the release update to main; verify Windows CI and the release workflow build/test/package/install gates succeed for that exact commit.
+- [x] 9.3 Read back the published v0.2.0 tag and assets, independently download and verify MSI checksum and license, and record release evidence with outstanding manual checks.
+
+Section 9 verification: immutable v0.2.0 was published from `e93020082591517574ac35efbd1f48b9f2c00405` after Windows CI run `36462170882` and release run `36462170953` passed, including the v0.1.0 upgrade and data-preservation gate. All three public assets were independently downloaded and verified. The MSI SHA-256 is `5f26b6ad03a8141d0fe80fc04ed1db564737eaa6168fd972e757b0a356dabfa7`. Full evidence and remaining manual gaps are recorded in `docs/RELEASING.md` and `docs/TESTING.md`.
 
 ## 10. In-app updates and About repository
 
@@ -73,7 +75,10 @@ Section 8 verification (2026-09-28): complete Kotlin build and all 62 tests pass
 - [x] 10.2 Add About repository access and an update dialog covering current/available/downloading/ready/error states, explicit install confirmation, and completion-alert priority.
 - [x] 10.3 Integrate verified interactive installation with save/backup/exit and recoverable failures; preserve the first released MSI UpgradeCode and cover controller failure paths with tests.
 - [x] 10.4 Update privacy, architecture, release notes, and manual Windows upgrade checks; run full build/tests and strict OpenSpec validation before publication.
+- [x] 10.5 Refresh README screenshots using the real v0.2.0 interface and an isolated sample profile, including About's repository link and the manual update screen; inspect framing and readability before pushing.
 
 Section 10 local verification: build and executable JAR packaging passed; all 83 tests passed (32 shared, 51 desktop) with no test discovery omissions. Strict OpenSpec validation and workflow actionlint passed. The original released MSI's hash and UpgradeCode were independently verified. Interactive updater/UAC and the manual audio/UI checks remain pending.
 
 The packaged updater also passed a live latest-release check, full 92,951,448-byte v0.1.0 download, and checksum re-verification without launching an installer.
+
+Post-publication screenshot smoke confirmed the real UI can start a demo focus block, open Settings and About, show version 0.2.0 and the repository link, and complete a manual check with the current-version result. Four refreshed README images document these screens. Together with the release MSI metadata checks, the observed About version completes task 5.2. Remaining native acceptance scenarios stay open.

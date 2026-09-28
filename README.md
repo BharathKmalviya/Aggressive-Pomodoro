@@ -6,11 +6,23 @@ Aggressive Pomodoro is a Windows desktop focus timer built with Kotlin and Compo
 
 ## Screenshots
 
-The Windows app in v0.1.0, shown with sample tasks in a local test profile. These screenshots predate the current aggressive interface refresh.
+The Windows app in v0.2.0, captured from the running app with sample tasks and history in an isolated demo profile. Dialog screenshots are cropped for readability.
 
-![Focus timer beside the local task list](docs/images/timer-and-tasks.png)
+Live focus countdown, direct prompts, and the task earning the current block:
 
-![Settings for durations, automatic transitions, and sounds](docs/images/settings.png)
+![Aggressive focus timer beside the local task list](docs/images/timer-and-tasks.png)
+
+Duration rules, persistent reminders, independent sound controls, and alarm preview:
+
+![Settings with relentless completion reminders and Test Alarm](docs/images/settings.png)
+
+About includes the installed version and the GitHub repository link:
+
+![About with version 0.2.0, the GitHub repository, and Check for Updates](docs/images/about.png)
+
+A manual check against GitHub confirms the installed release is current:
+
+![Update check showing version 0.2.0 is up to date](docs/images/update-check.png)
 
 ## Features
 

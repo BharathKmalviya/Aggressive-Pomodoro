@@ -83,4 +83,18 @@ Release CI separately exercises clean installation and the immutable v0.1.0 MSI 
 - Strict OpenSpec validation and actionlint for both Windows workflows passed.
 - A live probe using the packaged updater checked the real latest GitHub release, reported no newer version for 0.2.0, downloaded the 92,951,448-byte v0.1.0 MSI, and passed both initial SHA-256 verification and pre-install re-verification. No installer was executed on the development machine.
 - Published v0.1.0 MSI was independently downloaded and hash-verified; its UpgradeCode matches the pinned code in the new packager. A metadata-only packaging probe validated the new version/upgrade identity; that probe is not a release artifact and was not installed.
-- Manual interactive updater/UAC, browser, sound, keyboard, and sleep scenarios above remain pending.
+- Manual update download/install/UAC, browser launch, sound, keyboard, and sleep scenarios above remain pending.
+
+## Recorded v0.2.0 release verification — 2026-09-28
+
+- [Windows CI](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/36462170882) and [Windows release](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/36462170953) passed for `e93020082591517574ac35efbd1f48b9f2c00405`, including the automated build/tests, clean MSI installation/launch, and upgrade from the checksum-pinned public v0.1.0 MSI.
+- The upgrade gate verified that the old product was removed and the new app saved snapshot format 3 with the same paused time, captured task, task credit, and daily history. Its close helper was also exercised locally against a hidden packaged app in an isolated profile and verified a normal exit with a saved snapshot.
+- All three public release assets were independently downloaded and checked against their GitHub digests. MSI checksum and pinned MIT License verification passed; the immutable tag points to the exact validated commit. Hashes are recorded in [RELEASING.md](RELEASING.md).
+- A post-publication probe using the packaged updater correctly reported 0.2.0 as current and detected the real 0.2.0 release for a simulated older installed version. No local installer was launched.
+- These automated results do not close the outstanding manual Windows acceptance matrix.
+
+## Recorded screenshot and update-check smoke — 2026-09-28
+
+The current executable JAR was launched on Windows with an isolated demo profile containing sample tasks and history. The app's start action produced a running countdown and the captured-task label. Settings, About, and the manual update check were opened through the actual UI. About showed version 0.2.0 and the full GitHub repository link; the live check against the published release reached "YOU'RE UP TO DATE" with installed version 0.2.0.
+
+The four [README screenshots](../README.md#screenshots) were refreshed from those real screens. Modal captures were cropped to their actual dialog pixels with a surrounding margin, and all exported images were inspected for readable text and framing. This records a limited visual and update-check smoke pass; it does not verify alarm loudness, browser launch, interactive download/install/UAC, keyboard accessibility, or sleep/recovery acceptance.

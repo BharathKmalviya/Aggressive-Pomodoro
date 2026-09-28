@@ -46,3 +46,15 @@ The same release includes the subsequently requested manual updater and GitHub A
 The published v0.1.0 MSI has UpgradeCode `{8B4BB341-127A-3A18-945B-B92F5C0CD1FD}` and ProductCode `{50B90F77-B8D1-3BDD-AC8F-48DF142D69B8}`. Packaging now verifies the UpgradeCode, product name, and version. The release workflow additionally installs that checksum-pinned baseline, upgrades it to the new MSI, verifies old-product removal, and checks that a paused session's task/history snapshot survives in an isolated profile. This augments the clean-install launch gate.
 
 The first v0.2.0 release attempt passed build, tests, packaging, and clean installation, but its upgrade harness could not close the window through `Process.CloseMainWindow`. Publication was blocked. The jpackage launcher can place the UI in a child process. The harness now waits for the titled window owned by the launch or its descendants with the same executable path (including hidden windows), posts the normal Windows close request, and requires a successful process exit before validating saved state; forced termination is cleanup only and cannot pass the gate.
+
+## v0.2.0 published verification
+
+On 2026-09-28, [Windows CI](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/36462170882) and the [release workflow](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/36462170953) passed for commit `e93020082591517574ac35efbd1f48b9f2c00405`. The workflow verified clean MSI installation and launch, then upgraded the published v0.1.0 installation while preserving the paused timer, captured task, earned task blocks, and daily history. Old-product removal and migrated snapshot format 3 were checked before publication.
+
+The [immutable v0.2.0 release](https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases/tag/v0.2.0) was published at `2026-09-28T18:05:37Z`. Fresh API readback confirmed its tag points to that exact validated commit. An independent download of all three public assets verified their sizes and GitHub SHA-256 digests, the MSI against `SHA256SUMS.txt`, and the MIT License against its pinned hash:
+
+- `AggressivePomodoro-0.2.0.msi`: 93,455,256 bytes; SHA-256 `5f26b6ad03a8141d0fe80fc04ed1db564737eaa6168fd972e757b0a356dabfa7`.
+- `SHA256SUMS.txt`: SHA-256 `92a4f8911d7dd956ded166e5d60d36f06aebeb5abeaf1bc9d1605ca493a8d33c`.
+- `LICENSE`: SHA-256 `cc9829233de2b0ba9f107178cf4da58612848a70f07b2344eab1f1ec6df1f3fc`.
+
+The packaged updater also read the newly published release: version 0.2.0 correctly reported no newer update, and a simulated installed version 0.1.0 correctly detected the actual 0.2.0 MSI. No installer was executed on the development machine. The manual Windows acceptance gaps in [TESTING.md](TESTING.md), including audio, keyboard, sleep, and interactive UAC, remain open.
