@@ -146,18 +146,77 @@ jobs:
             $process = Start-Process msiexec.exe -ArgumentList @($action, "`"$path`"", '/qn', '/norestart') -WindowStyle Hidden -Wait -PassThru
             if ($process.ExitCode -notin @(0, 3010)) { throw "MSI $action failed: $($process.ExitCode)" }
           }
+          # Process.CloseMainWindow can miss hidden windows and jpackage's child
+          # JVM process. Locate its top-level window and request a normal close.
+          Add-Type -TypeDefinition @'
+          using System;
+          using System.Runtime.InteropServices;
+          using System.Text;
+          public static class UpgradeSmokeWindow {
+              private delegate bool WindowCallback(IntPtr handle, IntPtr data);
+              [DllImport("user32.dll")]
+              private static extern bool EnumWindows(WindowCallback callback, IntPtr data);
+              [DllImport("user32.dll")]
+              private static extern uint GetWindowThreadProcessId(IntPtr handle, out uint processId);
+              [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+              private static extern int GetWindowText(IntPtr handle, StringBuilder text, int count);
+              [DllImport("user32.dll", SetLastError = true)]
+              private static extern bool PostMessage(IntPtr handle, uint message, IntPtr wParam, IntPtr lParam);
+              public static IntPtr Find(uint[] processIds) {
+                  IntPtr result = IntPtr.Zero;
+                  EnumWindows((handle, data) => {
+                      uint owner;
+                      GetWindowThreadProcessId(handle, out owner);
+                      if (Array.IndexOf(processIds, owner) < 0) return true;
+                      var title = new StringBuilder(256);
+                      GetWindowText(handle, title, title.Capacity);
+                      if (title.ToString() != "Aggressive Pomodoro") return true;
+                      result = handle;
+                      return false;
+                  }, IntPtr.Zero);
+                  return result;
+              }
+              public static bool Close(IntPtr handle) {
+                  return PostMessage(handle, 0x0010, IntPtr.Zero, IntPtr.Zero);
+              }
+          }
+          '@
           function Start-AppAndClose([string]$exe) {
+            $exe = (Resolve-Path -LiteralPath $exe).Path
             $app = Start-Process -FilePath $exe -WindowStyle Hidden -PassThru
+            $processIds = [System.Collections.Generic.HashSet[uint32]]::new()
+            [void]$processIds.Add([uint32]$app.Id)
             try {
-              Start-Sleep -Seconds 5
-              $app.Refresh()
-              if ($app.HasExited) { throw "Upgrade smoke app exited early: $($app.ExitCode)" }
-              if (-not $app.CloseMainWindow()) { throw 'Could not request a normal app close during upgrade verification' }
+              $deadline = [DateTime]::UtcNow.AddSeconds(30)
+              $window = [IntPtr]::Zero
+              do {
+                $app.Refresh()
+                if ($app.HasExited) { throw "Upgrade smoke app exited early: $($app.ExitCode)" }
+                # jpackage can relaunch the same executable as a child JVM host.
+                # Only descendants of this launch with the exact path are eligible.
+                $candidates = @(Get-CimInstance Win32_Process -Filter "Name = 'AggressivePomodoro.exe'" |
+                  Where-Object { $_.ExecutablePath -eq $exe })
+                do {
+                  $added = $false
+                  foreach ($candidate in $candidates) {
+                    if ($processIds.Contains([uint32]$candidate.ParentProcessId) -and $processIds.Add([uint32]$candidate.ProcessId)) { $added = $true }
+                  }
+                } while ($added)
+                $window = [UpgradeSmokeWindow]::Find([uint32[]]@($processIds))
+                if ($window -ne [IntPtr]::Zero) { break }
+                Start-Sleep -Milliseconds 500
+              } while ([DateTime]::UtcNow -lt $deadline)
+              if ($window -eq [IntPtr]::Zero) { throw 'App window was not created during upgrade verification' }
+              # Give Compose time to attach the controller before requesting its save-and-close path.
+              Start-Sleep -Seconds 2
+              if (-not [UpgradeSmokeWindow]::Close($window)) { throw 'Could not request a normal app close during upgrade verification' }
               if (-not $app.WaitForExit(15000)) { throw 'App did not save and close during upgrade verification' }
               if ($app.ExitCode -ne 0) { throw "App close failed: $($app.ExitCode)" }
             } finally {
-              $app.Refresh()
-              if (-not $app.HasExited) { Stop-Process -Id $app.Id -Force }
+              foreach ($targetProcessId in $processIds) {
+                $remaining = Get-Process -Id $targetProcessId -ErrorAction SilentlyContinue
+                if ($remaining -and $remaining.Path -eq $exe) { Stop-Process -Id $targetProcessId -Force }
+              }
             }
           }
           $previousAppData = $env:APPDATA
