@@ -24,6 +24,21 @@ The release process SHALL build and check the application and its installer on W
 - **WHEN** the Windows package job fails
 - **THEN** no release with that version is published as a successful downloadable release
 
+### Requirement: Version-driven publication
+A push to `main` SHALL check the application version and publish a Windows release when that version has no existing tag or release, after all release validation succeeds. A push without a new version SHALL not publish another release. The published tag SHALL identify the commit that passed validation.
+
+#### Scenario: New version on main
+- **WHEN** `main` contains a new semantic version and its release checks pass
+- **THEN** a matching `vMAJOR.MINOR.PATCH` release appears with the MSI, checksum, MIT License, and that version's notes
+
+#### Scenario: Ordinary push
+- **WHEN** a push to `main` retains an already published version
+- **THEN** no new tag or release is created
+
+#### Scenario: Conflicting tag
+- **WHEN** the version tag already exists without a matching published release
+- **THEN** automation stops rather than moving that tag to a different commit
+
 ### Requirement: Clear platform scope
 The public project documentation SHALL identify Windows as the first supported download platform and describe source-build support separately from tested release support.
 

@@ -2,7 +2,7 @@
 
 Aggressive Pomodoro is a Windows desktop focus timer built with Kotlin and Compose Multiplatform. It combines focus and break cycles, local tasks, completion alerts, and a record of completed work.
 
-**Status:** Version 0.1.0 is undergoing Windows acceptance checks. No public installer has been released. Windows is the only packaged target at present.
+**Downloads:** [GitHub Releases](https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases) lists verified Windows installers. Windows is the only packaged target at present.
 
 ## Features
 
@@ -40,7 +40,7 @@ To create an MSI and `SHA256SUMS.txt`, install WiX 3.14.1 and put `candle.exe` a
 
 Output is written to `build/distribution/artifacts/`. Packaging does not publish a release. See the [release procedure](docs/RELEASING.md) for versioning, installer acceptance, and publication gates.
 
-When a public release is available, obtain the MSI, checksum file, and MIT License from [GitHub Releases](https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases). Compare the MSI's SHA-256 with `SHA256SUMS.txt` before installing. The installer is unsigned and may prompt a Windows publisher warning. No macOS or Linux native package is provided.
+Obtain the MSI, checksum file, and MIT License from [GitHub Releases](https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases). Compare the MSI's SHA-256 with `SHA256SUMS.txt` before installing. The installer is unsigned and may prompt a Windows publisher warning. No macOS or Linux native package is provided.
 
 ## Data and recovery
 

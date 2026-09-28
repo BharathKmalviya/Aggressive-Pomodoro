@@ -1,14 +1,60 @@
 name: Windows release
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: windows-release
+  cancel-in-progress: false
+
 jobs:
+  detect-version:
+    runs-on: windows-2022
+    timeout-minutes: 5
+    outputs:
+      publish: ${{ steps.detect.outputs.publish }}
+      version: ${{ steps.detect.outputs.version }}
+      tag: ${{ steps.detect.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Detect an unpublished version
+        id: detect
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ($env:GITHUB_REF -ne 'refs/heads/main') { throw 'Releases must start from main' }
+          $version = ((Get-Content desktopApp/resources/version.properties | Where-Object { $_ -match '^version=' }) -replace '^version=', '').Trim()
+          if ($version -notmatch '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$') { throw 'Version must be MAJOR.MINOR.PATCH' }
+          $tag = "v$version"
+          "version=$version" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "tag=$tag" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          if (-not (Get-Content CHANGELOG.md | Where-Object { $_.Trim() -eq "## $version" })) { throw "CHANGELOG.md has no notes for $version" }
+          $releases = gh release list --limit 1000 --json tagName,isDraft | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Could not list existing releases' }
+          $matchingRelease = $releases | Where-Object { $_.tagName -eq $tag } | Select-Object -First 1
+          if ($matchingRelease -and $matchingRelease.isDraft) { throw "$tag has an unfinished draft release; inspect it before retrying" }
+          if ($matchingRelease) {
+            "publish=false" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "$tag is already published; skipping."
+            exit 0
+          }
+          $olderVersions = @($releases | Where-Object { -not $_.isDraft -and $_.tagName -match '^v[0-9]+\.[0-9]+\.[0-9]+$' } | ForEach-Object { [version]$_.tagName.Substring(1) })
+          if ($olderVersions.Count -gt 0 -and [version]$version -le ($olderVersions | Sort-Object -Descending | Select-Object -First 1)) { throw "$tag must be newer than existing releases" }
+          $existingTag = git ls-remote --tags --refs origin "refs/tags/$tag"
+          if ($LASTEXITCODE -ne 0) { throw 'Could not check remote tags' }
+          if ($existingTag) { throw "$tag already exists without a published release; inspect it before retrying" }
+          "publish=true" | Out-File $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "$tag is new and eligible for validation."
+
   validate-package:
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs: detect-version
+    if: needs.detect-version.outputs.publish == 'true'
     runs-on: windows-2022
     timeout-minutes: 50
     steps:
@@ -21,9 +67,11 @@ jobs:
           java-version: '21'
       - name: Validate tag and release prerequisites
         shell: pwsh
+        env:
+          RELEASE_VERSION: ${{ needs.detect-version.outputs.version }}
         run: |
           $version = ((Get-Content desktopApp/resources/version.properties | Where-Object { $_ -match '^version=' }) -replace '^version=', '').Trim()
-          if ('v' + $version -ne '${{ github.ref_name }}') { throw 'Tag and app version differ' }
+          if ($version -ne $env:RELEASE_VERSION) { throw 'Version changed during validation' }
           if (-not (Test-Path LICENSE)) { throw 'LICENSE must be finalized before publishing' }
           if ((Get-FileHash LICENSE -Algorithm SHA256).Hash -ne 'CC9829233DE2B0BA9F107178CF4DA58612848A70F07B2344EAB1F1EC6DF1F3FC') { throw 'MIT License text or copyright notice differs from the verified version' }
           if ((Get-Content README.md -Raw) -notmatch '\[MIT License\]\(LICENSE\)') { throw 'README must link to the MIT License' }
@@ -75,7 +123,7 @@ jobs:
       - name: Preserve verified release files
         uses: actions/upload-artifact@v7
         with:
-          name: windows-release-${{ github.ref_name }}
+          name: windows-release-${{ needs.detect-version.outputs.tag }}
           path: |
             build/distribution/artifacts/*.msi
             build/distribution/artifacts/SHA256SUMS.txt
@@ -84,7 +132,7 @@ jobs:
           retention-days: 7
 
   publish:
-    needs: validate-package
+    needs: [detect-version, validate-package]
     runs-on: windows-2022
     environment: release
     permissions:
@@ -96,12 +144,14 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@v7
         with:
-          name: windows-release-${{ github.ref_name }}
+          name: windows-release-${{ needs.detect-version.outputs.tag }}
           path: build/distribution/artifacts
       - name: Verify artifact and publish
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.detect-version.outputs.tag }}
+          RELEASE_VERSION: ${{ needs.detect-version.outputs.version }}
         run: |
           $artifacts = 'build/distribution/artifacts'
           $line = (Get-Content "$artifacts/SHA256SUMS.txt" | Select-Object -First 1).Trim()
@@ -112,4 +162,11 @@ jobs:
           $license = Join-Path $artifacts 'LICENSE'
           if (-not (Test-Path $license)) { throw 'MIT License asset is missing' }
           if ((Get-FileHash $license -Algorithm SHA256).Hash -ne 'CC9829233DE2B0BA9F107178CF4DA58612848A70F07B2344EAB1F1EC6DF1F3FC') { throw 'MIT License asset changed' }
-          gh release create '${{ github.ref_name }}' $msi "$artifacts/SHA256SUMS.txt" $license --title "Aggressive Pomodoro ${{ github.ref_name }}" --notes-file CHANGELOG.md
+          $existingTag = git ls-remote --tags --refs origin "refs/tags/$env:RELEASE_TAG"
+          if ($LASTEXITCODE -ne 0) { throw 'Could not recheck remote tags' }
+          if ($existingTag) { throw "$env:RELEASE_TAG appeared during validation; refusing to retarget it" }
+          $pattern = '(?ms)^##\s+' + [regex]::Escape($env:RELEASE_VERSION) + '\s*\r?\n(?<notes>.*?)(?=^##\s+|\z)'
+          $match = [regex]::Match((Get-Content CHANGELOG.md -Raw), $pattern)
+          if (-not $match.Success -or -not $match.Groups['notes'].Value.Trim()) { throw 'Version release notes are missing' }
+          [System.IO.File]::WriteAllText('release-notes.md', $match.Groups['notes'].Value.Trim() + [Environment]::NewLine)
+          gh release create $env:RELEASE_TAG $msi "$artifacts/SHA256SUMS.txt" $license --target $env:GITHUB_SHA --title "Aggressive Pomodoro $env:RELEASE_TAG" --notes-file release-notes.md --fail-on-no-commits

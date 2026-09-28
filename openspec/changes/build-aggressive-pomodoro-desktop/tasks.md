@@ -47,4 +47,5 @@
 - [x] 7.1 Add local tasks with validated titles and estimates, selection, completion, deletion, and focus credit captured at phase start; verify reducer and snapshot round-trip tests.
 - [ ] 7.2 Show today's completed focus total and a seven-day report in the responsive desktop UI; verify local-date rollover, persistence, narrow layout, and keyboard use on Windows.
 - [ ] 7.3 Add independent button-click sound preference and bundled cue; verify enabled, disabled, rapid-click, and unavailable-audio behavior on Windows.
-- [ ] 7.4 Verify the production Windows CI and manually dispatched release workflow against a clean MSI installation, checksum, MIT license gate, and failed-build publication gate.
+- [ ] 7.4 Verify the production Windows CI and version-driven release workflow against a clean MSI installation, checksum, MIT license gate, duplicate-version skip, and failed-build publication gate.
+- [ ] 7.5 Set and read back the GitHub About description, release link, and product/technology topics; verify the first published release appears from the repository page.
