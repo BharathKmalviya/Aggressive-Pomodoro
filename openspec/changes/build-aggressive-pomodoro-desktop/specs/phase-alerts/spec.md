@@ -48,3 +48,10 @@ The application SHALL allow the audible cue to be enabled or disabled independen
 #### Scenario: Disable sound
 - **WHEN** the user disables sound and a phase ends
 - **THEN** no application cue is played and the completion dialog still appears
+
+### Requirement: Independent button feedback
+The application SHALL offer optional short audio feedback for timer and task controls independently of the phase-completion cue. Muting button feedback SHALL not mute completion sound or suppress a visual alert.
+
+#### Scenario: Button clicks disabled
+- **WHEN** the user disables button-click sound and starts or pauses a timer
+- **THEN** those controls act normally without a click sound, while the completion-sound setting remains unchanged

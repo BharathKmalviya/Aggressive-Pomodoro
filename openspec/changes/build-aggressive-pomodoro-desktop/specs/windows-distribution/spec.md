@@ -31,9 +31,9 @@ The public project documentation SHALL identify Windows as the first supported d
 - **WHEN** a visitor reads the download instructions from macOS or Linux
 - **THEN** the page states that no native package is currently published for that platform
 
-### Requirement: Clear source-available terms
-The public release and repository SHALL display the applicable noncommercial license terms, preserve the licensor's required notice, and provide a public route for requesting separate commercial permission. The project SHALL describe itself as source available rather than open source while commercial use requires permission.
+### Requirement: Clear MIT terms
+The repository, public release assets, and Windows installer SHALL include the MIT License with its copyright notice. Documentation SHALL identify the project as open source and state that the license permits commercial use when its notice condition is followed.
 
 #### Scenario: Commercial user reviews terms
 - **WHEN** a prospective commercial user reads the repository or release page
-- **THEN** they can identify the noncommercial terms and how to request commercial permission before using the software commercially
+- **THEN** they can identify the MIT permission to use the software commercially and the obligation to retain the copyright and permission notices

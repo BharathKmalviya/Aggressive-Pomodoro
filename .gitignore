@@ -10,3 +10,27 @@ captures
 !**/module.xcodeproj/project.xcworkspace/
 **/xcshareddata/WorkspaceSettings.xcsettings
 xcuserdata
+
+# Local AI assistant configuration and generated agent workflows.
+**/.agents/
+**/.claude/
+**/.codex/
+**/.cursor/
+**/.gemini/
+**/.continue/
+**/.windsurf/
+**/.roo/
+**/.trae/
+**/.ai/
+**/.aider*
+**/AGENTS.md
+**/CLAUDE.md
+**/GEMINI.md
+**/.cursorrules
+**/.cursorignore
+/.github/agents/
+/.github/prompts/
+/.github/skills/
+/.github/instructions/
+/.github/copilot-instructions.md
+/.github/workflows/copilot-setup-steps.yml

@@ -3,11 +3,13 @@ product: jvm/app
 dependencies:
   - //shared
   - $compose.desktop.currentOs
-  - $compose.preview
-  - $libs.kotlinx.coroutines.swing
-  - $libs.logback.classic
+  - $compose.material3
+  - $libs.kotlinx.coroutines.core
 
 settings:
   compose: enabled
   jvm:
+    jdk:
+      version: 21
+    release: 21
     mainClass: com.pomodoro.MainKt
