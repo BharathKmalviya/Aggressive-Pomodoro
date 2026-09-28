@@ -23,3 +23,64 @@ Run `./kotlin.bat build`, `./kotlin.bat test`, and `./kotlin.bat run -m desktopA
 | Sound unavailable | Disconnect or disable the current audio output, then complete a phase | Visual dialog and timer transition still work. |
 
 Do not treat a passing build or app-image process smoke check as proof of these visual, audio, install, or sleep scenarios. Record the Windows version, app version, outcome, and any screenshot or log when performing release acceptance.
+
+## Aggressive interface and regression checks
+
+New durations apply to the next created phase. After setting all durations to 1 minute, skip the idle focus and idle break to create a fresh 1-minute focus before starting these checks. Keep a backup of existing data before persistence experiments.
+
+| Scenario | Steps | Expected result |
+| --- | --- | --- |
+| Alarm preview | Open Settings and press TEST ALARM, including with completion sound disabled; press it repeatedly | A distinct multi-pulse alarm plays without stacked clips. Preview does not complete a phase or change sound settings. |
+| Persistent pressure | Enable aggressive reminders and completion sound. Finish focus and leave its dialog open for 25 seconds | Initial alarm, then reminders about ten seconds apart. Counts/task credit stay unchanged; the dialog identifies the completed phase and current phase/countdown. |
+| Immediate mute | During a sounding completion, use its mute action and wait 15 seconds | Current alarm stops, future reminders stay silent, dialog remains visible, and completion sound is off in Settings. |
+| Reminder opt-out | Disable aggressive reminders while keeping completion sound enabled, then finish a phase and wait 25 seconds | One completion sound, persistent dialog, no periodic reminder. |
+| Acknowledge | Acknowledge the last pending alert; wait at least 12 seconds before another completion | Alarm stops and no reminders remain for the acknowledged event. |
+| Two queued events | Leave focus and break alerts unreviewed, review one, then wait ten seconds | Timer still waits with the remaining alert; reminder resumes for that alert only. Reviewing the last starts the next phase. |
+| Restore pending | Exit with an unacknowledged alert and reopen | Saved alert is surfaced once immediately, then reminders follow the preference. No duplicate focus/task credit. |
+| Final minute / pause | Start focus, watch its final minute, then pause | Urgent final-minute instruction appears. Paused state is unmistakable and countdown stays fixed; resume is reachable by keyboard. |
+| Stale confirmation | In the last seconds, open Reset or Skip and leave it open through completion | Confirmation disappears; completion alert takes priority. It cannot reset/skip the new break. |
+| Paused progress | Pause partway through focus, try Reset and Skip, and cancel each | Both ask before discarding progress; cancel retains exact paused remaining time. |
+| Overlapping dialogs | Leave Settings, Reports, or About open through a completion | Secondary dialog closes/yields; completion alert and its actions are reachable. Unsaved Settings edits are discarded. |
+| Current versus next task | Start task A, select B during focus, pause/resume, then complete | Current task stays A; next task is B. A receives the completed block. |
+| Unassigned restart | Start without a task, add/select one during focus, exit/reopen before completion | Running block remains unassigned; newly selected task is for the next block. |
+| Removed/completed task | Start A, delete A, restart; separately start B, mark B done, and let its block finish | Removing A does not reset the timer/other data. B still receives its earned block. |
+| Narrow / short / large clock | Resize to 560×620, then wide but short; set focus to 180 minutes and create a new phase; Tab through controls and scroll | Timer and controls remain readable/reachable, including the three-digit minute clock. Task panel scrolls and keyboard focus is visible. |
+| Unavailable output | Disable audio output and preview or finish focus, then restore output and preview again | Timer continues and visible warning explains playback failure; successful alarm playback clears it. |
+| Failed close save | In a disposable profile, make the save destination unwritable, attempt exit, then restore access and retry | Failure leaves the app responsive and writer functional; retry saves latest state before exiting. |
+
+Automated regressions cover deadline-boundary intent, task ownership/deletion, snapshot migration/validation, backward clocks, reminders with injected time, and exception-safe effects. These checks do not measure audible loudness or prove native taskbar attention and keyboard rendering.
+
+## Recorded aggressive-refresh verification — 2026-09-28, before updater additions
+
+- `./kotlin.bat build`: passed, including shared and desktop test compilation.
+- `./kotlin.bat test`: 62 passed, zero failures (32 shared domain tests, 30 desktop storage/controller/audio tests).
+- `openspec validate build-aggressive-pomodoro-desktop --strict`: passed.
+- The aggressive-interface Windows manual matrix above has not been executed in this update. Existing release acceptance tasks remain open; no new installer or public release was produced.
+
+## Manual update and About checks
+
+Use a disposable profile for installer/rollback checks. Do not downgrade a real version 3 snapshot into v0.1.0. Deterministic tests simulate newer releases so no fake public tag is required.
+
+| Scenario | Steps | Expected result |
+| --- | --- | --- |
+| Repository link | Open About and use OPEN GITHUB | The correct public repository opens in the default browser; current app version remains visible. A browser failure displays the URL and explanation. |
+| Current version | About → CHECK FOR UPDATES with the latest stable build | Reports no newer update; no installer download starts. |
+| Offline / rate limit | Disconnect networking, check, reconnect, CHECK AGAIN; exercise rate-limit response with test transport | Clear retryable error; timer keeps running and no credentials are requested. |
+| Download a newer release | With a genuinely older updater-capable build, check, choose DOWNLOAD UPDATE | Version/progress visible; file downloads only after the click. Close and VIEW UPDATE reopen the same progress. |
+| Cancel / retry | Cancel during a download, wait for cancellation to settle, retry | Partial file cannot be installed, no overlapping download starts, retry can finish. |
+| Alert priority | Let a focus phase complete while the update dialog or install confirmation is open | Completion alert takes priority; download continues if already started; installation does not happen. |
+| Changed installer | Download, alter the cached MSI, then confirm installation in a disposable profile | Hash verification prevents Windows Installer opening; app stays usable and offers redownload. |
+| Save / launch failure | Make disposable profile backup destination unwritable or simulate failed launcher with tests, then install | Failure remains visible, app and timer stay available, no unsaved-state shutdown occurs; fixing the issue allows retry. |
+| Interactive upgrade | Back up disposable profile, start a task, download and confirm INSTALL & EXIT | Snapshot is saved and backup created before app exits. Windows installer/UAC remains interactive. Reopen manually; upgraded version, tasks, history, and session recover correctly. |
+| Restart before installing | Finish download, exit normally, restart | A new manual check/download is required before installation; an old cache file alone cannot authorize execution. |
+
+Release CI separately exercises clean installation and the immutable v0.1.0 MSI upgrade path. That process smoke evidence does not verify interactive UAC, default-browser launch, audible reminders, or keyboard behavior.
+
+## Recorded updater verification — 2026-09-28
+
+- Kotlin build and executable JAR packaging passed.
+- Full automated suite: 83 passed, zero failures (32 shared, 51 desktop), with no test discovery omissions.
+- Strict OpenSpec validation and actionlint for both Windows workflows passed.
+- A live probe using the packaged updater checked the real latest GitHub release, reported no newer version for 0.2.0, downloaded the 92,951,448-byte v0.1.0 MSI, and passed both initial SHA-256 verification and pre-install re-verification. No installer was executed on the development machine.
+- Published v0.1.0 MSI was independently downloaded and hash-verified; its UpgradeCode matches the pinned code in the new packager. A metadata-only packaging probe validated the new version/upgrade identity; that probe is not a release artifact and was not installed.
+- Manual interactive updater/UAC, browser, sound, keyboard, and sleep scenarios above remain pending.

@@ -6,6 +6,17 @@ Defines local recovery and interruption behavior so desktop sleep, restart, inva
 
 ## ADDED Requirements
 
+### Requirement: Safe recovery and retry boundaries
+The application SHALL pause with a clock explanation when restart recovery would increase the saved remaining duration. A failed save during exit SHALL keep persistence available for continued use and a later exit retry.
+
+#### Scenario: Backward clock on restart
+- **WHEN** the recovered wall deadline would extend the remaining duration beyond its saved value
+- **THEN** the timer pauses at bounded saved remaining time and offers resume or reset
+
+#### Scenario: Exit save fails
+- **WHEN** the final exit save fails and the user continues using the app
+- **THEN** later edits can still be saved and a subsequent successful exit waits for the latest snapshot
+
 ### Requirement: Local persistence
 The application SHALL store valid settings and session state locally, without an account or network connection, and restore them on restart. A corrupt or unsupported saved state SHALL be handled with a clear recovery message and safe defaults rather than a startup crash.
 

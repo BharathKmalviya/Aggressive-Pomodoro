@@ -19,7 +19,7 @@ The Kotlin Toolchain packages this app type as an executable JAR, while a no-Jav
 
 - System-wide app blocking, forced foreground focus, telemetry, cloud sync, accounts, or background alerts after the process exits.
 - Native macOS or Linux packages in the first release.
-- Auto-updates or a persistent tray service in the first release.
+- Unattended installation, background update polling, or a persistent tray service.
 
 ## Decisions
 
@@ -65,7 +65,21 @@ Keep tasks, selected task, and daily totals in one immutable product state with 
 
 Alternative considered: separate task and report files; that could persist a completed phase without its related task or daily credit after an interrupted write.
 
+### 8. Aggressive feedback and edge-case hardening
+
+Use an opt-out `aggressiveAlertsEnabled` preference, independent of sound. The desktop controller repeats the current pending event's attention/sound effect every ten monotonic seconds, without adding events or completion credit. New completions take priority over reminders; acknowledgement resets the reminder interval and clearing the queue stops reminders. Restored pending events get one initial attention attempt. Delayed ticks emit at most one reminder, never a catch-up burst. Adapter exceptions must not interrupt state changes or saving. Audio runs off the UI thread with one active completion clip and throttled click cues; expose alarm preview and playback failure feedback.
+
+Use near-black panels, high-contrast red focus and green break accents, squared controls, a large responsive clock, concrete phase instructions, an explicit paused state, and final-minute urgency. Completion dialogs identify both the completed and current phase. A mute action is available directly in the completion dialog. Secondary dialogs yield to completion alerts. Reset/skip confirmations bind to a phase ID and close when it changes; paused progress also requires deliberate confirmation. Show the actual captured task separately from the next selected task.
+
+Reconcile elapsed time before user commands so expiration cannot be erased by a late pause/skip/reset. Capture a fresh clock sample on every desktop command. Preserve unassigned active focus across restart, clear a deleted active task reference, credit surviving tasks even when marked done mid-block, and reject impossible waiting/running snapshot combinations. Legacy preferences migrate with aggressive reminders enabled. Pause rather than extend a block when a backward wall-clock change would increase remaining time. Keep the asynchronous writer alive after a failed close save so continuing or retrying remains safe. Regression checks use injected time and temporary storage; audible quality, keyboard focus, and responsive Windows rendering require the documented manual checks.
+
 ## Risks / Trade-offs
+
+### Manual Windows update flow
+
+The About screen links to the public repository and owns entry to a manual update dialog. Only a user action contacts the fixed GitHub latest-stable-release API; no tasks, history, or timer state are uploaded. The desktop updater handles network and file IO with bounded responses/timeouts, semantic version comparison, exact repository/version asset URLs, and SHA-256 verification. Missing, older, prerelease, malformed, and offline responses have explicit outcomes. Downloads show progress, permit cancellation, remove partial files, and never run unverified content. Retrying cannot start overlapping operations.
+
+The install action asks for confirmation, re-verifies the cached installer, persists the latest session and creates a dated local backup, then opens the interactive Windows installer and exits. Failed verification, saving, backup, or installer launch keeps the app and persistence usable. A stable MSI UpgradeCode matches the first published installer so later releases upgrade the same product. Windows installation/UAC and relaunch remain user-controlled. Completion alerts preempt About/update dialogs while background downloads may continue.
 
 - [Windows may suppress focus stealing or notification delivery] → Keep the completion dialog in application state, request taskbar attention, and verify minimized behavior on a real Windows desktop.
 - [Audio device unavailable] → Treat sound as optional delivery and preserve the visual alert.

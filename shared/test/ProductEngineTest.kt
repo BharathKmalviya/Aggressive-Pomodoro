@@ -33,9 +33,9 @@ class ProductEngineTest {
         assertEquals(60_000, state.history.on(date).focusedMs)
         state = act(state, ProductCommand.Session(SessionCommand.Tick), 60_000)
         assertEquals(1, state.history.on(date).sessions)
-        state = act(state, ProductCommand.Task(TaskCommand.ToggleDone(1)))
+        state = act(state, ProductCommand.Task(TaskCommand.ToggleDone(1)), 60_000)
         assertNull(state.board.selected)
-        state = act(state, ProductCommand.Task(TaskCommand.Remove(1)))
+        state = act(state, ProductCommand.Task(TaskCommand.Remove(1)), 60_000)
         assertEquals(0, state.board.tasks.size)
     }
 
@@ -109,5 +109,85 @@ class ProductEngineTest {
         val completed = ProductEngine.reduce(recovered, ProductCommand.Session(SessionCommand.Tick),
             TimeMark(180_000, 180_000), date)
         assertEquals(2, completed.board.selected?.completed)
+    }
+
+    @Test fun deletingTheActiveTaskClearsItsReferenceWithoutRedirectingCredit() {
+        var state = ProductState(session = newSession(TimerSettings(focusMinutes = 1)))
+        state = act(state, ProductCommand.Task(TaskCommand.Add("Current", 1)))
+        state = act(state, ProductCommand.Task(TaskCommand.Add("Next", 1)))
+        state = act(state, ProductCommand.Session(SessionCommand.Start))
+        state = act(state, ProductCommand.Task(TaskCommand.Select(2)), 10_000)
+        state = act(state, ProductCommand.Task(TaskCommand.Remove(1)), 20_000)
+        assertNull(state.activeTaskId)
+        assertEquals(2, state.board.selectedId)
+        state = act(state, ProductCommand.Session(SessionCommand.Tick), 60_000)
+        assertEquals(0, state.board.tasks.single().completed)
+        assertEquals(1, state.history.on(date).sessions)
+    }
+
+    @Test fun markingTheActiveTaskDoneDoesNotDiscardItsEarnedBlock() {
+        var state = ProductState(session = newSession(TimerSettings(focusMinutes = 1)))
+        state = act(state, ProductCommand.Task(TaskCommand.Add("Current", 1)))
+        state = act(state, ProductCommand.Session(SessionCommand.Start))
+        state = act(state, ProductCommand.Task(TaskCommand.ToggleDone(1)), 10_000)
+        assertEquals(1, state.activeTaskId)
+        assertNull(state.board.selectedId)
+        state = act(state, ProductCommand.Session(SessionCommand.Tick), 60_000)
+        assertEquals(true, state.board.tasks.single().done)
+        assertEquals(1, state.board.tasks.single().completed)
+        assertEquals(1, state.history.on(date).sessions)
+    }
+
+    @Test fun pauseAndSelectionChangePreserveTheStartedTask() {
+        var state = ProductState(session = newSession(TimerSettings(focusMinutes = 1)))
+        state = act(state, ProductCommand.Task(TaskCommand.Add("Current", 1)))
+        state = act(state, ProductCommand.Task(TaskCommand.Add("Next", 1)))
+        state = act(state, ProductCommand.Session(SessionCommand.Start))
+        state = act(state, ProductCommand.Session(SessionCommand.Pause), 20_000)
+        state = act(state, ProductCommand.Task(TaskCommand.Select(2)), 30_000)
+        state = act(state, ProductCommand.Session(SessionCommand.Resume), 100_000)
+        state = act(state, ProductCommand.Session(SessionCommand.Tick), 140_000)
+        assertEquals(1, state.board.tasks.first().completed)
+        assertEquals(0, state.board.tasks.last().completed)
+    }
+
+    @Test fun lateResetCreditsTheCompletedBlockExactlyOnce() {
+        var state = ProductState(session = newSession(TimerSettings(focusMinutes = 1)))
+        state = act(state, ProductCommand.Task(TaskCommand.Add("Current", 1)))
+        state = act(state, ProductCommand.Session(SessionCommand.Start))
+        state = act(state, ProductCommand.Session(SessionCommand.Reset), 60_000)
+        assertEquals(1, state.board.tasks.single().completed)
+        assertEquals(1, state.history.on(date).sessions)
+        state = act(state, ProductCommand.Session(SessionCommand.Tick), 60_000)
+        assertEquals(1, state.board.tasks.single().completed)
+        assertEquals(1, state.history.on(date).sessions)
+    }
+
+    @Test fun selectionAtExpiredBreakDoesNotRedirectTheAutomaticallyStartedBlock() {
+        var state = ProductState(session = newSession(TimerSettings(focusMinutes = 1, shortBreakMinutes = 1)))
+        state = act(state, ProductCommand.Task(TaskCommand.Add("Current", 2)))
+        state = act(state, ProductCommand.Task(TaskCommand.Add("Next", 1)))
+        state = act(state, ProductCommand.Session(SessionCommand.Start))
+        state = act(state, ProductCommand.Session(SessionCommand.Tick), 60_000)
+        state = act(state, ProductCommand.Session(SessionCommand.Acknowledge), 60_000)
+        state = act(state, ProductCommand.Task(TaskCommand.Select(2)), 120_000)
+        assertEquals(1, state.activeTaskId)
+        assertEquals(2, state.board.selectedId)
+        state = act(state, ProductCommand.Session(SessionCommand.Tick), 180_000)
+        assertEquals(2, state.board.tasks.first().completed)
+        assertEquals(0, state.board.tasks.last().completed)
+        assertEquals(2, state.history.on(date).sessions)
+    }
+
+    @Test fun guardedResetClearsTaskOnlyWhenItsPhaseMatches() {
+        var state = ProductState(session = newSession(TimerSettings(focusMinutes = 1)))
+        state = act(state, ProductCommand.Task(TaskCommand.Add("Current", 1)))
+        state = act(state, ProductCommand.Session(SessionCommand.Start))
+        state = act(state, ProductCommand.Session(SessionCommand.ResetPhase(state.session.phaseId + 1)), 10_000)
+        assertEquals(1, state.activeTaskId)
+        state = act(state, ProductCommand.Session(SessionCommand.ResetPhase(state.session.phaseId)), 20_000)
+        assertNull(state.activeTaskId)
+        assertEquals(60_000, state.session.remainingMs)
+        assertEquals(0, state.board.tasks.single().completed)
     }
 }

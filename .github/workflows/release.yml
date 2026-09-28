@@ -112,6 +112,118 @@ jobs:
             $uninstall = Start-Process msiexec.exe -ArgumentList @('/x', "`"$msi`"", '/qn', '/norestart') -Wait -PassThru
             if ($uninstall.ExitCode -ne 0) { throw "MSI uninstall failed: $($uninstall.ExitCode)" }
           }
+      - name: Verify upgrade from the published 0.1.0 installer
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = ((Get-Content desktopApp/resources/version.properties | Where-Object { $_ -match '^version=' }) -replace '^version=', '').Trim()
+          $baselineDirectory = Join-Path $env:RUNNER_TEMP 'pomodoro-upgrade-baseline'
+          gh release download v0.1.0 --repo $env:GITHUB_REPOSITORY --pattern 'AggressivePomodoro-0.1.0.msi' --dir $baselineDirectory
+          if ($LASTEXITCODE -ne 0) { throw 'Could not download the published upgrade baseline' }
+          $baselineMsi = Join-Path $baselineDirectory 'AggressivePomodoro-0.1.0.msi'
+          $baselineHash = '96EA04E7893D8F8CD9D9AC070DD014ECE6ECACB6E866658C625E369459E28BB6'
+          if ((Get-FileHash $baselineMsi -Algorithm SHA256).Hash -ne $baselineHash) { throw 'Upgrade baseline checksum mismatch' }
+          $newMsi = (Resolve-Path "build/distribution/artifacts/AggressivePomodoro-$version.msi").Path
+          $baselineProductCode = '{50B90F77-B8D1-3BDD-AC8F-48DF142D69B8}'
+          $upgradeCode = '{8B4BB341-127A-3A18-945B-B92F5C0CD1FD}'
+          $installer = New-Object -ComObject WindowsInstaller.Installer
+          $database = $installer.OpenDatabase($newMsi, 0)
+          $view = $database.OpenView('SELECT `Property`, `Value` FROM `Property`')
+          $view.Execute()
+          $properties = @{}
+          while ($record = $view.Fetch()) { $properties[$record.StringData(1)] = $record.StringData(2) }
+          $view.Close()
+          [void][System.Runtime.InteropServices.Marshal]::FinalReleaseComObject($view)
+          [void][System.Runtime.InteropServices.Marshal]::FinalReleaseComObject($database)
+          if ($properties['UpgradeCode'] -ne $upgradeCode) { throw 'UpgradeCode differs from the published baseline' }
+          if ($properties['ProductVersion'] -ne $version) { throw 'Upgrade MSI has the wrong version' }
+          $newProductCode = $properties['ProductCode']
+          if ($newProductCode -eq $baselineProductCode) { throw 'The new version must have a different MSI ProductCode' }
+
+          function Invoke-Msi([string]$action, [string]$path) {
+            $process = Start-Process msiexec.exe -ArgumentList @($action, "`"$path`"", '/qn', '/norestart') -WindowStyle Hidden -Wait -PassThru
+            if ($process.ExitCode -notin @(0, 3010)) { throw "MSI $action failed: $($process.ExitCode)" }
+          }
+          function Start-AppAndClose([string]$exe) {
+            $app = Start-Process -FilePath $exe -WindowStyle Hidden -PassThru
+            try {
+              Start-Sleep -Seconds 5
+              $app.Refresh()
+              if ($app.HasExited) { throw "Upgrade smoke app exited early: $($app.ExitCode)" }
+              if (-not $app.CloseMainWindow()) { throw 'Could not request a normal app close during upgrade verification' }
+              if (-not $app.WaitForExit(15000)) { throw 'App did not save and close during upgrade verification' }
+              if ($app.ExitCode -ne 0) { throw "App close failed: $($app.ExitCode)" }
+            } finally {
+              $app.Refresh()
+              if (-not $app.HasExited) { Stop-Process -Id $app.Id -Force }
+            }
+          }
+          $previousAppData = $env:APPDATA
+          $env:APPDATA = Join-Path $env:RUNNER_TEMP 'pomodoro-upgrade-profile'
+          $profileDirectory = Join-Path $env:APPDATA 'AggressivePomodoro'
+          New-Item -ItemType Directory -Force $profileDirectory | Out-Null
+          $snapshot = Join-Path $profileDirectory 'session.properties'
+          @'
+          version=2
+          phase=FOCUS
+          status=PAUSED
+          phaseId=1
+          completedFocus=2
+          focusInCycle=2
+          durationMs=1500000
+          remainingMs=900000
+          pending=
+          focusMinutes=25
+          shortBreakMinutes=5
+          longBreakMinutes=15
+          longBreakEvery=4
+          automaticTransitions=true
+          soundEnabled=false
+          clickSoundEnabled=false
+          taskIds=1
+          selectedTaskId=1
+          nextTaskId=2
+          activeTaskId=1
+          task.1.title=Upgrade verification task
+          task.1.estimate=3
+          task.1.completed=2
+          task.1.done=false
+          historyDays=2026-09-28
+          day.2026-09-28.sessions=2
+          day.2026-09-28.focusedMs=3000000
+          '@ | Set-Content -LiteralPath $snapshot -Encoding ascii
+          $exe = Join-Path $env:ProgramFiles 'AggressivePomodoro/AggressivePomodoro.exe'
+          try {
+            Invoke-Msi '/i' $baselineMsi
+            if ($installer.ProductState($baselineProductCode) -ne 5) { throw 'Published baseline was not installed' }
+            Start-AppAndClose $exe
+            Invoke-Msi '/i' $newMsi
+            if ($installer.ProductState($baselineProductCode) -ne -1) { throw 'The old version remains installed beside the upgrade' }
+            if ($installer.ProductState($newProductCode) -ne 5) { throw 'The new MSI product is not installed' }
+            Start-AppAndClose $exe
+            $saved = @{}
+            foreach ($line in Get-Content -LiteralPath $snapshot) {
+              if ($line -match '^[^#!][^=]*=') { $parts = $line -split '=', 2; $saved[$parts[0]] = $parts[1] }
+            }
+            foreach ($entry in @{
+              version = '3'; status = 'PAUSED'; remainingMs = '900000'; activeTaskId = '1';
+              'task.1.title' = 'Upgrade verification task'; 'task.1.completed' = '2';
+              'day.2026-09-28.sessions' = '2'; 'day.2026-09-28.focusedMs' = '3000000'
+            }.GetEnumerator()) {
+              if ($saved[$entry.Key] -ne $entry.Value) { throw "Upgrade did not preserve snapshot field $($entry.Key)" }
+            }
+            "Verified upgrade from 0.1.0 to ${version}: old product removed; paused timer, task credit, and history preserved." | Out-File $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+          } finally {
+            $env:APPDATA = $previousAppData
+            try {
+              if ($installer.ProductState($newProductCode) -eq 5) { Invoke-Msi '/x' $newMsi }
+              if ($installer.ProductState($baselineProductCode) -eq 5) { Invoke-Msi '/x' $baselineMsi }
+            } finally {
+              [void][System.Runtime.InteropServices.Marshal]::FinalReleaseComObject($installer)
+            }
+          }
       - name: Verify MSI checksum
         shell: pwsh
         run: |

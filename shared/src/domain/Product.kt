@@ -50,23 +50,31 @@ sealed interface ProductCommand {
 /** Keeps a completed focus block, its selected task, and the daily total in one transition. */
 object ProductEngine {
     fun reduce(state: ProductState, command: ProductCommand, now: TimeMark, localDate: String): ProductState = when (command) {
-        is ProductCommand.Task -> state.copy(board = updateBoard(state.board, command.command))
-        is ProductCommand.Session -> {
-            val before = state.session
-            val after = SessionEngine.reduce(before, command.command, now)
-            if (after.completedFocus != before.completedFocus) state.copy(session = after,
-                board = creditTask(state.board, state.activeTaskId),
-                history = creditDay(state.history, localDate, before.durationMs), activeTaskId = null)
-            else {
-                val startedFocus = after.status == SessionStatus.RUNNING && after.phase == Phase.FOCUS &&
-                    (before.phase != Phase.FOCUS || before.status != SessionStatus.RUNNING)
-                val leftFocus = before.phase == Phase.FOCUS && after.phase != Phase.FOCUS
-                state.copy(session = after, activeTaskId = when {
-                    startedFocus && before.status != SessionStatus.PAUSED -> state.board.selectedId
-                    leftFocus || (command.command == SessionCommand.Reset && after.status == SessionStatus.IDLE) -> null
-                    else -> state.activeTaskId
-                })
-            }
+        is ProductCommand.Task -> {
+            val current = applySession(state, SessionCommand.Tick, now, localDate)
+            val board = updateBoard(current.board, command.command)
+            current.copy(board = board, activeTaskId = current.activeTaskId.takeIf { id -> board.tasks.any { it.id == id } })
+        }
+        is ProductCommand.Session -> applySession(state, command.command, now, localDate)
+    }
+
+    private fun applySession(state: ProductState, command: SessionCommand, now: TimeMark, localDate: String): ProductState {
+        val before = state.session
+        val after = SessionEngine.reduce(before, command, now)
+        return if (after.completedFocus != before.completedFocus) state.copy(session = after,
+            board = creditTask(state.board, state.activeTaskId),
+            history = creditDay(state.history, localDate, before.durationMs), activeTaskId = null)
+        else {
+            val startedFocus = after.status == SessionStatus.RUNNING && after.phase == Phase.FOCUS &&
+                (before.phase != Phase.FOCUS || before.status != SessionStatus.RUNNING)
+            val leftFocus = before.phase == Phase.FOCUS && after.phase != Phase.FOCUS
+            val reset = command == SessionCommand.Reset ||
+                command is SessionCommand.ResetPhase && command.phaseId == before.phaseId
+            state.copy(session = after, activeTaskId = when {
+                startedFocus && before.status != SessionStatus.PAUSED -> state.board.selectedId
+                leftFocus || (reset && after.status == SessionStatus.IDLE) -> null
+                else -> state.activeTaskId
+            })
         }
     }
 
@@ -102,7 +110,7 @@ object ProductEngine {
     }
 
     private fun creditTask(board: TaskBoard, taskId: Long?): TaskBoard = board.copy(tasks = board.tasks.map {
-        if (it.id == taskId && !it.done) it.copy(completed = it.completed + 1) else it
+        if (it.id == taskId) it.copy(completed = it.completed + 1) else it
     })
 
     private fun creditDay(history: FocusHistory, date: String, durationMs: Long): FocusHistory {

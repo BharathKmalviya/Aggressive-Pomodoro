@@ -5,6 +5,7 @@ dependencies:
   - $compose.desktop.currentOs
   - $compose.material3
   - $libs.kotlinx.coroutines.core
+  - $libs.kotlinx.serialization.json
 
 settings:
   compose: enabled

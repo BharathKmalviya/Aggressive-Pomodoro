@@ -13,6 +13,7 @@ data class TimerSettings(
     val automaticTransitions: Boolean = true,
     val soundEnabled: Boolean = true,
     val clickSoundEnabled: Boolean = true,
+    val aggressiveAlertsEnabled: Boolean = true,
 ) {
     fun isValid(): Boolean = focusMinutes in 1..180 && shortBreakMinutes in 1..60 &&
         longBreakMinutes in 1..60 && longBreakEvery in 2..12
@@ -60,6 +61,12 @@ sealed interface SessionCommand {
     data object Skip : SessionCommand
     data object Tick : SessionCommand
     data object Acknowledge : SessionCommand
+    data class StartPhase(val phaseId: Long) : SessionCommand
+    data class PausePhase(val phaseId: Long) : SessionCommand
+    data class ResumePhase(val phaseId: Long) : SessionCommand
+    data class ResetPhase(val phaseId: Long) : SessionCommand
+    data class SkipPhase(val phaseId: Long) : SessionCommand
+    data class AcknowledgeCompletion(val phaseId: Long) : SessionCommand
     data class ChangeSettings(val settings: TimerSettings) : SessionCommand
 }
 
@@ -73,12 +80,33 @@ object SessionEngine {
         val wallDeadline = state.deadlineWallMs ?: return newSession(state.settings,
             "Session recovery failed. A new focus session is ready.")
         val remaining = max(0L, wallDeadline - now.wallMs)
+        if (remaining > state.remainingMs) return pauseForClockChange(state, state.remainingMs)
         val anchored = state.copy(remainingMs = remaining,
             deadlineMonotonicMs = now.monotonicMs + remaining, lastMark = now)
         return if (remaining == 0L) tick(anchored, now) else anchored
     }
 
-    fun reduce(state: SessionState, command: SessionCommand, now: TimeMark): SessionState = when (command) {
+    fun reduce(state: SessionState, command: SessionCommand, now: TimeMark): SessionState {
+        val intent = when (command) {
+            is SessionCommand.StartPhase -> if (command.phaseId == state.phaseId) SessionCommand.Start else SessionCommand.Tick
+            is SessionCommand.PausePhase -> if (command.phaseId == state.phaseId) SessionCommand.Pause else SessionCommand.Tick
+            is SessionCommand.ResumePhase -> if (command.phaseId == state.phaseId) SessionCommand.Resume else SessionCommand.Tick
+            is SessionCommand.ResetPhase -> if (command.phaseId == state.phaseId) SessionCommand.Reset else SessionCommand.Tick
+            is SessionCommand.SkipPhase -> if (command.phaseId == state.phaseId) SessionCommand.Skip else SessionCommand.Tick
+            is SessionCommand.AcknowledgeCompletion -> if (command.phaseId == state.pending.firstOrNull()?.phaseId)
+                SessionCommand.Acknowledge else SessionCommand.Tick
+            else -> command
+        }
+        if (intent == SessionCommand.Tick) return tick(state, now)
+        val current = tick(state, now)
+        // A command from the expired phase must not reset, skip, or pause its successor.
+        // An already-visible completion can still be acknowledged when a second one arrives.
+        if (current.phaseId != state.phaseId && intent !is SessionCommand.ChangeSettings &&
+            !(intent == SessionCommand.Acknowledge && state.pending.isNotEmpty())) return current
+        return applyCommand(current, intent, now)
+    }
+
+    private fun applyCommand(state: SessionState, command: SessionCommand, now: TimeMark): SessionState = when (command) {
         SessionCommand.Start -> if (state.status == SessionStatus.IDLE && state.pending.isEmpty())
             start(state, now) else state
         SessionCommand.Resume -> if (state.status == SessionStatus.PAUSED)
@@ -95,6 +123,8 @@ object SessionEngine {
         SessionCommand.Acknowledge -> acknowledge(state, now)
         is SessionCommand.ChangeSettings -> if (command.settings.isValid())
             state.copy(settings = command.settings) else state
+        is SessionCommand.StartPhase, is SessionCommand.PausePhase, is SessionCommand.ResumePhase,
+        is SessionCommand.ResetPhase, is SessionCommand.SkipPhase, is SessionCommand.AcknowledgeCompletion -> state
     }
 
     private fun start(state: SessionState, now: TimeMark): SessionState = state.copy(
@@ -107,15 +137,15 @@ object SessionEngine {
     private fun tick(state: SessionState, now: TimeMark): SessionState {
         if (state.status != SessionStatus.RUNNING) return state
         val previous = state.lastMark
-        if (previous != null && kotlin.math.abs(
-                (now.wallMs - previous.wallMs) - (now.monotonicMs - previous.monotonicMs)
-            ) > CLOCK_DISAGREEMENT_MS
-        ) {
+        val clockDisagreement = previous?.let {
+            (now.wallMs - it.wallMs) - (now.monotonicMs - it.monotonicMs)
+        }
+        if (previous != null && clockDisagreement != null && kotlin.math.abs(clockDisagreement) > CLOCK_DISAGREEMENT_MS) {
             // A long monotonic gap suggests sleep; a quick gap with a large wall jump suggests clock editing.
-            if (now.monotonicMs - previous.monotonicMs > 10_000L) return recover(state, now)
-            return state.copy(status = SessionStatus.PAUSED, remainingMs = state.remainingAt(now),
-                deadlineMonotonicMs = null, deadlineWallMs = null, lastMark = null,
-                message = "The system clock changed. Review the timer, then resume or reset it.")
+            // Sleep cannot explain a backward wall-clock discrepancy.
+            if (clockDisagreement > 0 && now.monotonicMs - previous.monotonicMs > 10_000L)
+                return recover(state, now)
+            return pauseForClockChange(state, state.remainingAt(now))
         }
 
         val remaining = state.remainingAt(now)
@@ -131,6 +161,12 @@ object SessionEngine {
             deadlineWallMs = if (waiting) null else now.wallMs + next.durationMs,
             lastMark = if (waiting) null else now)
     }
+
+    private fun pauseForClockChange(state: SessionState, remainingMs: Long): SessionState = state.copy(
+        status = SessionStatus.PAUSED, remainingMs = remainingMs.coerceIn(0L, state.durationMs),
+        deadlineMonotonicMs = null, deadlineWallMs = null, lastMark = null,
+        message = "The system clock changed. Review the timer, then resume or reset it.",
+    )
 
     private fun advance(state: SessionState, completed: Boolean): SessionState {
         val nextFocusCount = state.completedFocus + if (completed && state.phase == Phase.FOCUS) 1 else 0

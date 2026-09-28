@@ -6,6 +6,21 @@ Defines how phase completion gets the user's attention and how the next phase st
 
 ## ADDED Requirements
 
+### Requirement: Persistent aggressive reminders
+The application SHALL default to aggressive reminders that repeat attention and enabled completion sound every ten seconds while a completion remains pending. Reminders SHALL NOT add completion events or task/history credit. Users SHALL be able to disable reminders independently of sound, mute directly from an alert, and preview the completion alarm. Playback failures SHALL leave visible feedback and preserve timer operation.
+
+#### Scenario: Unacknowledged completion
+- **WHEN** a pending completion remains unacknowledged for ten seconds
+- **THEN** the app attempts one reminder, keeps the same event queue, and stops reminders after the queue is acknowledged
+
+#### Scenario: Delayed checks and restored alerts
+- **WHEN** a check is delayed beyond several reminder intervals or a saved pending event is restored
+- **THEN** the app makes at most one immediate alert attempt without replaying missed reminders
+
+#### Scenario: Muted persistent alert
+- **WHEN** the user mutes the completion alarm from its dialog
+- **THEN** current playback stops, later reminders remain visual only, and the saved sound preference is disabled
+
 ### Requirement: Phase-completion alert
 The application SHALL show a clearly labeled completion dialog for every focus or break phase that ends while the application is running. It SHALL play an audible cue when sound is enabled and request desktop attention when the window is hidden or unfocused. The dialog SHALL remain discoverable until acknowledged, even when system notification or sound delivery is unavailable.
 

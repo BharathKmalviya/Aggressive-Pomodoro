@@ -6,6 +6,32 @@ Defines the first public download experience and verifiable release assets for u
 
 ## ADDED Requirements
 
+### Requirement: User-controlled updates and repository access
+About SHALL show the installed version and a link to the public GitHub repository. The app SHALL check for updates only on user request, compare numeric semantic versions, and offer only a newer stable Windows release from this repository. Offline, rate-limited, malformed, and missing-asset responses SHALL show a recoverable explanation without affecting the timer.
+
+#### Scenario: Check an installed current version
+- **WHEN** the latest stable version is no newer than the running app
+- **THEN** the app reports it is up to date and offers no downgrade
+
+#### Scenario: Open repository
+- **WHEN** the user activates the repository link in About
+- **THEN** the fixed public project URL opens in the default browser or a visible browser error is shown
+
+### Requirement: Verified download and deliberate installation
+The update flow SHALL show download progress, support cancellation and retry, validate the exact versioned MSI against its SHA-256 checksum, and reject unexpected download locations or malformed release metadata. Installation SHALL require explicit user confirmation. Before opening the interactive Windows installer, the app SHALL reverify the file, save and back up local state, and keep persistence usable if preparation or launch fails. Windows packages SHALL preserve the published product UpgradeCode.
+
+#### Scenario: Cancel or corrupt download
+- **WHEN** the user cancels a download or its size/hash is invalid
+- **THEN** partial data cannot be installed and the UI offers a retry
+
+#### Scenario: Install a verified update
+- **WHEN** the user confirms installation of a verified newer release
+- **THEN** the app saves and backs up its local state, launches the Windows installer, and exits with installation/relaunch under the user's control
+
+#### Scenario: Install preparation fails
+- **WHEN** saving, backup, checksum verification, or installer launch fails
+- **THEN** the app stays open, explains the failure, and preserves timer and persistence operation
+
 ### Requirement: Windows release artifacts
 Each public Windows release SHALL provide a versioned installer that includes the runtime needed to launch the application, a checksum file for the installer, release notes, and clear download and installation instructions. Users SHALL NOT need to install a separate Java runtime.
 

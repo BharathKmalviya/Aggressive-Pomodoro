@@ -87,7 +87,7 @@ class SessionEngineTest {
         assertFalse(shortSettings.copy(longBreakEvery = 13).isValid())
         assertTrue(TimerSettings(focusMinutes = 180, shortBreakMinutes = 60,
             longBreakMinutes = 60, longBreakEvery = 12).isValid())
-        assertEquals(state, act(state, SessionCommand.ChangeSettings(invalid), 1))
+        assertEquals(state.settings, act(state, SessionCommand.ChangeSettings(invalid), 1).settings)
         val changed = shortSettings.copy(focusMinutes = 3, shortBreakMinutes = 2, longBreakEvery = 2)
         state = act(state, SessionCommand.ChangeSettings(changed), 1)
         assertEquals(60_000, state.durationMs)
@@ -155,5 +155,111 @@ class SessionEngineTest {
         assertEquals(Phase.SHORT_BREAK, afterSleep.phase)
         assertEquals(1, afterSleep.completedFocus)
         assertEquals(1, afterSleep.pending.size)
+    }
+
+    @Test fun lateControlsPreserveCompletionAndDoNotAlterTheNextPhase() {
+        for (command in listOf(SessionCommand.Pause, SessionCommand.Reset, SessionCommand.Skip)) {
+            val running = act(newSession(shortSettings), SessionCommand.Start, 0)
+            val completed = act(running, command, 60_000)
+            assertEquals(1, completed.completedFocus, command.toString())
+            assertEquals(Phase.SHORT_BREAK, completed.phase, command.toString())
+            assertEquals(SessionStatus.RUNNING, completed.status, command.toString())
+            assertEquals(60_000, completed.remainingMs, command.toString())
+            assertEquals(1, completed.pending.size, command.toString())
+            assertEquals(completed, act(completed, SessionCommand.Tick, 60_000))
+        }
+    }
+
+    @Test fun lateControlInConfirmationModeKeepsTheNextPhaseWaiting() {
+        val running = act(newSession(shortSettings.copy(automaticTransitions = false)), SessionCommand.Start, 0)
+        val completed = act(running, SessionCommand.Skip, 60_000)
+        assertEquals(1, completed.completedFocus)
+        assertEquals(Phase.SHORT_BREAK, completed.phase)
+        assertEquals(SessionStatus.WAITING, completed.status)
+        assertEquals(1, completed.pending.size)
+    }
+
+    @Test fun acknowledgementCannotDismissAnUnseenCompletion() {
+        val running = act(newSession(shortSettings), SessionCommand.Start, 0)
+        val completed = act(running, SessionCommand.Acknowledge, 60_000)
+        assertEquals(1, completed.pending.size)
+
+        val secondCompleted = act(completed, SessionCommand.Acknowledge, 120_000)
+        assertEquals(1, secondCompleted.pending.size)
+        assertEquals(Phase.SHORT_BREAK, secondCompleted.pending.single().phase)
+        assertEquals(SessionStatus.WAITING, secondCompleted.status)
+        assertEquals(1, secondCompleted.completedFocus)
+    }
+
+    @Test fun settingsAtDeadlineDoNotRetroactivelyAlterTheCompletedPhaseTransition() {
+        val running = act(newSession(shortSettings), SessionCommand.Start, 0)
+        val settings = shortSettings.copy(shortBreakMinutes = 2, automaticTransitions = false)
+        val completed = act(running, SessionCommand.ChangeSettings(settings), 60_000)
+        assertEquals(1, completed.completedFocus)
+        assertEquals(60_000, completed.durationMs)
+        assertEquals(SessionStatus.RUNNING, completed.status)
+        assertEquals(settings, completed.settings)
+    }
+
+    @Test fun backwardClockDuringLongGapPausesInsteadOfTreatingItAsSleep() {
+        val running = SessionEngine.reduce(newSession(shortSettings), SessionCommand.Start, TimeMark(0, 300_000))
+        val changed = SessionEngine.reduce(running, SessionCommand.Tick, TimeMark(20_000, 100_000))
+        assertEquals(SessionStatus.PAUSED, changed.status)
+        assertEquals(40_000, changed.remainingMs)
+        assertEquals(0, changed.completedFocus)
+        assertTrue(changed.message?.contains("clock changed") == true)
+    }
+
+    @Test fun restartAfterBackwardClockKeepsRemainingWithinSavedProgress() {
+        var running = SessionEngine.reduce(newSession(shortSettings), SessionCommand.Start, TimeMark(0, 300_000))
+        running = SessionEngine.reduce(running, SessionCommand.Tick, TimeMark(20_000, 320_000))
+        val restored = SessionEngine.recover(running.copy(deadlineMonotonicMs = null, lastMark = null),
+            TimeMark(0, 290_000))
+        assertEquals(SessionStatus.PAUSED, restored.status)
+        assertEquals(40_000, restored.remainingMs)
+        assertEquals(null, restored.deadlineWallMs)
+        assertTrue(restored.message?.contains("clock changed") == true)
+        val resumed = act(restored, SessionCommand.Resume, 500_000)
+        assertEquals(SessionStatus.RUNNING, resumed.status)
+        assertEquals(40_000, resumed.remainingAt(at(500_000)))
+    }
+
+    @Test fun staleConfirmedControlsCannotAlterAnAlreadyAdvancedPhase() {
+        val running = act(newSession(shortSettings), SessionCommand.Start, 0)
+        val completed = act(running, SessionCommand.Tick, 60_000)
+        for (command in listOf(SessionCommand.ResetPhase(running.phaseId), SessionCommand.SkipPhase(running.phaseId))) {
+            assertEquals(completed, act(completed, command, 60_000))
+            val later = act(completed, command, 70_000)
+            assertEquals(completed.phaseId, later.phaseId)
+            assertEquals(SessionStatus.RUNNING, later.status)
+            assertEquals(50_000, later.remainingMs)
+        }
+    }
+
+    @Test fun stalePrimaryControlsCannotAlterAnAlreadyAdvancedPhase() {
+        val running = act(newSession(shortSettings), SessionCommand.Start, 0)
+        val completed = act(running, SessionCommand.Tick, 60_000)
+        for (command in listOf(SessionCommand.StartPhase(running.phaseId),
+            SessionCommand.PausePhase(running.phaseId), SessionCommand.ResumePhase(running.phaseId))) {
+            val later = act(completed, command, 70_000)
+            assertEquals(completed.phaseId, later.phaseId, command.toString())
+            assertEquals(SessionStatus.RUNNING, later.status, command.toString())
+            assertEquals(50_000, later.remainingMs, command.toString())
+            assertEquals(completed.pending, later.pending, command.toString())
+        }
+    }
+
+    @Test fun repeatedOldAcknowledgementCannotDismissTheNextEvent() {
+        var state = act(newSession(shortSettings), SessionCommand.Start, 0)
+        state = act(state, SessionCommand.Tick, 60_000)
+        state = act(state, SessionCommand.Tick, 120_000)
+        val first = SessionCommand.AcknowledgeCompletion(state.pending.first().phaseId)
+        state = act(state, first, 120_000)
+        assertEquals(1, state.pending.size)
+        assertEquals(SessionStatus.WAITING, state.status)
+        assertEquals(state, act(state, first, 120_000))
+        state = act(state, SessionCommand.AcknowledgeCompletion(state.pending.single().phaseId), 120_000)
+        assertTrue(state.pending.isEmpty())
+        assertEquals(SessionStatus.RUNNING, state.status)
     }
 }

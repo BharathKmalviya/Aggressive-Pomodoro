@@ -12,7 +12,10 @@ The repository began as a Compose desktop starter. A first Windows release needs
 - Persist settings and active-session state locally so relaunch and suspend/resume have defined behavior. Avoid duplicate transitions and silently lost alerts.
 - Add a local task list with estimates and selection, credit the task captured at focus start, and show daily focus totals in a seven-day report.
 - Use a responsive timer-and-tasks desktop layout with optional short button-click feedback separate from completion sound.
+- Make the aggressive identity functional: default-on ten-second completion reminders until acknowledgement, a testable alarm, forceful phase-specific prompts, final-minute urgency, and unmistakable focus/break styling while retaining mute and reminder controls.
+- Harden deadline-boundary commands, stale confirmations, active-task deletion and restart credit, snapshot validation, and desktop alert failures with deterministic regression coverage.
 - Prepare a Windows-first downloadable release, with a self-contained installer, integrity checksum, versioned release notes, and CI validation.
+- Add a user-triggered About update flow: check this repository's latest stable release, download the Windows installer with progress/cancel/retry, verify its checksum, save and back up local state, and open the installer only after explicit confirmation. Link the public GitHub repository from About.
 - Establish open-source project documentation: setup, architecture, manual verification, release process, contribution guidance, code of conduct, security reporting, and the MIT License.
 
 ## Capabilities

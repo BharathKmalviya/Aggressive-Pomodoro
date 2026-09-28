@@ -6,6 +6,20 @@ Defines the observable focus and break timer lifecycle so sessions advance predi
 
 ## ADDED Requirements
 
+### Requirement: Assertive and truthful timer feedback
+The application SHALL show distinct focus and break identities, explicit paused and waiting instructions, and a final-minute urgency state. Destructive confirmations SHALL refer only to their original phase and SHALL also protect paused progress. Other dialogs SHALL yield to completion alerts.
+
+#### Scenario: Phase ends during confirmation
+- **WHEN** a phase completes with a reset or skip confirmation open
+- **THEN** the stale confirmation closes and cannot reset or skip the newly started phase
+
+### Requirement: Deadline-boundary commands
+The application SHALL reconcile current time before user commands. A command aimed at an expired phase SHALL NOT erase completion credit or control the newly advanced phase.
+
+#### Scenario: Pause at the deadline
+- **WHEN** pause arrives at or beyond the phase deadline before the next scheduled check
+- **THEN** that phase completes once and the next phase follows the configured transition mode
+
 ### Requirement: Default cycle
 The application SHALL start in an idle focus phase with a 25-minute focus duration, a 5-minute short break, a 15-minute long break, and a long break after every fourth completed focus phase.
 

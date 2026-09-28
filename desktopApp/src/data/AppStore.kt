@@ -24,7 +24,7 @@ class AppStore(private val file: Path) : SnapshotStore {
         return try {
             val values = Properties().apply { Files.newInputStream(file).use { load(it) } }
             val version = values.required("version")
-            require(version == "1" || version == "2")
+            require(version in setOf("1", "2", "3"))
             val settings = TimerSettings(
                 focusMinutes = values.int("focusMinutes"),
                 shortBreakMinutes = values.int("shortBreakMinutes"),
@@ -33,6 +33,7 @@ class AppStore(private val file: Path) : SnapshotStore {
                 automaticTransitions = values.boolean("automaticTransitions"),
                 soundEnabled = values.boolean("soundEnabled"),
                 clickSoundEnabled = if (version == "1") true else values.boolean("clickSoundEnabled"),
+                aggressiveAlertsEnabled = if (version == "3") values.boolean("aggressiveAlertsEnabled") else true,
             )
             require(settings.isValid())
             val phase = enumValueOf<Phase>(values.required("phase"))
@@ -55,14 +56,21 @@ class AppStore(private val file: Path) : SnapshotStore {
                 } ?: emptyList()
             require(pending.size <= 2 && pending.map { it.phaseId }.distinct().size == pending.size)
             require(pending.all { it.phaseId in 1 until id })
+            require(pending.zipWithNext().all { (first, second) -> first.phaseId < second.phaseId })
+            require(status != SessionStatus.WAITING || (pending.isNotEmpty() && remaining == duration))
+            require(status != SessionStatus.RUNNING || pending.size < 2)
+            require(status == SessionStatus.RUNNING || deadline == null)
             val session = SessionState(phase, status, id, completed, inCycle, duration, remaining,
                 deadlineWallMs = deadline, pending = pending, settings = settings)
             val board = if (version == "1") TaskBoard() else values.readBoard()
             val history = if (version == "1") FocusHistory() else values.readHistory()
-            val activeTaskId = if (version == "1") null else values.getProperty("activeTaskId")
+            // An empty value means this block started without a task. Never substitute
+            // a selection made later. Old releases could save a deleted captured ID;
+            // discard just that reference rather than all the user's local data.
+            val capturedTaskId = if (version == "1") null else values.getProperty("activeTaskId")
                 ?.takeIf { it.isNotEmpty() }?.toLong()
-                ?: if (status == SessionStatus.RUNNING && phase == Phase.FOCUS) board.selectedId else null
-            require(activeTaskId == null || board.tasks.any { it.id == activeTaskId })
+            val activeTaskId = capturedTaskId?.takeIf { id -> phase == Phase.FOCUS &&
+                status in setOf(SessionStatus.RUNNING, SessionStatus.PAUSED) && board.tasks.any { it.id == id } }
             ProductState(session, board, history, activeTaskId)
         } catch (_: Exception) {
             ProductState(session = newSession(message = "Saved state could not be recovered. A new focus session is ready."))
@@ -73,7 +81,7 @@ class AppStore(private val file: Path) : SnapshotStore {
         Files.createDirectories(file.parent)
         val state = snapshot.session
         val values = Properties().apply {
-            setProperty("version", "2")
+            setProperty("version", "3")
             setProperty("phase", state.phase.name)
             setProperty("status", state.status.name)
             setProperty("phaseId", state.phaseId.toString())
@@ -90,6 +98,7 @@ class AppStore(private val file: Path) : SnapshotStore {
             setProperty("automaticTransitions", state.settings.automaticTransitions.toString())
             setProperty("soundEnabled", state.settings.soundEnabled.toString())
             setProperty("clickSoundEnabled", state.settings.clickSoundEnabled.toString())
+            setProperty("aggressiveAlertsEnabled", state.settings.aggressiveAlertsEnabled.toString())
             setProperty("taskIds", snapshot.board.tasks.joinToString(",") { it.id.toString() })
             setProperty("selectedTaskId", snapshot.board.selectedId?.toString() ?: "")
             setProperty("nextTaskId", snapshot.board.nextId.toString())

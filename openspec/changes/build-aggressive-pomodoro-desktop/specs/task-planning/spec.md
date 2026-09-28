@@ -6,6 +6,17 @@ Lets a user name the work behind a focus session and track progress against a sm
 
 ## ADDED Requirements
 
+### Requirement: Stable active-task ownership
+The application SHALL distinguish the current captured task from the next selected task. A focus block begun without a task SHALL remain unassigned across restart. Removing the captured task SHALL clear its reference without invalidating the saved product; completing a surviving task manually SHALL not discard credit for its already running block.
+
+#### Scenario: Remove an active task
+- **WHEN** the user removes the captured task, saves, and restarts
+- **THEN** the timer, remaining tasks, settings, and history restore without a dangling task reference
+
+#### Scenario: Select after an unassigned start
+- **WHEN** focus starts without a task, a task is selected later, and the app restarts
+- **THEN** that running block remains unassigned and selection applies to the next focus block
+
 ### Requirement: Local task list
 The application SHALL let the user add, select, complete, and remove local tasks. A task SHALL have a nonempty title and an estimate from 1 to 20 focus blocks.
 

@@ -49,3 +49,31 @@
 - [ ] 7.3 Add independent button-click sound preference and bundled cue; verify enabled, disabled, rapid-click, and unavailable-audio behavior on Windows.
 - [x] 7.4 Verify the production Windows CI and version-driven release workflow against a clean MSI installation, checksum, MIT license gate, duplicate-version skip, and failed-build publication gate.
 - [x] 7.5 Set and read back the GitHub About description, release link, and product/technology topics; verify the first published release appears from the repository page.
+
+## 8. Aggressive identity and edge cases
+
+- [x] 8.1 Add default-on persistent ten-second reminders with independent preference, restored-alert delivery, bounded delayed-check behavior, exception-safe effects, and injected-clock tests.
+- [x] 8.2 Strengthen focus/break visuals, phase-specific prompts, final-minute urgency, truthful active/next task labels, responsive controls, and stale/paused confirmation handling.
+- [x] 8.3 Add a distinct completion alarm, non-overlapping/throttled audio, preview, in-alert mute, and visible audio-failure feedback with deterministic adapter checks where possible.
+- [x] 8.4 Fix deadline-boundary commands and active-task lifecycle/credit issues; add deterministic regression tests.
+- [x] 8.5 Migrate reminder settings while preserving legacy state, unassigned task ownership, and valid snapshots; test round trips and malformed snapshot recovery.
+- [x] 8.6 Update README, architecture, changelog, and exact Windows acceptance scenarios; run complete build/tests and strict OpenSpec validation and record remaining manual evidence.
+
+Section 8 verification (2026-09-28): complete Kotlin build and all 62 tests passed (32 shared, 30 desktop); strict OpenSpec validation passed. Native Windows visual, keyboard, audio, and minimize/sleep acceptance remain open under the earlier unchecked tasks and `docs/TESTING.md`. The owner subsequently requested v0.2.0 publication with those manual gaps disclosed. Automated release gates remain mandatory; this change stays active and is not ready for archival.
+
+## 9. Version 0.2.0 publication
+
+- [x] 9.1 Prepare versioned release notes and snapshot rollback guidance, incorporate remote changes, and validate release metadata and OpenSpec.
+- [ ] 9.2 Commit and push the release update to main; verify Windows CI and the release workflow build/test/package/install gates succeed for that exact commit.
+- [ ] 9.3 Read back the published v0.2.0 tag and assets, independently download and verify MSI checksum and license, and record release evidence with outstanding manual checks.
+
+## 10. In-app updates and About repository
+
+- [x] 10.1 Implement manual latest-stable release checks, numeric version comparison, constrained asset downloads, progress/cancel/retry, bounded network handling, and checksum verification with deterministic tests.
+- [x] 10.2 Add About repository access and an update dialog covering current/available/downloading/ready/error states, explicit install confirmation, and completion-alert priority.
+- [x] 10.3 Integrate verified interactive installation with save/backup/exit and recoverable failures; preserve the first released MSI UpgradeCode and cover controller failure paths with tests.
+- [x] 10.4 Update privacy, architecture, release notes, and manual Windows upgrade checks; run full build/tests and strict OpenSpec validation before publication.
+
+Section 10 local verification: build and executable JAR packaging passed; all 83 tests passed (32 shared, 51 desktop) with no test discovery omissions. Strict OpenSpec validation and workflow actionlint passed. The original released MSI's hash and UpgradeCode were independently verified. Interactive updater/UAC and the manual audio/UI checks remain pending.
+
+The packaged updater also passed a live latest-release check, full 92,951,448-byte v0.1.0 download, and checksum re-verification without launching an installer.

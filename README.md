@@ -1,12 +1,12 @@
 # Aggressive Pomodoro
 
-Aggressive Pomodoro is a Windows desktop focus timer built with Kotlin and Compose Multiplatform. It combines focus and break cycles, local tasks, completion alerts, and a record of completed work.
+Aggressive Pomodoro is a Windows desktop focus timer built with Kotlin and Compose Multiplatform. Commit to one outcome, finish the block, and take the break. An assertive timer, a multi-pulse alarm, and persistent completion reminders keep phase changes hard to miss.
 
 **Downloads:** [GitHub Releases](https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases) lists verified Windows installers. Windows is the only packaged target at present.
 
 ## Screenshots
 
-The Windows app in v0.1.0, shown with sample tasks in a local test profile.
+The Windows app in v0.1.0, shown with sample tasks in a local test profile. These screenshots predate the current aggressive interface refresh.
 
 ![Focus timer beside the local task list](docs/images/timer-and-tasks.png)
 
@@ -16,9 +16,13 @@ The Windows app in v0.1.0, shown with sample tasks in a local test profile.
 
 - Focus, short break, and long break phases. The default schedule is 25 / 5 / 15 minutes, with a long break after four completed focus blocks. Durations and transition behavior are configurable.
 - Start, pause, resume, reset, and skip controls. Automatic transitions can be disabled when each next phase should wait for confirmation. Completion alerts remain visible until acknowledged.
+- Aggressive reminders are enabled by default: pending completions repeat the alarm and request taskbar attention every ten seconds until reviewed. Disable reminders or completion sound independently in Settings; mute an alarm directly in its completion dialog. Use **TEST ALARM** in Settings to preview the sound, even when automatic completion sound is muted.
+- High-contrast focus and break screens, direct phase instructions, an explicit paused state, and final-minute urgency. Reset/skip confirms before discarding running or paused progress, and confirmations expire when their phase ends.
 - Local tasks with estimated focus blocks. A completed focus block is credited to the task selected when that block began; skipped blocks receive no credit.
+- The timer distinguishes the task earning the current block from the task selected for the next one. Deleting the captured task preserves the timer and other saved work; marking it done still credits its completed block.
 - Today's completed blocks and focused minutes, plus a report covering the current day and previous six calendar days. Reports use planned focus duration and the local date at completion.
-- Independent completion and button-click sounds. A visual completion alert remains available if sound cannot play.
+- Independent completion and button-click sounds. Alarm playback does not overlap, rapid click cues are throttled, and unavailable audio shows a visible explanation while the timer keeps working.
+- **About → Check for updates** finds newer stable Windows releases. Download with progress/cancel, then confirm **Install & Exit** to verify the installer, save and back up your session, and open Windows Installer. About also links directly to the GitHub repository.
 
 The timer continues while the window is minimized. It cannot alert after the application exits, and it does not block other applications.
 
@@ -54,7 +58,11 @@ Obtain the MSI, checksum file, and MIT License from [GitHub Releases](https://gi
 
 On Windows, the application stores its timer state, settings, tasks, and daily totals in `%APPDATA%\AggressivePomodoro\session.properties`. Changes are saved without blocking the UI. After a restart, an expired phase is completed once; missed cycles are not backfilled. If the saved file cannot be read, the application starts a fresh focus session and shows a recovery message. See [Architecture](docs/ARCHITECTURE.md) for the persistence and clock rules.
 
+Version 0.2.0 migrates older snapshots to format 3. Close the app and back up the saved file before upgrading if you may downgrade: v0.1.0 cannot read the new format, so restore the pre-upgrade backup before launching it again.
+
 Only one instance can use the saved state at a time. The application has no account, telemetry, or cloud sync.
+
+Update checks and downloads contact GitHub only when you request them. They do not send tasks, history, or timer data. Verified downloads are kept under `%APPDATA%\AggressivePomodoro\updates`; installation creates a uniquely named snapshot backup under `backups`. The Windows installer stays interactive, and you reopen the app after it finishes. If you restart before installing, download again so the current process can verify the installer.
 
 ## Project documentation
 

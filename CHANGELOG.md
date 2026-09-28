@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.0
+
+- Added **About → Check for updates**, download progress and cancellation, checksum verification, and confirmed **Install & Exit** with a local session backup. Updates use the latest stable GitHub release and never install automatically.
+- Added a clickable GitHub repository link to About and preserved the Windows installer's upgrade identity across versions.
+- Reworked the desktop interface around assertive focus/break prompts, high-contrast styling, final-minute urgency, and clearer current/next task ownership.
+- Added default-on completion reminders every ten seconds, a multi-pulse alarm, Settings preview, in-alert mute, and visible audio failure feedback.
+- Protected paused progress and cancelled stale reset/skip confirmations when a phase changes; completion alerts take priority over other dialogs.
+- Fixed commands arriving at a deadline losing completion credit, task deletion invalidating saved work, completed tasks losing earned credit, and unassigned sessions being reassigned after restart.
+- Hardened backward-clock recovery, snapshot validation, alert callback failures, fresh command timestamps, and persistence retry after a failed close.
+- Added deterministic regression tests for timer, storage, audio, and update flows, plus expanded Windows manual acceptance scenarios. Hands-on Windows audio, keyboard, minimize, sleep, and interactive updater checks remain unverified for this release.
+- Saved data migrates to snapshot version 3 while preserving existing tasks, progress, settings, and timer state. Before upgrading, close the app and back up `%APPDATA%\AggressivePomodoro\session.properties` if you may return to v0.1.0; that older app cannot read version 3 snapshots. Restore the pre-upgrade backup before launching the old version.
+
 ## 0.1.0
 
 - Windows desktop timer with focus, short break, and long break cycle.
