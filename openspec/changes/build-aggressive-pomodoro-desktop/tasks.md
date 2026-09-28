@@ -32,7 +32,7 @@
 
 - [x] 5.1 Establish Git history and the owner-selected public release destination for this workspace; verify the intended remote, version tag policy, and release permissions before configuring publication.
 - [ ] 5.2 Add app icon, application/version metadata, and About display; verify the same version appears in the running app and package metadata.
-- [ ] 5.3 Build the executable JAR with the pinned Kotlin Toolchain and package it into a runtime-bundled Windows app image and MSI using pinned JDK/jpackage and WiX tooling; verify the app image launches without a separate Java installation and the MSI installs and launches on a clean Windows environment.
+- [x] 5.3 Build the executable JAR with the pinned Kotlin Toolchain and package it into a runtime-bundled Windows app image and MSI using pinned JDK/jpackage and WiX tooling; verify the app image launches without a separate Java installation and the MSI installs and launches on a clean Windows environment.
 - [x] 5.4 Add Windows CI for build, tests, packaging smoke checks, checksum generation, and tag-bound release assets, with publication gated on successful validation; verify a failed packaging job cannot publish a release and the checksum matches the exact MSI.
 - [x] 5.5 Add `docs/RELEASING.md`, `CHANGELOG.md`, and README download/install guidance covering version/tag rules, checksums, unsigned installer warning, rollback, source-build support, and Windows-only package support; verify commands, links, and filenames against produced artifacts.
 
@@ -40,12 +40,12 @@
 
 - [ ] 6.1 Run the complete build/test command and follow `docs/TESTING.md` on Windows for a full four-focus cycle, both transition modes, minimize/restore, sleep/restart, clock change, and second instance; record results and resolve failures before tagging.
 - [ ] 6.2 Validate this OpenSpec change strictly, review implementation against all six delta specs, and reconcile documentation with actual behavior; verify `openspec validate build-aggressive-pomodoro-desktop --strict` succeeds and no unchecked spec scenario lacks evidence.
-- [ ] 6.3 Before publishing the first download, confirm the MIT License and copyright holder, clean installer launch, checksum, release notes, and versioned tag/assets; verify the published release page and download links from a fresh readback.
+- [x] 6.3 Before publishing the first download, confirm the MIT License and copyright holder, clean installer launch, checksum, release notes, and versioned tag/assets; verify the published release page and download links from a fresh readback.
 
 ## 7. Production task flow and feedback
 
 - [x] 7.1 Add local tasks with validated titles and estimates, selection, completion, deletion, and focus credit captured at phase start; verify reducer and snapshot round-trip tests.
 - [ ] 7.2 Show today's completed focus total and a seven-day report in the responsive desktop UI; verify local-date rollover, persistence, narrow layout, and keyboard use on Windows.
 - [ ] 7.3 Add independent button-click sound preference and bundled cue; verify enabled, disabled, rapid-click, and unavailable-audio behavior on Windows.
-- [ ] 7.4 Verify the production Windows CI and version-driven release workflow against a clean MSI installation, checksum, MIT license gate, duplicate-version skip, and failed-build publication gate.
-- [ ] 7.5 Set and read back the GitHub About description, release link, and product/technology topics; verify the first published release appears from the repository page.
+- [x] 7.4 Verify the production Windows CI and version-driven release workflow against a clean MSI installation, checksum, MIT license gate, duplicate-version skip, and failed-build publication gate.
+- [x] 7.5 Set and read back the GitHub About description, release link, and product/technology topics; verify the first published release appears from the repository page.

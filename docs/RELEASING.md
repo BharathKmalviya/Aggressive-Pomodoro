@@ -28,3 +28,9 @@ The script uses the checked-in Kotlin Toolchain wrapper, runs build and tests, b
 Do not create or move release tags by hand. If a matching tag exists without a published release, automation stops for investigation. Update the version and changelog only after the manual acceptance checks, then push to `main`. Ordinary code pushes with the same published version do not create another release.
 
 After publication, read the release page back and download the MSI and checksum from a fresh browser session. Verify the hash and clean-machine launch. If a release fails after publication, document the failure and publish a corrected version; immutable release assets and tags cannot be replaced.
+
+## First release verification
+
+On 2026-09-28, [Windows CI](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/36442587045) and the [v0.1.0 release workflow](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/36442586887) passed. The release workflow built and tested the app, installed and launched the MSI on a fresh Windows runner, checked the MSI and MIT License, and published the [immutable v0.1.0 release](https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases/tag/v0.1.0) from commit `98d92dd469f96c1be4af9a3256e1e5676621b07b`. A separate download of all three release assets verified the MSI SHA-256 as `96ea04e7893d8f8cd9d9ac070dd014ece6ecacb6e866658c625e369459e28bb6` against `SHA256SUMS.txt` and the license against its pinned hash. A [repeat dispatch](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/36443480071) skipped packaging and publication for the existing version.
+
+The hands-on desktop scenarios in [TESTING.md](TESTING.md), including sound, minimize, sleep, and keyboard behavior, still need a recorded Windows acceptance pass.
