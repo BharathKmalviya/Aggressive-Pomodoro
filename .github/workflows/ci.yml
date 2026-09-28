@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21.0.9+10'
+          java-version: '21'
       - name: Build, test, and smoke-check bundled runtime
         shell: pwsh
         run: ./scripts/package-windows.ps1

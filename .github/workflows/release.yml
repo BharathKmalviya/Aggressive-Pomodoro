@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21.0.9+10'
+          java-version: '21'
       - name: Validate tag and release prerequisites
         shell: pwsh
         run: |
