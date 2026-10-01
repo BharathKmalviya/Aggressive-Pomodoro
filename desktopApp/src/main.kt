@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import com.pomodoro.data.AppStore
 import com.pomodoro.domain.SessionStatus
 import com.pomodoro.domain.SessionCommand
+import com.pomodoro.domain.Phase
 import com.pomodoro.platform.DesktopAlert
 import com.pomodoro.platform.AppVersion
 import com.pomodoro.platform.InstanceLock
@@ -63,6 +64,8 @@ fun main() {
         var audioWarning by remember { mutableStateOf<String?>(null) }
         var activeAlert by remember { mutableStateOf<DesktopAlert?>(null) }
         var completionPlayback by remember { mutableStateOf<Job?>(null) }
+        var clickPlayback by remember { mutableStateOf<Job?>(null) }
+        var previewing by remember { mutableStateOf(false) }
         var browserWarning by remember { mutableStateOf<String?>(null) }
         val updates = remember { DesktopUpdateController(AppVersion.value, directory.resolve("updates"),
             GitHubUpdateService(), scope) }
@@ -83,6 +86,7 @@ fun main() {
                 try {
                     controller?.close()
                     completionPlayback?.cancel()
+                    clickPlayback?.cancel()
                     withContext(Dispatchers.IO) { activeAlert?.close() }
                     ownership.close()
                     exitApplication()
@@ -105,24 +109,40 @@ fun main() {
                 SwingUtilities.invokeLater { audioWarning = warning }
             }) }
             activeAlert = alert
-            fun playAlarm() {
+            fun playAlarm(phase: Phase, preview: Boolean = false) {
+                previewing = preview
                 completionPlayback?.cancel()
                 completionPlayback = scope.launch(Dispatchers.IO) {
                     ensureActive()
-                    alert.playCompletion { isActive }
+                    alert.playCompletion(phase) { isActive }
                 }
             }
             fun stopAlarm() {
                 completionPlayback?.cancel()
+                previewing = false
                 // Invalidate playback immediately; the adapter closes audio resources off the UI thread.
                 alert.stopCompletion()
+            }
+            fun stopPreview() { if (previewing) stopAlarm() }
+            fun playClick() {
+                if (closing || controller?.state?.settings?.clickSoundEnabled != true) return
+                clickPlayback?.cancel()
+                clickPlayback = scope.launch(Dispatchers.IO) {
+                    ensureActive()
+                    alert.playClick { isActive }
+                }
+            }
+            fun stopClick() {
+                clickPlayback?.cancel()
+                alert.stopClick()
             }
             val session = remember(window) {
                 DesktopSessionController(store, saved, ::currentTime,
                     localDate = { LocalDate.now().toString() },
-                    onCompletion = { _, soundEnabled ->
+                    onCompletion = { event, soundEnabled ->
+                        stopPreview()
                         alert.requestAttention()
-                        if (soundEnabled) playAlarm()
+                        if (soundEnabled) playAlarm(event.phase)
                     }, scope = scope)
             }
             controller = session
@@ -163,6 +183,7 @@ fun main() {
                                         }
                                     })
                                     completionPlayback?.cancel()
+                                    clickPlayback?.cancel()
                                     withContext(Dispatchers.IO) { alert.close() }
                                     runCatching { ownership.close() }
                                     exitApplication()
@@ -173,24 +194,25 @@ fun main() {
                         }
                     }
                 },
-                onPreviewAlarm = { if (!closing) playAlarm() },
+                onPreviewAlarm = { phase -> if (!closing) playAlarm(phase, preview = true) },
+                onStopPreview = ::stopPreview,
                 onSessionCommand = { command ->
                     if (!closing) {
                         if (command == SessionCommand.Acknowledge || command is SessionCommand.AcknowledgeCompletion ||
                             command is SessionCommand.ChangeSettings &&
                             (!command.settings.soundEnabled || !command.settings.aggressiveAlertsEnabled)) stopAlarm()
-                        if (session.state.settings.clickSoundEnabled) scope.launch(Dispatchers.IO) { alert.playClick() }
                         session.dispatchSession(command)
+                        if (!session.state.settings.clickSoundEnabled) stopClick() else playClick()
                     }
                 },
                 onTaskCommand = { command ->
                     if (!closing) {
-                        if (session.state.settings.clickSoundEnabled) scope.launch(Dispatchers.IO) { alert.playClick() }
                         session.dispatchTask(command)
+                        playClick()
                     }
                 },
                 onUiClick = {
-                    if (!closing && session.state.settings.clickSoundEnabled) scope.launch(Dispatchers.IO) { alert.playClick() }
+                    playClick()
                 })
             if (confirmExit) AlertDialog(
                 onDismissRequest = { confirmExit = false },
@@ -208,6 +230,7 @@ fun main() {
                     closing = true
                     scope.launch {
                         completionPlayback?.cancel()
+                        clickPlayback?.cancel()
                         withContext(Dispatchers.IO) { alert.close() }
                         ownership.close()
                         exitApplication()

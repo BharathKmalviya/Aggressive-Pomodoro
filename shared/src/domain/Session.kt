@@ -14,6 +14,7 @@ data class TimerSettings(
     val soundEnabled: Boolean = true,
     val clickSoundEnabled: Boolean = true,
     val aggressiveAlertsEnabled: Boolean = true,
+    val reduceMotion: Boolean = false,
 ) {
     fun isValid(): Boolean = focusMinutes in 1..180 && shortBreakMinutes in 1..60 &&
         longBreakMinutes in 1..60 && longBreakEvery in 2..12

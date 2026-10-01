@@ -82,3 +82,12 @@ Section 10 local verification: build and executable JAR packaging passed; all 83
 The packaged updater also passed a live latest-release check, full 92,951,448-byte v0.1.0 download, and checksum re-verification without launching an installer.
 
 Post-publication screenshot smoke confirmed the real UI can start a demo focus block, open Settings and About, show version 0.2.0 and the repository link, and complete a manual check with the current-version result. Four refreshed README images document these screens. Together with the release MSI metadata checks, the observed About version completes task 5.2. Remaining native acceptance scenarios stay open.
+
+## 11. Sound, motion, and playback edge cases
+
+- [x] 11.1 Bundle licensed offline click feedback and tune distinct focus/break completion cues; add both previews and route completed-event phase through immediate, restored, and reminder playback.
+- [x] 11.2 Harden audio ownership, asynchronous/idempotent cleanup, stale callback/open cancellation, click mute, and preview dismissal/preemption; verify deterministic regression checks.
+- [x] 11.3 Add bounded timer accent/status/directive/progress motion, stable controls/countdown, phase-reset and paused/waiting progress handling, and persisted reduced motion with legacy/invalid snapshot regression coverage.
+- [x] 11.4 Update sound attribution, README, architecture, changelog, and exact Windows scenarios; run full build/tests and strict OpenSpec/diff checks. Record manual Windows evidence separately without closing prior acceptance gates.
+
+Section 11 local verification (2026-10-01): build, all 93 tests (32 shared, 61 desktop), executable JAR packaging, strict OpenSpec validation, and diff checks passed. The packaged WAV/license/credit files match source. Original manual Windows gates and new sound/motion acceptance remain open in `docs/TESTING.md`; the change stays active. No version bump or new public installer release is included.

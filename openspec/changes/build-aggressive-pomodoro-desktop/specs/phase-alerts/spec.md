@@ -6,6 +6,21 @@ Defines how phase completion gets the user's attention and how the next phase st
 
 ## ADDED Requirements
 
+### Requirement: Distinct offline sounds and bounded lifetime
+The app SHALL use bundled licensed button feedback and distinct focus-complete and break-complete sounds selected from the completed event. Settings SHALL preview both without changing timer or sound preferences. Preview SHALL stop when Settings closes or a completion takes priority. Mute, acknowledgement, disabled click feedback, and shutdown SHALL invalidate corresponding queued/opening playback. Stale callbacks SHALL NOT clear newer playback. Cleanup SHALL be idempotent and safe on audio callback threads.
+
+#### Scenario: Break completes with a queued focus alert
+- **WHEN** a break completes before the focus alert is reviewed
+- **THEN** its immediate sound identifies break completion; subsequent reminders identify the first pending event
+
+#### Scenario: Dismiss during delayed preview open
+- **WHEN** Settings closes while preview is opening an audio device
+- **THEN** the late clip is released without starting or overwriting feedback
+
+#### Scenario: Disable clicks during device open
+- **WHEN** click sound is disabled while a prior click is queued or opening
+- **THEN** the stale click cannot start and future interactions remain silent
+
 ### Requirement: Persistent aggressive reminders
 The application SHALL default to aggressive reminders that repeat attention and enabled completion sound every ten seconds while a completion remains pending. Reminders SHALL NOT add completion events or task/history credit. Users SHALL be able to disable reminders independently of sound, mute directly from an alert, and preview the completion alarm. Playback failures SHALL leave visible feedback and preserve timer operation.
 

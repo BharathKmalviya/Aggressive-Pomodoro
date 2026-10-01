@@ -34,6 +34,7 @@ class AppStore(private val file: Path) : SnapshotStore {
                 soundEnabled = values.boolean("soundEnabled"),
                 clickSoundEnabled = if (version == "1") true else values.boolean("clickSoundEnabled"),
                 aggressiveAlertsEnabled = if (version == "3") values.boolean("aggressiveAlertsEnabled") else true,
+                reduceMotion = if (values.containsKey("reduceMotion")) values.boolean("reduceMotion") else false,
             )
             require(settings.isValid())
             val phase = enumValueOf<Phase>(values.required("phase"))
@@ -99,6 +100,7 @@ class AppStore(private val file: Path) : SnapshotStore {
             setProperty("soundEnabled", state.settings.soundEnabled.toString())
             setProperty("clickSoundEnabled", state.settings.clickSoundEnabled.toString())
             setProperty("aggressiveAlertsEnabled", state.settings.aggressiveAlertsEnabled.toString())
+            setProperty("reduceMotion", state.settings.reduceMotion.toString())
             setProperty("taskIds", snapshot.board.tasks.joinToString(",") { it.id.toString() })
             setProperty("selectedTaskId", snapshot.board.selectedId?.toString() ?: "")
             setProperty("nextTaskId", snapshot.board.nextId.toString())

@@ -1,22 +1,27 @@
 package com.pomodoro.platform
 
+import com.pomodoro.domain.Phase
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
+import javax.swing.SwingUtilities
 import kotlin.math.abs
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.test.assertFalse
 
 class DesktopAlertTest {
     private class FakeClip : AudioClip {
         var starts = 0
         var closes = 0
+        val closed = CountDownLatch(1)
         var finish: (() -> Unit)? = null
         override fun start(onFinished: () -> Unit) { starts++; finish = onFinished }
-        override fun close() { closes++ }
+        override fun close() { closes++; closed.countDown() }
     }
 
     @Test fun completionAlarmContainsThreeAudiblePulsesSeparatedBySilence() {
@@ -75,6 +80,7 @@ class DesktopAlertTest {
         audio.playClick()
         assertEquals(3, clips.size)
         clips.last().finish?.invoke()
+        assertTrue(clips.last().closed.await(2, TimeUnit.SECONDS))
         assertEquals(1, clips.last().closes)
         audio.playClick()
         assertEquals(4, clips.size)
@@ -167,5 +173,177 @@ class DesktopAlertTest {
         assertTrue(closed)
         assertNotNull(warning)
         audio.close()
+    }
+
+    @Test fun phaseSoundsAreDistinctAndBundledClickIsDecodableOfflinePcm() {
+        val focus = completionSound(Phase.FOCUS)
+        val short = completionSound(Phase.SHORT_BREAK)
+        val long = completionSound(Phase.LONG_BREAK)
+        assertFalse(focus.bytes.contentEquals(short.bytes))
+        assertTrue(short.bytes.contentEquals(long.bytes))
+        val click = bundledClickSound()
+        assertEquals(44_100, click.sampleRate)
+        assertTrue(click.bytes.size in 2..8_820)
+        assertTrue(click.bytes.any { it != 0.toByte() })
+    }
+
+    @Test fun completionUsesTheRequestedPhaseAndOldCallbacksCannotClearItsReplacement() {
+        val sounds = mutableListOf<PcmSound>()
+        val clips = mutableListOf<FakeClip>()
+        val audio = AlertAudio(openClip = { sounds += it; FakeClip().also(clips::add) })
+        audio.playCompletion(Phase.FOCUS)
+        audio.playCompletion(Phase.SHORT_BREAK)
+        assertTrue(sounds[0].bytes.contentEquals(completionSound(Phase.FOCUS).bytes))
+        assertTrue(sounds[1].bytes.contentEquals(completionSound(Phase.SHORT_BREAK).bytes))
+        clips[0].finish?.invoke()
+        clips[0].finish?.invoke()
+        audio.playClick()
+        assertEquals(2, clips.size, "A stale STOP must not release alarm priority")
+        audio.stopCompletion()
+        assertEquals(1, clips[1].closes)
+        assertEquals(1, clips[0].closes, "A replaced clip is closed once")
+        audio.close()
+    }
+
+    @Test fun stoppingClicksWhileDeviceOpensPreventsLatePlayback() {
+        val opening = CountDownLatch(1)
+        val releaseOpen = CountDownLatch(1)
+        val clip = FakeClip()
+        val audio = AlertAudio(openClip = {
+            opening.countDown()
+            check(releaseOpen.await(2, TimeUnit.SECONDS))
+            clip
+        })
+        val executor = Executors.newSingleThreadExecutor()
+        try {
+            val playback = executor.submit { audio.playClick() }
+            assertTrue(opening.await(2, TimeUnit.SECONDS))
+            audio.stopClick()
+            releaseOpen.countDown()
+            playback.get(2, TimeUnit.SECONDS)
+            assertEquals(0, clip.starts)
+            assertEquals(1, clip.closes)
+        } finally {
+            releaseOpen.countDown()
+            audio.close()
+            executor.shutdownNow()
+        }
+    }
+
+    @Test fun completionCallbackNeverClosesItsClipOnTheAudioCallbackThread() {
+        val callbackThread = Thread.currentThread()
+        val released = CountDownLatch(1)
+        var finish: (() -> Unit)? = null
+        var closeThread: Thread? = null
+        val audio = AlertAudio(openClip = {
+            object : AudioClip {
+                override fun start(onFinished: () -> Unit) { finish = onFinished }
+                override fun close() { closeThread = Thread.currentThread(); released.countDown() }
+            }
+        })
+        audio.playCompletion()
+        finish!!.invoke()
+        assertTrue(released.await(2, TimeUnit.SECONDS))
+        assertTrue(closeThread !== callbackThread)
+        audio.close()
+    }
+
+    @Test fun canceledQueuedClickNeverOpensAudio() {
+        val audio = AlertAudio(openClip = { error("Canceled click opened device") })
+        audio.playClick { false }
+        audio.close()
+    }
+
+    @Test fun deviceOpenFailureAfterCancellationDoesNotPostStaleWarningOrHoldAlarmPriority() {
+        var active = true
+        var failing = true
+        val results = mutableListOf<String?>()
+        val click = FakeClip()
+        val audio = AlertAudio(openClip = {
+            if (failing) { active = false; error("Canceled device open") } else click
+        }, onPlaybackResult = results::add)
+        audio.playCompletion { active }
+        assertTrue(results.isEmpty())
+        failing = false
+        audio.playClick()
+        assertEquals(1, click.starts, "Canceled failed alarm must release click priority")
+        audio.close()
+    }
+
+    @Test fun replacementClosesOldClipOutsideOwnershipLock() {
+        val executor = Executors.newSingleThreadExecutor()
+        var finish: (() -> Unit)? = null
+        var opened = 0
+        val replacement = FakeClip()
+        val audio = AlertAudio(openClip = {
+            if (++opened > 1) replacement else object : AudioClip {
+                override fun start(onFinished: () -> Unit) { finish = onFinished }
+                override fun close() {
+                    // Model a native close waiting for its event thread to finish STOP delivery.
+                    executor.submit { finish!!.invoke() }.get(2, TimeUnit.SECONDS)
+                }
+            }
+        })
+        try {
+            audio.playCompletion()
+            audio.playCompletion(Phase.SHORT_BREAK)
+            assertEquals(1, replacement.starts)
+            assertEquals(2, opened)
+        } finally {
+            audio.close()
+            executor.shutdownNow()
+        }
+    }
+
+    @Test fun concurrentReplacementCannotStartBeforeOldNativeCloseFinishes() {
+        verifySlowCloseBlocksReplacement(stopFromUi = false)
+    }
+
+    @Test fun newAlarmWaitsForPendingMuteCleanupOffUi() {
+        verifySlowCloseBlocksReplacement(stopFromUi = true)
+    }
+
+    private fun verifySlowCloseBlocksReplacement(stopFromUi: Boolean) {
+        val closing = CountDownLatch(1)
+        val allowClose = CountDownLatch(1)
+        val replacementOpened = CountDownLatch(1)
+        val active = AtomicInteger()
+        val peak = AtomicInteger()
+        var opened = 0
+        val audio = AlertAudio(openClip = {
+            val first = ++opened == 1
+            if (!first) replacementOpened.countDown()
+            object : AudioClip {
+                override fun start(onFinished: () -> Unit) {
+                    peak.accumulateAndGet(active.incrementAndGet(), ::maxOf)
+                }
+                override fun close() {
+                    if (first) {
+                        closing.countDown()
+                        check(allowClose.await(2, TimeUnit.SECONDS))
+                    }
+                    active.decrementAndGet()
+                }
+            }
+        })
+        val executor = Executors.newFixedThreadPool(2)
+        try {
+            audio.playCompletion()
+            val firstReplacement = if (stopFromUi) {
+                SwingUtilities.invokeAndWait { audio.stopCompletion() }
+                null
+            } else executor.submit { audio.playCompletion() }
+            assertTrue(closing.await(2, TimeUnit.SECONDS))
+            val second = executor.submit { audio.playCompletion(Phase.SHORT_BREAK) }
+            assertFalse(replacementOpened.await(100, TimeUnit.MILLISECONDS), "Replacement opened before old clip finished closing")
+            allowClose.countDown()
+            firstReplacement?.get(2, TimeUnit.SECONDS)
+            second.get(2, TimeUnit.SECONDS)
+            assertEquals(1, peak.get(), "Alarms must never overlap, including during cleanup")
+        } finally {
+            allowClose.countDown()
+            audio.close()
+            executor.shutdownNow()
+        }
     }
 }

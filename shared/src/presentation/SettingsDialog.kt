@@ -28,12 +28,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pomodoro.domain.TimerSettings
+import com.pomodoro.domain.Phase
 
 @Composable
 internal fun SettingsDialog(
     settings: TimerSettings,
     audioWarning: String?,
-    onPreviewAlarm: () -> Unit,
+    onPreviewAlarm: (Phase) -> Unit,
     onSave: (TimerSettings) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -45,6 +46,7 @@ internal fun SettingsDialog(
     var sound by remember(settings) { mutableStateOf(settings.soundEnabled) }
     var clicks by remember(settings) { mutableStateOf(settings.clickSoundEnabled) }
     var reminders by remember(settings) { mutableStateOf(settings.aggressiveAlertsEnabled) }
+    var reduceMotion by remember(settings) { mutableStateOf(settings.reduceMotion) }
     var previewRequested by remember { mutableStateOf(false) }
     val candidate = settings.copy(
         focusMinutes = focus.toIntOrNull() ?: 0,
@@ -55,6 +57,7 @@ internal fun SettingsDialog(
         soundEnabled = sound,
         clickSoundEnabled = clicks,
         aggressiveAlertsEnabled = reminders,
+        reduceMotion = reduceMotion,
     )
 
     AlertDialog(
@@ -77,9 +80,14 @@ internal fun SettingsDialog(
                     color = UiColor.muted, fontSize = 12.sp)
                 SettingToggle("Play completion alarm", sound, { sound = it })
                 SettingToggle("Play button click sounds", clicks, { clicks = it })
-                OutlinedButton(onClick = { previewRequested = true; onPreviewAlarm() }, modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.small) {
-                    Text("TEST ALARM", fontWeight = FontWeight.Bold)
+                SettingToggle("Reduce motion", reduceMotion, { reduceMotion = it })
+                Text("Keep timer transitions and emphasis still. Countdown and alerts work as usual.",
+                    color = UiColor.muted, fontSize = 12.sp)
+                for ((phase, label) in listOf(Phase.FOCUS to "TEST FOCUS ALARM", Phase.SHORT_BREAK to "TEST BREAK ALARM")) {
+                    OutlinedButton(onClick = { previewRequested = true; onPreviewAlarm(phase) }, modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.small) {
+                        Text(label, fontWeight = FontWeight.Bold)
+                    }
                 }
                 Text("Plays once even if completion sound is off. Your sound preference is unchanged.",
                     color = UiColor.muted, fontSize = 12.sp)

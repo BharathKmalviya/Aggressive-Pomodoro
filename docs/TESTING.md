@@ -30,7 +30,7 @@ New durations apply to the next created phase. After setting all durations to 1 
 
 | Scenario | Steps | Expected result |
 | --- | --- | --- |
-| Alarm preview | Open Settings and press TEST ALARM, including with completion sound disabled; press it repeatedly | A distinct multi-pulse alarm plays without stacked clips. Preview does not complete a phase or change sound settings. |
+| Alarm preview | Open Settings and press TEST FOCUS ALARM or TEST BREAK ALARM, including with completion sound disabled; press repeatedly | A distinct multi-pulse alarm plays without stacked clips. Preview does not complete a phase or change sound settings. |
 | Persistent pressure | Enable aggressive reminders and completion sound. Finish focus and leave its dialog open for 25 seconds | Initial alarm, then reminders about ten seconds apart. Counts/task credit stay unchanged; the dialog identifies the completed phase and current phase/countdown. |
 | Immediate mute | During a sounding completion, use its mute action and wait 15 seconds | Current alarm stops, future reminders stay silent, dialog remains visible, and completion sound is off in Settings. |
 | Reminder opt-out | Disable aggressive reminders while keeping completion sound enabled, then finish a phase and wait 25 seconds | One completion sound, persistent dialog, no periodic reminder. |
@@ -49,6 +49,27 @@ New durations apply to the next created phase. After setting all durations to 1 
 | Failed close save | In a disposable profile, make the save destination unwritable, attempt exit, then restore access and retry | Failure leaves the app responsive and writer functional; retry saves latest state before exiting. |
 
 Automated regressions cover deadline-boundary intent, task ownership/deletion, snapshot migration/validation, backward clocks, reminders with injected time, and exception-safe effects. These checks do not measure audible loudness or prove native taskbar attention and keyboard rendering.
+
+## Sound and motion checks — 2026-10-01
+
+Use Settings to set all durations to 1 minute, save, then skip idle focus and idle break to create a fresh short focus. These changes do not affect the currently created phase. Restore your preferred rules afterward.
+
+| Scenario | Steps | Expected result |
+| --- | --- | --- |
+| Distinct motifs | Settings: TEST FOCUS ALARM, then TEST BREAK ALARM; finish focus and both break types | Focus has an ascending three-pulse chord, breaks a sharper return motif. Completion uses the phase that ended; preview changes no totals/preferences. |
+| Preview lifetime | Preview, immediately Cancel; repeat with Save; repeat rapid previews of each type | Dismiss/save stops preview. At most one alarm plays; no late sound after dismissal. |
+| Preview preemption | Start 1-minute focus, open Settings near its deadline, preview just before completion, including with completion sound muted | Settings yields and preview stops. Enabled completion plays the correct event motif; muted completion stays silent and visible. |
+| Offline clicks / click mute | Disconnect networking; use Start/Pause/Resume and task controls. Disable button clicks, save, then repeat rapid controls | Bundled click works offline, never stacks or masks an alarm. Save disabling clicks and subsequent controls are silent; completion preference unchanged. |
+| Audio output recovery | Disconnect output during preview/completion, reconnect, then preview again | Failure shows an explanation; timer/credit stays correct. Successful preview clears warning. |
+| Bounded transitions | Start/pause/resume focus, enter final minute, finish focus, acknowledge; repeat quickly and resize across 850 dp width | Brief entrances and phase-color change; final-minute emphasis finishes once per entry. Clock has no outgoing stale digits; controls stay stable/reachable. New phase progress starts at its own value without a backward sweep. |
+| Exact paused progress | Pause during progress movement; leave paused 10 seconds. Reset with confirmation; use confirmation transition mode | Progress/clock hold exactly when paused/waiting and reset immediately. No animation changes timer state or counts. |
+| Reduce motion persists | Enable Reduce motion, save, repeat transitions, exit/reopen and inspect Settings | Custom entrances, scaling, accent interpolation and progress smoothing stop; timer/alerts work and preference remains enabled. Built-in Material control feedback still works. |
+| Keyboard / narrow layout | Tab and Space through both previews and Reduce motion; resize to 560×620, scroll Settings, use 180-minute focus | Labels remain readable, keyboard focus visible, all options reachable, countdown and emphasis remain within panel. |
+| Queued/restored phase sounds | Leave focus and break unreviewed, wait for a reminder, acknowledge first; exit/reopen with remaining break event | Immediate break sound identifies break completion; reminders use first pending event, then remaining break event. No duplicate credit. |
+
+Automated audio tests use fake clips and latches to verify races without relying on a real audio device. Native playback quality, keyboard, resize, sleep, and taskbar attention remain manual acceptance gates.
+
+Local verification (2026-10-01): Kotlin build passed; all 93 tests passed (32 shared, 61 desktop), zero failures or skips. Executable JAR packaging passed, and bundled click/license/credit resources were read from the produced JAR and matched the source. Strict OpenSpec validation and Git whitespace checks passed. The manual sound/motion scenarios above have not been run; no new version or installer release was produced.
 
 ## Recorded aggressive-refresh verification — 2026-09-28, before updater additions
 

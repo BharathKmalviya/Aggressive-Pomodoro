@@ -1,5 +1,10 @@
 package com.pomodoro.presentation
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -22,11 +27,14 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -66,8 +74,18 @@ internal fun TimerPanel(
         mutableStateOf<PhaseConfirmation?>(null)
     }
     val focus = state.phase == Phase.FOCUS
-    val accent = if (focus) UiColor.focus else UiColor.breakTime
+    val motion = !state.settings.reduceMotion
+    val accent by animateColorAsState(if (focus) UiColor.focus else UiColor.breakTime,
+        animationSpec = if (motion) tween(220) else snap(), label = "phase accent")
     val finalMinute = state.status == SessionStatus.RUNNING && remainingMs in 1..60_000
+    val emphasis = remember(state.phaseId) { Animatable(1f) }
+    LaunchedEffect(state.phaseId, finalMinute, motion) {
+        emphasis.snapTo(1f)
+        if (finalMinute && motion) {
+            emphasis.animateTo(1.025f, tween(140))
+            emphasis.animateTo(1f, tween(200))
+        }
+    }
     val activeFocus = focus && state.status in setOf(SessionStatus.RUNNING, SessionStatus.PAUSED)
     val status = when (state.status) {
         SessionStatus.IDLE -> "READY TO COMMIT"
@@ -108,24 +126,38 @@ internal fun TimerPanel(
                 Text("BLOCK ${(state.completedFocus.toLong() + 1).toString().padStart(2, '0')}",
                     color = UiColor.muted, fontFamily = FontFamily.Monospace)
             }
-            Text(status, modifier = Modifier.fillMaxWidth().background(accent.copy(alpha = 0.12f)).padding(12.dp),
-                color = accent, fontWeight = FontWeight.Bold, fontSize = 12.sp, letterSpacing = 1.sp)
+            TimerMotion(status, motion) { entrance ->
+                Text(status, modifier = entrance.fillMaxWidth().background(accent.copy(alpha = 0.12f)).padding(12.dp),
+                    color = accent, fontWeight = FontWeight.Bold, fontSize = 12.sp, letterSpacing = 1.sp)
+            }
             BoxWithConstraints(Modifier.fillMaxWidth()) {
                 val clockSize = (maxWidth.value / 3.8f).coerceIn(40f, 112f).sp
-                Text(timerText(remainingMs), modifier = Modifier.fillMaxWidth(),
+                Text(timerText(remainingMs), modifier = Modifier.fillMaxWidth().graphicsLayer {
+                    scaleX = if (motion) emphasis.value else 1f
+                    scaleY = if (motion) emphasis.value else 1f
+                },
                     color = if (finalMinute) accent else UiColor.text,
                     fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Black,
                     fontSize = clockSize, lineHeight = clockSize,
                     textAlign = TextAlign.Center, maxLines = 1)
             }
-            LinearProgressIndicator(
-                progress = { ((state.durationMs - remainingMs).toFloat() / state.durationMs.coerceAtLeast(1)).coerceIn(0f, 1f) },
-                modifier = Modifier.fillMaxWidth().height(8.dp), color = accent,
-                trackColor = UiColor.panelRaised,
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(directive, fontSize = 26.sp, lineHeight = 30.sp, fontWeight = FontWeight.Black)
-                Text(instruction, color = UiColor.muted, lineHeight = 21.sp)
+            key(state.phaseId) {
+                val target = (1f - remainingMs.coerceIn(0, state.durationMs.coerceAtLeast(1)).toFloat() /
+                    state.durationMs.coerceAtLeast(1)).coerceIn(0f, 1f)
+                val progress by animateFloatAsState(target,
+                    animationSpec = if (motion && state.status == SessionStatus.RUNNING) tween(200) else snap(),
+                    label = "elapsed progress")
+                LinearProgressIndicator(
+                    progress = { if (motion && state.status == SessionStatus.RUNNING) progress else target },
+                    modifier = Modifier.fillMaxWidth().height(8.dp), color = accent,
+                    trackColor = UiColor.panelRaised,
+                )
+            }
+            TimerMotion(directive, motion) { entrance ->
+                Column(entrance, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(directive, fontSize = 26.sp, lineHeight = 30.sp, fontWeight = FontWeight.Black)
+                    Text(instruction, color = UiColor.muted, lineHeight = 21.sp)
+                }
             }
             when (state.status) {
                 SessionStatus.IDLE, SessionStatus.RUNNING, SessionStatus.PAUSED -> {
@@ -196,4 +228,20 @@ internal fun TimerPanel(
             dismissButton = { TextButton(onClick = { onUiClick(); confirmation = null }) { Text("KEEP THIS BLOCK") } },
         )
     }
+}
+
+/** Animate the current text in place; never retain outgoing controls or obsolete timer state. */
+@Composable
+private fun TimerMotion(value: String, enabled: Boolean, content: @Composable (Modifier) -> Unit) {
+    val entrance = remember { Animatable(1f) }
+    LaunchedEffect(value, enabled) {
+        if (enabled) {
+            entrance.snapTo(0f)
+            entrance.animateTo(1f, tween(180))
+        } else entrance.snapTo(1f)
+    }
+    content(if (!enabled) Modifier else Modifier.graphicsLayer {
+        alpha = 0.65f + entrance.value * 0.35f
+        translationY = (1f - entrance.value) * 4.dp.toPx()
+    })
 }

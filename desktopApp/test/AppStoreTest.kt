@@ -175,6 +175,26 @@ class AppStoreTest {
 
     private val date = "2026-09-28"
 
+    @Test fun reducedMotionRoundTripsAndMissingLegacyPreferencePreservesData() = withStore { store, file ->
+        val snapshot = ProductEngine.reduce(
+            ProductState(session = newSession(TimerSettings(reduceMotion = true, soundEnabled = false))),
+            ProductCommand.Task(TaskCommand.Add("Keep this task", 2)), TimeMark(0, 0), date)
+        store.save(snapshot)
+        assertEquals(snapshot, store.load())
+        for (version in listOf("1", "2", "3")) {
+            store.save(snapshot)
+            editProperties(file) { setProperty("version", version); remove("reduceMotion") }
+            val restored = store.load()
+            assertEquals(false, restored.session.settings.reduceMotion)
+            assertEquals(false, restored.session.settings.soundEnabled)
+            assertEquals(null, restored.session.message)
+            if (version != "1") assertEquals(snapshot.board, restored.board)
+        }
+        store.save(snapshot)
+        editProperties(file) { setProperty("reduceMotion", "invalid") }
+        assertTrue(store.load().session.message != null)
+    }
+
     private fun withStore(check: (AppStore, Path) -> Unit) {
         val directory = Files.createTempDirectory("pomodoro-store-regression")
         try {

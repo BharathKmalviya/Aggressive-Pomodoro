@@ -6,6 +6,17 @@ Defines the observable focus and break timer lifecycle so sessions advance predi
 
 ## ADDED Requirements
 
+### Requirement: Optional state-driven motion
+The app SHALL animate phase accents, progress, and status/directive changes using short bounded transitions while keeping countdown and control targets immediate. Phase changes SHALL reset progress without sweeping backward across phases. Pause and waiting SHALL show exact progress immediately. A saved reduce-motion preference SHALL bypass custom motion without changing timer behavior or alert visibility.
+
+#### Scenario: Pause or reset during animation
+- **WHEN** the timer pauses, waits, or resets during a progress transition
+- **THEN** progress snaps to the current state's value and no animation can send timer commands
+
+#### Scenario: Legacy or reduced-motion snapshot
+- **WHEN** an older valid snapshot lacks reduce-motion settings or a reduced-motion snapshot is restored
+- **THEN** old state recovers with default motion or the saved opt-out is respected, preserving timer/task/history data
+
 ### Requirement: Assertive and truthful timer feedback
 The application SHALL show distinct focus and break identities, explicit paused and waiting instructions, and a final-minute urgency state. Destructive confirmations SHALL refer only to their original phase and SHALL also protect paused progress. Other dialogs SHALL yield to completion alerts.
 

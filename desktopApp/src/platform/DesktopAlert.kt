@@ -2,6 +2,7 @@ package com.pomodoro.platform
 
 import java.awt.Taskbar
 import java.awt.Window
+import com.pomodoro.domain.Phase
 import java.util.concurrent.ForkJoinPool
 import javax.sound.sampled.AudioFormat
 import javax.sound.sampled.AudioSystem
@@ -30,28 +31,44 @@ class DesktopAlert(
     }
 
     // Audio opening and playback calls belong on the desktop IO dispatcher.
-    fun playCompletion(shouldPlay: () -> Boolean = { true }) = audio.playCompletion(shouldPlay)
-    fun playClick() = audio.playClick()
+    fun playCompletion(phase: Phase = Phase.FOCUS, shouldPlay: () -> Boolean = { true }) = audio.playCompletion(phase, shouldPlay)
+    fun playClick(shouldPlay: () -> Boolean = { true }) = audio.playClick(shouldPlay)
     fun stopCompletion() = audio.stopCompletion()
+    fun stopClick() = audio.stopClick()
     override fun close() = audio.close()
 }
 
 internal data class PcmSound(val bytes: ByteArray, val sampleRate: Int = 44_100)
 
-/** A deliberate three-pulse alarm with short silent gaps and click-free amplitude ramps. */
-internal fun completionSound(): PcmSound = synthesizeSound(1_520) { time ->
-    val pulse = (time / 0.52).toInt()
-    val local = time - pulse * 0.52
-    if (pulse > 2 || local >= 0.38) 0.0 else {
-        val envelope = min(1.0, min(local / 0.012, (0.38 - local) / 0.025)).coerceAtLeast(0.0)
-        val frequency = if (pulse == 1) 880.0 else 660.0
-        envelope * (sin(2 * PI * frequency * local) * 0.48 + sin(2 * PI * frequency * 1.5 * local) * 0.14)
+/** Three chord pulses, with separate completion/return motifs and click-free amplitude ramps. */
+internal fun completionSound(phase: Phase = Phase.FOCUS): PcmSound {
+    val frequencies = if (phase == Phase.FOCUS) doubleArrayOf(523.25, 659.25, 783.99)
+        else doubleArrayOf(880.0, 1_108.73, 880.0)
+    return synthesizeSound(1_520) { time ->
+        val pulse = (time / 0.52).toInt()
+        val local = time - pulse * 0.52
+        if (pulse > 2 || local >= 0.38) 0.0 else {
+            val envelope = min(1.0, min(local / 0.012, (0.38 - local) / 0.025)).coerceAtLeast(0.0)
+            val frequency = frequencies[pulse]
+            envelope * (sin(2 * PI * frequency * local) * 0.43 +
+                sin(2 * PI * frequency * 1.5 * local) * 0.13 + sin(2 * PI * frequency * 2 * local) * 0.06)
+        }
     }
 }
 
 internal fun clickSound(): PcmSound = synthesizeSound(35) { time ->
     val envelope = min(time / 0.003, (0.035 - time) / 0.032).coerceIn(0.0, 1.0)
     sin(2 * PI * 1_100 * time) * envelope * 0.16
+}
+
+internal fun bundledClickSound(): PcmSound {
+    val resource = checkNotNull(DesktopAlert::class.java.getResource("/sounds/click.wav"))
+    return AudioSystem.getAudioInputStream(resource).use { input ->
+        val format = input.format
+        require(format.sampleRate == 44_100f && format.sampleSizeInBits == 16 &&
+            format.channels == 1 && !format.isBigEndian && format.encoding == AudioFormat.Encoding.PCM_SIGNED)
+        PcmSound(input.readAllBytes()).also { require(it.bytes.isNotEmpty() && it.bytes.size % 2 == 0) }
+    }
 }
 
 private fun synthesizeSound(durationMs: Int, sample: (Double) -> Double): PcmSound {
@@ -97,7 +114,18 @@ internal class AlertAudio(
     private val nanoTime: () -> Long = System::nanoTime,
     private val onPlaybackResult: (String?) -> Unit = {},
 ) : AutoCloseable {
+    private class OwnedClip(private val delegate: AudioClip) : AudioClip {
+        private var closed = false
+        override fun start(onFinished: () -> Unit) = delegate.start(onFinished)
+        @Synchronized override fun close() {
+            if (closed) return
+            closed = true
+            delegate.close()
+        }
+    }
     private val lock = Any()
+    // Serialize native open/start/replacement work on IO, separately from UI invalidation.
+    private val playbackLock = Any()
     private var completion: AudioClip? = null
     private var click: AudioClip? = null
     private var completionGeneration = 0L
@@ -105,10 +133,14 @@ internal class AlertAudio(
     private var completionRequested = false
     private var lastClickNs: Long? = null
     private var closed = false
-    private val alarm by lazy(::completionSound)
-    private val button by lazy(::clickSound)
+    private val focusAlarm by lazy { completionSound(Phase.FOCUS) }
+    private val breakAlarm by lazy { completionSound(Phase.SHORT_BREAK) }
+    private val button by lazy { runCatching(::bundledClickSound).getOrElse { clickSound() } }
 
-    fun playCompletion(shouldPlay: () -> Boolean = { true }) {
+    fun playCompletion(phase: Phase = Phase.FOCUS, shouldPlay: () -> Boolean = { true }) =
+        synchronized(playbackLock) { playCompletionSerial(phase, shouldPlay) }
+
+    private fun playCompletionSerial(phase: Phase, shouldPlay: () -> Boolean) {
         val generation: Long
         val previous: List<AudioClip?>
         synchronized(lock) {
@@ -117,31 +149,32 @@ internal class AlertAudio(
             ++clickGeneration
             completionRequested = true
             previous = listOf(completion, click)
+            completion = null
+            click = null
         }
         previous.forEach(::release)
-        synchronized(lock) {
-            if (generation == completionGeneration) { completion = null; click = null }
-        }
         var opened: AudioClip? = null
         try {
-            val clip = openClip(alarm)
+            val clip = OwnedClip(openClip(if (phase == Phase.FOCUS) focusAlarm else breakAlarm))
             opened = clip
-            synchronized(lock) {
+            val accepted = synchronized(lock) {
                 if (closed || generation != completionGeneration || !shouldPlay()) {
                     if (generation == completionGeneration) completionRequested = false
-                    release(clip)
-                    return
+                    false
+                } else {
+                    completion = clip
+                    clip.start { finishCompletion(generation, clip) }
+                    report(null)
+                    true
                 }
-                completion = clip
-                clip.start { finishCompletion(generation, clip) }
-                report(null)
             }
+            if (!accepted) release(clip)
         } catch (error: Exception) {
             synchronized(lock) {
-                if (!closed && generation == completionGeneration) {
+                if (generation == completionGeneration) {
                     completion = null
                     completionRequested = false
-                    report("Alarm could not play. Check your audio output and volume, then use TEST ALARM in Settings.")
+                    if (!closed && shouldPlay()) report("Alarm could not play. Check your audio output and volume, then test an alarm in Settings.")
                 }
             }
             release(opened)
@@ -149,33 +182,38 @@ internal class AlertAudio(
         }
     }
 
-    fun playClick() {
+    fun playClick(shouldPlay: () -> Boolean = { true }) =
+        synchronized(playbackLock) { playClickSerial(shouldPlay) }
+
+    private fun playClickSerial(shouldPlay: () -> Boolean) {
         val generation: Long
         val previous: AudioClip?
         synchronized(lock) {
             val now = nanoTime()
-            if (closed || completionRequested || lastClickNs?.let { now - it < 80_000_000L } == true) return
+            if (closed || !shouldPlay() || completionRequested || lastClickNs?.let { now - it < 80_000_000L } == true) return
             lastClickNs = now
             generation = ++clickGeneration
             previous = click
+            click = null
         }
         releaseOffUi(previous)
-        synchronized(lock) { if (generation == clickGeneration) click = null }
         var opened: AudioClip? = null
         try {
-            val clip = openClip(button)
+            val clip = OwnedClip(openClip(button))
             opened = clip
-            synchronized(lock) {
-                if (closed || completionRequested || generation != clickGeneration) {
-                    release(clip)
-                    return
-                }
-                click = clip
-                clip.start {
-                    synchronized(lock) { if (generation == clickGeneration) click = null }
-                    release(clip)
+            val accepted = synchronized(lock) {
+                if (closed || !shouldPlay() || completionRequested || generation != clickGeneration) {
+                    false
+                } else {
+                    click = clip
+                    clip.start {
+                        synchronized(lock) { if (generation == clickGeneration) click = null }
+                        releaseAsync(clip)
+                    }
+                    true
                 }
             }
+            if (!accepted) release(clip)
         } catch (error: Exception) {
             synchronized(lock) { if (generation == clickGeneration) click = null }
             release(opened)
@@ -185,12 +223,27 @@ internal class AlertAudio(
     }
 
     fun stopCompletion() {
+        val generation: Long
         val previous = synchronized(lock) {
-            ++completionGeneration
+            generation = ++completionGeneration
             completionRequested = false
-            completion.also { completion = null }
+            completion
         }
-        releaseOffUi(previous)
+        // Retain the pointer until cleanup finishes so a new request also waits for its close.
+        releaseOffUi(previous) {
+            synchronized(lock) { if (generation == completionGeneration) completion = null }
+        }
+    }
+
+    fun stopClick() {
+        val generation: Long
+        val previous = synchronized(lock) {
+            generation = ++clickGeneration
+            click
+        }
+        releaseOffUi(previous) {
+            synchronized(lock) { if (generation == clickGeneration) click = null }
+        }
     }
 
     private fun finishCompletion(generation: Long, clip: AudioClip) {
@@ -200,7 +253,7 @@ internal class AlertAudio(
                 completionRequested = false
             }
         }
-        release(clip)
+        releaseAsync(clip)
     }
 
     override fun close() {
@@ -224,9 +277,11 @@ internal class AlertAudio(
         catch (error: Exception) { System.err.println("Audio cleanup unavailable: ${error.message}") }
     }
 
-    private fun releaseOffUi(clip: AudioClip?) {
-        if (clip == null) return
-        if (SwingUtilities.isEventDispatchThread()) ForkJoinPool.commonPool().execute { release(clip) }
-        else release(clip)
+    private fun releaseOffUi(clip: AudioClip?, afterRelease: () -> Unit = {}) {
+        val cleanup = { release(clip); afterRelease() }
+        if (SwingUtilities.isEventDispatchThread()) ForkJoinPool.commonPool().execute(cleanup)
+        else cleanup()
     }
+
+    private fun releaseAsync(clip: AudioClip) = ForkJoinPool.commonPool().execute { release(clip) }
 }

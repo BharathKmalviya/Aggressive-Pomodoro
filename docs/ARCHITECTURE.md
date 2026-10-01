@@ -27,6 +27,16 @@ Aggressive reminders are a desktop effect: while an event is pending, the contro
 
 Completion dialogs take priority over Settings, Reports, About, and task deletion confirmations. All UI timer controls carry the phase ID and acknowledgement carries the pending event ID; the reducer rejects stale intents even before the UI can redraw. Reset/skip confirmations disappear when their phase changes or a completion is pending, and protect paused progress too. The timer scrolls in constrained windows and uses state-specific instructions without flashing or forcing foreground focus.
 
+## Sound and motion
+
+Desktop audio selects its motif from the completed event's phase, including restored events and reminders. Focus completion uses an ascending three-pulse chord; both break completions use a brighter return motif. A Kenney CC0 click is decoded from bundled PCM WAV on IO, with a generated fallback and no network/codec dependency. Original attribution/license ships in `desktopApp/resources/sounds/`. Settings previews each alarm independently of sound preferences. Closing/saving Settings or completion preemption cancels preview, without canceling a real completion alarm that has replaced it.
+
+The audio adapter detaches clips under its ownership lock, releases them outside it, and schedules natural-finish cleanup away from Java Sound callback threads. Native open/start/replacement work is serialized on a separate IO lock, while UI invalidation remains immediate. Wrapped clip ownership makes disposal idempotent and lets replacement wait for in-flight mute cleanup before starting. Generation checks and coroutine cancellation reject late opens and stale STOP callbacks; disabling clicks invalidates both queued and opening cues. Alarms retain priority over clicks. Cleanup or output failures preserve timer operation and visual alerts.
+
+Compose animates accents over 220 ms, status/directive entrances over 180 ms, running progress over 200 ms, and final-minute emphasis once per entry over 340 ms. Countdown text and control targets remain immediate; no animation emits a domain command. Progress resets by phase ID and snaps when paused, waiting, or motion is reduced. `reduceMotion` is an optional strict boolean in snapshot format 3: missing old values default false, saved true survives restart, and malformed values use the existing safe-recovery path. Older v0.2.0 readers ignore the extra property, preserving format-3 downgrade readability. The preference disables the custom animations; normal Material controls retain their built-in feedback.
+
+Implementation references: [Compose value animations](https://developer.android.com/develop/ui/compose/animation/value-based), [Java Sound Clip lifecycle](https://docs.oracle.com/en/java/javase/21/docs/api/java.desktop/javax/sound/sampled/Clip.html), and [W3C interaction animation opt-out guidance](https://www.w3.org/WAI/WCAG21/Understanding/animation-from-interactions). Native Windows quality and usability remain manual checks.
+
 ## Recovery and clocks
 
 The snapshot stores a wall deadline for a running phase. On restart, the reducer reanchors it to the new process's monotonic clock. If that wall deadline passed, one phase completes and at most one subsequent phase starts at recovery time. The app does not backfill multiple cycles.

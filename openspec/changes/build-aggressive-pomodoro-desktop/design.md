@@ -75,6 +75,14 @@ Reconcile elapsed time before user commands so expiration cannot be erased by a 
 
 ## Risks / Trade-offs
 
+### Sound and motion refinement (2026-10-01)
+
+Bundle Kenney Interface Sounds `click_003` converted from CC0 Ogg to mono 44.1 kHz 16-bit PCM WAV, with original license and source recorded. Load locally on IO with a generated fallback; no runtime download or codec dependency. Tune generated multi-pulse completion audio into an ascending focus-complete chord and a sharper return-to-focus break alarm. Preview each independently. Route the completed event's phase (including restored events and reminders), never infer sound from the current successor.
+
+Detach prior audio clips under the ownership lock before closing outside it. Completion callbacks release asynchronously to avoid Java Sound callback/lock deadlocks; idempotent ownership prevents double cleanup or stale callbacks clearing a replacement. Mute/acknowledgement cancel delayed opens. Disabling click feedback invalidates queued/opening clicks. Stop preview on Settings dismissal/save/completion preemption. Retain visual fallback and alarm priority.
+
+Animate only presentation: short accent transitions, status/directive fades with small vertical movement, one-shot final-minute emphasis, and smoothed progress. Keep countdown and controls immediate and stable. Reset progress by phase ID; pause, waiting, and reduced motion snap to truthful values. Persist `reduceMotion` as an optional strict boolean in format 3, default false for old snapshots, preserving downgrade readability. Reduced motion bypasses custom transitions and emphasis. Use Compose value animations (https://developer.android.com/develop/ui/compose/animation/value-based); the opt-out follows W3C interaction-animation guidance (https://www.w3.org/WAI/WCAG21/Understanding/animation-from-interactions). Verify audio races and snapshot compatibility automatically; audible quality, animation feel, keyboard, resize, and sleep remain manual Windows acceptance.
+
 ### Manual Windows update flow
 
 The About screen links to the public repository and owns entry to a manual update dialog. Only a user action contacts the fixed GitHub latest-stable-release API; no tasks, history, or timer state are uploaded. The desktop updater handles network and file IO with bounded responses/timeouts, semantic version comparison, exact repository/version asset URLs, and SHA-256 verification. Missing, older, prerelease, malformed, and offline responses have explicit outcomes. Downloads show progress, permit cancellation, remove partial files, and never run unverified content. Retrying cannot start overlapping operations.

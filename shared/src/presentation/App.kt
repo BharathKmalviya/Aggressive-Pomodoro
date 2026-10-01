@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,7 +48,8 @@ fun App(
     version: String,
     persistenceWarning: String?,
     audioWarning: String?,
-    onPreviewAlarm: () -> Unit,
+    onPreviewAlarm: (Phase) -> Unit,
+    onStopPreview: () -> Unit,
     updateState: UpdateUiState,
     onCheckUpdates: () -> Unit,
     onDownloadUpdate: () -> Unit,
@@ -184,9 +186,13 @@ fun App(
                 },
             )
         }
-        if (!pending && settingsOpen) SettingsDialog(session.settings, audioWarning, onPreviewAlarm, onSave = {
-            onSessionCommand(SessionCommand.ChangeSettings(it)); settingsOpen = false
-        }, onDismiss = { onUiClick(); settingsOpen = false })
+        if (!pending && settingsOpen) {
+            DisposableEffect(Unit) { onDispose { onStopPreview() } }
+            SettingsDialog(session.settings, audioWarning, onPreviewAlarm, onSave = {
+                onStopPreview()
+                onSessionCommand(SessionCommand.ChangeSettings(it)); settingsOpen = false
+            }, onDismiss = { onStopPreview(); onUiClick(); settingsOpen = false })
+        }
         if (!pending && reportsOpen) ReportsDialog(product.history, todayDate,
             onClose = { onUiClick(); reportsOpen = false })
         if (!pending && aboutOpen) AlertDialog(
