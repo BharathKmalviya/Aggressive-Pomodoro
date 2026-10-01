@@ -95,5 +95,7 @@ Section 11 local verification (2026-10-01): build, all 93 tests (32 shared, 61 d
 ## 12. Version 0.3.0 publication
 
 - [x] 12.1 Prepare v0.3.0 metadata, release notes, format-3 compatibility/rollback guidance, and documented owner-authorized publication with pending manual acceptance; run build/tests and strict OpenSpec/diff checks.
-- [ ] 12.2 Commit and push the release update to main; require the exact commit's Windows CI and release packaging, clean installation/launch, baseline upgrade/data-preservation, checksum, and license gates to pass.
-- [ ] 12.3 Read back the immutable v0.3.0 tag and assets, independently download and verify their hashes and MIT License, and record release evidence without closing pending manual acceptance tasks.
+- [x] 12.2 Commit and push the release update to main; require the exact commit's Windows CI and release packaging, clean installation/launch, baseline upgrade/data-preservation, checksum, and license gates to pass.
+- [x] 12.3 Read back the immutable v0.3.0 tag and assets, independently download and verify their hashes and MIT License, and record release evidence without closing pending manual acceptance tasks.
+
+Section 12 verification (2026-10-01): immutable v0.3.0 was published from `acd7b7b3c61d7f1293b2d4f6d5d0053232addc93` after Windows CI `36872068972` and release workflow `36872068933` passed all automated build/test/package/clean-install/upgrade gates. All three public assets were independently downloaded and hash-verified. MSI SHA-256: `61f64f9420fcfb856a2e9063484850a35c6403113254a4c4ef986b143519e50e`. Full evidence is in `docs/RELEASING.md`; pending manual Windows acceptance remains in `docs/TESTING.md`, and earlier unchecked tasks stay open.

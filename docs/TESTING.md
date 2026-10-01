@@ -73,6 +73,8 @@ Local verification (2026-10-01): Kotlin build passed; all 93 tests passed (32 sh
 
 Release preparation (2026-10-01): the owner subsequently requested publication as v0.3.0 with these manual gaps disclosed. Build, all 93 tests with no failures/skips, executable JAR packaging, strict OpenSpec validation, and diff checks passed again after the version update. Packaged metadata reports 0.3.0 and bundled sound/license resources match source. Automated Windows release gates and fresh asset verification are required before a publication claim; manual acceptance remains pending.
 
+Published verification (2026-10-01): [Windows CI](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/36872068972) and [release validation/publication](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/36872068933) passed for `acd7b7b3c61d7f1293b2d4f6d5d0053232addc93`, including all 93 tests, clean MSI installation/launch, and v0.1.0 upgrade with old-product removal and paused timer/task/history preservation. The immutable v0.3.0 tag points to that commit. Fresh downloads passed GitHub asset size/digest, MSI manifest checksum, and pinned MIT License checks; hashes are recorded in [RELEASING.md](RELEASING.md#v030-published-verification). These automated results do not close the manual scenarios above.
+
 ## Recorded aggressive-refresh verification — 2026-09-28, before updater additions
 
 - `./kotlin.bat build`: passed, including shared and desktop test compilation.

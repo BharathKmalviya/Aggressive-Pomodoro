@@ -64,3 +64,15 @@ The [immutable v0.2.0 release](https://github.com/BharathKmalviya/Aggressive-Pom
 - `LICENSE`: SHA-256 `cc9829233de2b0ba9f107178cf4da58612848a70f07b2344eab1f1ec6df1f3fc`.
 
 The packaged updater also read the newly published release: version 0.2.0 correctly reported no newer update, and a simulated installed version 0.1.0 correctly detected the actual 0.2.0 MSI. No installer was executed on the development machine. The manual Windows acceptance gaps in [TESTING.md](TESTING.md), including audio, keyboard, sleep, and interactive UAC, remain open.
+
+## v0.3.0 published verification
+
+On 2026-10-01, [Windows CI](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/36872068972) and the [release workflow](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/36872068933) passed for `acd7b7b3c61d7f1293b2d4f6d5d0053232addc93`. The release log records all 93 tests passing (32 shared, 61 desktop), zero failures. Runtime packaging, clean MSI installation/launch, upgrade from the checksum-pinned v0.1.0 installer, old-product removal, paused timer/task/history preservation, checksum, and MIT License gates all passed.
+
+The [immutable v0.3.0 release](https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases/tag/v0.3.0) was published at 19:27:30 IST on 2026-10-01. Fresh API readback confirmed stable, published, immutable status and the tag's exact validated commit. Independent downloads of all three public assets matched their GitHub sizes/digests; the MSI also matched `SHA256SUMS.txt` and the MIT License matched its pinned hash:
+
+- `AggressivePomodoro-0.3.0.msi`: 93,475,736 bytes; SHA-256 `61f64f9420fcfb856a2e9063484850a35c6403113254a4c4ef986b143519e50e`.
+- `SHA256SUMS.txt`: 96 bytes; SHA-256 `1622639fe3f030641722193faff4c72e7ca4c2c4acd74e0f28b8e3d392e93ebf`.
+- `LICENSE`: 1,072 bytes; SHA-256 `cc9829233de2b0ba9f107178cf4da58612848a70f07b2344eab1f1ec6df1f3fc`.
+
+No installer was executed on the development machine. Manual sound/motion quality, keyboard, minimize/sleep, and interactive updater/UAC acceptance remain pending in [TESTING.md](TESTING.md). Snapshot format remains 3 and the active OpenSpec change remains open for its acceptance tasks.
