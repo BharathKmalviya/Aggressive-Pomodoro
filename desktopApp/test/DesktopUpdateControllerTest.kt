@@ -1,6 +1,7 @@
 package com.pomodoro.presentation
 
 import com.pomodoro.domain.AppRelease
+import com.pomodoro.domain.UpdateCheckResult
 import com.pomodoro.platform.UpdateService
 import java.io.IOException
 import java.nio.file.Path
@@ -25,11 +26,12 @@ class DesktopUpdateControllerTest {
         var downloaded = 0
         var verified = 0
         var latest: AppRelease? = release
+        var notes = "New alarms and animations."
         var failure: String? = null
-        override fun check(currentVersion: String): AppRelease? {
+        override fun check(currentVersion: String): UpdateCheckResult {
             checked++
             failure?.let { throw IOException(it) }
-            return latest
+            return UpdateCheckResult(latest?.version ?: currentVersion, notes, latest)
         }
         override fun download(release: AppRelease, targetDirectory: Path,
             onProgress: (Long, Long) -> Unit, isCancelled: () -> Boolean): Path {
@@ -49,14 +51,20 @@ class DesktopUpdateControllerTest {
         assertEquals(0, service.checked, "Constructing the updater must not contact the network")
         controller.check()!!.join()
         assertEquals(UpdateStatus.UP_TO_DATE, controller.state.status)
+        assertEquals("0.2.0", controller.state.latestVersion)
+        assertEquals(service.notes, controller.state.releaseNotes)
+        assertNull(controller.download(), "Current-version notes must not enable a download")
         service.failure = "You are offline."
         controller.check()!!.join()
         assertEquals(UpdateStatus.ERROR, controller.state.status)
         assertEquals("You are offline.", controller.state.message)
+        assertNull(controller.state.releaseNotes, "A failed fresh check must not retain stale notes")
+        assertNull(controller.state.latestVersion)
         service.failure = null
         service.latest = release
         controller.check()!!.join()
         assertEquals(UpdateStatus.AVAILABLE, controller.state.status)
+        assertEquals(service.notes, controller.state.releaseNotes)
     }
 
     @Test fun doubleCheckIsIgnoredWhileFirstRequestIsRunning() = runBlocking {
@@ -78,6 +86,7 @@ class DesktopUpdateControllerTest {
         assertEquals(0, service.downloaded)
         controller.download()!!.join()
         assertEquals(UpdateStatus.READY, controller.state.status)
+        assertEquals(service.notes, controller.state.releaseNotes)
         assertFalse(installed)
         controller.install { path, candidate ->
             assertEquals(1, service.verified)
@@ -112,13 +121,16 @@ class DesktopUpdateControllerTest {
             assertTrue(started.await(2, TimeUnit.SECONDS))
             controller.cancel()
             assertEquals(UpdateStatus.DOWNLOADING, controller.state.status)
+            assertEquals(service.notes, controller.state.releaseNotes)
             assertNull(controller.download())
             proceed.countDown()
             download.join()
             assertEquals(UpdateStatus.AVAILABLE, controller.state.status)
+            assertEquals(service.notes, controller.state.releaseNotes)
             shouldBlock = false
             controller.download()!!.join()
             assertEquals(UpdateStatus.READY, controller.state.status)
+            assertEquals(service.notes, controller.state.releaseNotes)
         } finally { proceed.countDown() }
     }
 
@@ -132,11 +144,13 @@ class DesktopUpdateControllerTest {
         controller.install { _, _ -> launched = true }
         assertFalse(launched)
         assertEquals(UpdateStatus.ERROR, controller.state.status)
+        assertEquals(service.notes, controller.state.releaseNotes)
         service.failure = null
         controller.download()!!.join()
         controller.install { _, _ -> throw IOException("Windows Installer could not start.") }
         assertEquals(UpdateStatus.ERROR, controller.state.status)
         assertNotNull(controller.state.latestVersion)
+        assertEquals(service.notes, controller.state.releaseNotes)
         controller.download()!!.join()
         controller.install { _, _ -> launched = true }
         assertTrue(launched)
@@ -148,5 +162,31 @@ class DesktopUpdateControllerTest {
         assertNull(controller.check())
         assertEquals(0, service.checked)
         assertEquals(UpdateStatus.ERROR, controller.state.status)
+    }
+
+    @Test fun downloadFailureAndRetryPreserveNotesAndClearOldError() = runBlocking {
+        var failDownload = true
+        val service = object : FakeService() {
+            override fun download(release: AppRelease, targetDirectory: Path,
+                onProgress: (Long, Long) -> Unit, isCancelled: () -> Boolean): Path {
+                if (failDownload) throw IOException("Connection interrupted.")
+                return super.download(release, targetDirectory, onProgress, isCancelled)
+            }
+        }
+        val controller = DesktopUpdateController("0.2.0", Path.of("updates"), service, this, windows = true)
+        controller.check()!!.join()
+        controller.download()!!.join()
+        assertEquals(UpdateStatus.ERROR, controller.state.status)
+        assertEquals(service.notes, controller.state.releaseNotes)
+        failDownload = false
+        controller.download()!!.join()
+        assertEquals(UpdateStatus.READY, controller.state.status)
+        assertEquals(service.notes, controller.state.releaseNotes)
+        assertNull(controller.state.message)
+        service.notes = "Replacement release notes."
+        val checking = controller.check()!!
+        assertNull(controller.state.releaseNotes)
+        checking.join()
+        assertEquals(service.notes, controller.state.releaseNotes)
     }
 }

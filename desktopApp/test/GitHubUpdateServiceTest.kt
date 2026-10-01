@@ -8,6 +8,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.security.MessageDigest
 import java.util.concurrent.CancellationException
+import kotlinx.serialization.json.JsonPrimitive
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
@@ -66,10 +67,45 @@ class GitHubUpdateServiceTest {
     @Test fun stableVersionsUseNumericComponentsAndOnlyOfferNewerReleases() {
         val candidate = release("0.10.0")
         val service = GitHubUpdateService(transport(candidate))
-        assertEquals(candidate, service.check("0.9.9"))
-        assertNull(service.check("0.10.0"))
-        assertNull(service.check("1.0.0"))
-        assertNotNull(GitHubUpdateService(transport(release("12345678901234567890.0.0"))).check("9999999999999999999.0.0"))
+        assertEquals(candidate, service.check("0.9.9").update)
+        assertNull(service.check("0.10.0").update)
+        assertNull(service.check("1.0.0").update)
+        assertNotNull(GitHubUpdateService(transport(release("12345678901234567890.0.0"))).check("9999999999999999999.0.0").update)
+    }
+
+    @Test fun notesAreAvailableForNewerCurrentAndOlderVersionsWithoutExtraRequests() {
+        val body = "## Changes\n\n- Better alarms\n[Details](https://example.com) <script>inert</script>"
+        for (installed in listOf("0.1.0", "0.2.0", "0.3.0")) {
+            val transport = transport().apply {
+                text(latest, metadata().replaceFirst("{", "{\"body\":${JsonPrimitive(body)},"))
+            }
+            val result = GitHubUpdateService(transport).check(installed)
+            assertEquals("0.2.0", result.latestVersion)
+            assertEquals(body, result.releaseNotes)
+            assertEquals(installed == "0.1.0", result.update != null)
+            assertEquals(listOf(latest), transport.requests)
+        }
+    }
+
+    @Test fun optionalMissingBlankOrMalformedNotesDoNotBlockValidUpdates() {
+        for (body in listOf(null, "null", "false", "123", "{}", "[]", JsonPrimitive("  ").toString())) {
+            val metadata = if (body == null) metadata() else metadata().replaceFirst("{", "{\"body\":$body,")
+            val service = GitHubUpdateService(transport().apply { text(latest, metadata) })
+            val result = service.check("0.1.0")
+            assertEquals("", result.releaseNotes)
+            assertNotNull(result.update)
+        }
+    }
+
+    @Test fun excessiveNotesAreBoundedWithAnHonestNoticeAndNoSplitEmoji() {
+        val prefix = "x".repeat(GitHubUpdateService.MAX_NOTES_CHARACTERS - 1)
+        val body = prefix + "😀" + "more".repeat(100)
+        val service = GitHubUpdateService(transport().apply {
+            text(latest, metadata().replaceFirst("{", "{\"body\":${JsonPrimitive(body)},"))
+        })
+        val result = service.check("0.1.0")
+        assertEquals(prefix + "\n\n[Release notes shortened for display.]", result.releaseNotes)
+        assertNotNull(result.update)
     }
 
     @Test fun draftPrereleaseMalformedVersionAndInvalidJsonAreRejected() {

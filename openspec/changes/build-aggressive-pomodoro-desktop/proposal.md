@@ -17,6 +17,7 @@ The repository began as a Compose desktop starter. A first Windows release needs
 - Add licensed offline button feedback, distinct focus/break completion sounds and previews, bounded timer animations with a saved reduce-motion option, and cancellation/cleanup under rapid interaction.
 - Prepare a Windows-first downloadable release, with a self-contained installer, integrity checksum, versioned release notes, and CI validation.
 - Add a user-triggered About update flow: check this repository's latest stable release, download the Windows installer with progress/cancel/retry, verify its checksum, save and back up local state, and open the installer only after explicit confirmation. Link the public GitHub repository from About.
+- Show the latest stable release notes inside the update dialog, including for current versions, with bounded selectable text and no browser navigation.
 - Establish open-source project documentation: setup, architecture, manual verification, release process, contribution guidance, code of conduct, security reporting, and the MIT License.
 
 ## Capabilities

@@ -6,6 +6,21 @@ Defines the first public download experience and verifiable release assets for u
 
 ## ADDED Requirements
 
+### Requirement: Embedded release notes
+The manual update check SHALL expose the latest stable release's version and notes inside the update dialog even when no newer installer is offered. Reading notes SHALL NOT navigate to a browser or require another network request. Notes SHALL be selectable, scrollable, bounded plain text with inert links and HTML. Completion alerts SHALL retain priority.
+
+#### Scenario: Read current or newer release notes
+- **WHEN** a successful check returns a current, older, or newer stable release and the user activates VIEW RELEASE NOTES
+- **THEN** the dialog shows that release's version and notes without leaving the app, and only newer releases offer an installer
+
+#### Scenario: Missing or excessive notes
+- **WHEN** the release body is absent, null, malformed, blank, or exceeds the display limit
+- **THEN** valid updates remain available, missing notes receive an explanation, and excessive notes receive a bounded preview with an explicit truncation notice
+
+#### Scenario: Notes during retry and rechecking
+- **WHEN** a download is cancelled or fails and is retried
+- **THEN** the checked release notes remain available, while a fresh check clears stale metadata and a failed fresh check does not show old notes
+
 ### Requirement: User-controlled updates and repository access
 About SHALL show the installed version and a link to the public GitHub repository. The app SHALL check for updates only on user request, compare numeric semantic versions, and offer only a newer stable Windows release from this repository. Offline, rate-limited, malformed, and missing-asset responses SHALL show a recoverable explanation without affecting the timer.
 

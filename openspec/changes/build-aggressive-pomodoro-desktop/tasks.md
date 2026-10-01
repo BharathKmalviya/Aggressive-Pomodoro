@@ -99,3 +99,11 @@ Section 11 local verification (2026-10-01): build, all 93 tests (32 shared, 61 d
 - [x] 12.3 Read back the immutable v0.3.0 tag and assets, independently download and verify their hashes and MIT License, and record release evidence without closing pending manual acceptance tasks.
 
 Section 12 verification (2026-10-01): immutable v0.3.0 was published from `acd7b7b3c61d7f1293b2d4f6d5d0053232addc93` after Windows CI `36872068972` and release workflow `36872068933` passed all automated build/test/package/clean-install/upgrade gates. All three public assets were independently downloaded and hash-verified. MSI SHA-256: `61f64f9420fcfb856a2e9063484850a35c6403113254a4c4ef986b143519e50e`. Full evidence is in `docs/RELEASING.md`; pending manual Windows acceptance remains in `docs/TESTING.md`, and earlier unchecked tasks stay open.
+
+## 13. Embedded release notes
+
+- [x] 13.1 Read bounded optional release notes and latest version for newer/current/older releases; retain them through download/cancel/retry failures and cover malformed/missing/long notes with deterministic checks.
+- [x] 13.2 Replace release browser navigation with an expandable, selectable, scrollable section inside the update dialog; preserve completion-alert priority and update relevant documentation/manual Windows scenarios.
+- [x] 13.3 Run build, all tests, executable JAR packaging, strict OpenSpec and diff validation; record automated results separately from pending Windows acceptance.
+
+Section 13 local verification (2026-10-01): build, all 97 tests (32 shared, 65 desktop) with no failures/skips, executable JAR packaging, strict OpenSpec validation, and diff checks passed. Tests cover current/older/newer notes with one request, absent/null/malformed/blank bodies, Unicode-safe truncation, and retention/clearing through cancellation/download/installation errors and rechecking. Native Windows reading/selection/scrolling/keyboard and completion priority remain pending in `docs/TESTING.md`. The published v0.3.0 installer is unchanged; the change stays active with prior manual gates open.

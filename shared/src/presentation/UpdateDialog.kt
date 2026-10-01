@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -25,15 +26,14 @@ import androidx.compose.ui.unit.sp
 internal fun UpdateDialog(
     state: UpdateUiState,
     currentVersion: String,
-    browserWarning: String?,
     onCheck: () -> Unit,
     onDownload: () -> Unit,
     onCancel: () -> Unit,
     onInstall: () -> Unit,
-    onOpenRelease: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     var confirmInstall by remember(state.status, state.latestVersion) { mutableStateOf(false) }
+    var notesExpanded by remember(state.latestVersion, state.releaseNotes) { mutableStateOf(false) }
     val working = state.status in setOf(UpdateStatus.CHECKING, UpdateStatus.DOWNLOADING, UpdateStatus.INSTALLING)
     val title = when (state.status) {
         UpdateStatus.IDLE -> "APP UPDATES"
@@ -105,15 +105,22 @@ internal fun UpdateDialog(
                     state.message?.let {
                         Text(it, color = if (state.status == UpdateStatus.ERROR) UiColor.focus else UiColor.muted)
                     }
-                    TextButton(onClick = onOpenRelease) { Text("VIEW RELEASE NOTES") }
-                    browserWarning?.let { Text(it, color = UiColor.focus) }
                     if (state.status == UpdateStatus.DOWNLOADING) {
-                        TextButton(onClick = onCancel) {
-                            Text("CANCEL DOWNLOAD")
-                        }
+                        TextButton(onClick = onCancel) { Text("CANCEL DOWNLOAD") }
                     }
-                    if (state.status == UpdateStatus.ERROR && state.latestVersion != null) {
+                    if (state.status == UpdateStatus.ERROR && state.totalBytes > 0) {
                         TextButton(onClick = onDownload) { Text("DOWNLOAD AGAIN", fontWeight = FontWeight.Bold) }
+                    }
+                    if (state.releaseNotes != null) {
+                        TextButton(onClick = { notesExpanded = !notesExpanded }) {
+                            Text(if (notesExpanded) "HIDE RELEASE NOTES" else "VIEW RELEASE NOTES")
+                        }
+                        if (notesExpanded) {
+                            Text("RELEASE NOTES · ${state.latestVersion}", fontWeight = FontWeight.Bold)
+                            SelectionContainer {
+                                Text(state.releaseNotes.ifBlank { "No release notes were provided for this version." })
+                            }
+                        }
                     }
                 }
             },

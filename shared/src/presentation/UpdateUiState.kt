@@ -8,4 +8,5 @@ data class UpdateUiState(
     val downloadedBytes: Long = 0,
     val totalBytes: Long = 0,
     val message: String? = null,
+    val releaseNotes: String? = null,
 )

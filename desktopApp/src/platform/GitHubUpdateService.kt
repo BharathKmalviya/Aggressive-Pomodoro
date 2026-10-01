@@ -1,6 +1,7 @@
 package com.pomodoro.platform
 
 import com.pomodoro.domain.AppRelease
+import com.pomodoro.domain.UpdateCheckResult
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
@@ -27,7 +28,7 @@ import kotlinx.serialization.json.longOrNull
 
 /** Blocking desktop IO. Checking, downloading and installation are separate user actions. */
 interface UpdateService {
-    fun check(currentVersion: String): AppRelease?
+    fun check(currentVersion: String): UpdateCheckResult
     fun download(release: AppRelease, targetDirectory: Path,
         onProgress: (Long, Long) -> Unit, isCancelled: () -> Boolean): Path
     fun verifyBeforeInstall(path: Path, release: AppRelease)
@@ -41,7 +42,7 @@ class GitHubUpdateService internal constructor(private val transport: UpdateTran
     // download can populate this registry; restarting requires another explicit download.
     private val verified = ConcurrentHashMap<Path, VerifiedDownload>()
 
-    override fun check(currentVersion: String): AppRelease? {
+    override fun check(currentVersion: String): UpdateCheckResult {
         val current = versionParts(currentVersion)
         val text = fetchSmall(URI(LATEST_URL), MAX_METADATA_BYTES)
         val metadata = try { Json.parseToJsonElement(text) as? JsonObject }
@@ -54,7 +55,13 @@ class GitHubUpdateService internal constructor(private val transport: UpdateTran
         if (!tag.startsWith("v")) throw IOException("The release version is not supported.")
         val version = tag.removePrefix("v")
         val available = versionParts(version)
-        if (compareVersions(available, current) <= 0) return null
+        val body = (metadata["body"] as? JsonPrimitive)?.takeIf { it.isString }?.content.orEmpty().trim()
+        val notes = if (body.length <= MAX_NOTES_CHARACTERS) body else {
+            // Avoid splitting a supplementary Unicode character at the preview boundary.
+            val end = if (body[MAX_NOTES_CHARACTERS - 1].isHighSurrogate()) MAX_NOTES_CHARACTERS - 1 else MAX_NOTES_CHARACTERS
+            body.take(end) + "\n\n[Release notes shortened for display.]"
+        }
+        if (compareVersions(available, current) <= 0) return UpdateCheckResult(version, notes)
         val installerName = "AggressivePomodoro-$version.msi"
         val assets = metadata["assets"] as? JsonArray ?: throw IOException("The release has no downloadable files.")
         fun asset(name: String): JsonObject {
@@ -67,9 +74,10 @@ class GitHubUpdateService internal constructor(private val transport: UpdateTran
             throw IOException("The release download is not ready yet. Try again later.")
         }
         if (checksum.number("size") !in 1..MAX_CHECKSUM_BYTES) throw IOException("The release checksum file is invalid.")
-        return AppRelease(version, metadata.text("html_url"), installerName,
+        val update = AppRelease(version, metadata.text("html_url"), installerName,
             installer.text("browser_download_url"), installer.number("size"),
             checksum.text("browser_download_url")).also(::validateRelease)
+        return UpdateCheckResult(version, notes, update)
     }
 
     override fun download(release: AppRelease, targetDirectory: Path,
@@ -262,6 +270,7 @@ class GitHubUpdateService internal constructor(private val transport: UpdateTran
     private fun ByteArray.hex(): String = joinToString("") { "%02x".format(it.toInt() and 255) }
 
     companion object {
+        internal const val MAX_NOTES_CHARACTERS = 32_768
         const val REPOSITORY_URL = "https://github.com/BharathKmalviya/Aggressive-Pomodoro"
         internal const val LATEST_URL = "https://api.github.com/repos/BharathKmalviya/Aggressive-Pomodoro/releases/latest"
         private const val CHECKSUM_NAME = "SHA256SUMS.txt"

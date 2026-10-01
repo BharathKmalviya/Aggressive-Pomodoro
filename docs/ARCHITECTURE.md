@@ -53,10 +53,12 @@ Closing freezes commands/ticks while the final save is pending. A failed save le
 
 Responses have size limits, connection/read timeouts, and cancellation checks. The MSI is hashed while downloading, compared to the exact filename in `SHA256SUMS.txt`, and retained only when valid. The process retains verification metadata in memory: an editable sidecar cannot authorize installation, and a restart requires a new download. Before installation, the file is hashed again. Downloading and checking never mutate timer state.
 
+`UpdateCheckResult` carries latest version and release notes independently from an optional newer installer. The existing explicit request reads GitHub's `body`; current/older results retain notes and never offer a downgrade. The update dialog expands selectable plain text in its existing scroll area without a browser callback, HTML execution, active links, or an additional request. Missing/null/non-string/blank notes show an explanation without blocking downloads. A 32,768-character preview limit adds a truncation notice and avoids splitting Unicode surrogate pairs. Notes survive download progress, cancellation, retry, and installation errors; a new check clears previous metadata before IO so offline failures cannot show stale notes. Completion alerts still close secondary dialogs.
+
 After explicit install confirmation, the session controller saves a final snapshot and runs a preparation callback while keeping its writer alive. That callback creates and byte-verifies a uniquely named backup in the local `backups` directory, then launches interactive `msiexec /i` using a shell-free argument list. Only a successful callback lets shutdown finish. Save, backup, verification, or launch failures keep the app open; a later retry remains possible. Windows installation/UAC and reopening the app stay under user control. The MSI UpgradeCode is pinned to the first released product and validated by packaging.
 
 ## Data boundaries
 
 The app has no server, account, telemetry, cloud sync, background process after exit, or system-wide app blocker. Windows is the first package target. Task and report data stay in the same per-user snapshot as the session so a completed focus block cannot be saved without its task and daily credit.
 
-User-triggered update requests send ordinary HTTP metadata to GitHub and its release CDN, but no tasks, history, settings, or timer data. Browser links open the fixed public repository or its releases.
+User-triggered update requests send ordinary HTTP metadata to GitHub and its release CDN, but no tasks, history, settings, or timer data. About's explicit repository link opens the fixed public repository; release notes stay inside the app.

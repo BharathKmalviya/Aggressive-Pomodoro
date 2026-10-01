@@ -84,6 +84,20 @@ Published verification (2026-10-01): [Windows CI](https://github.com/BharathKmal
 
 ## Manual update and About checks
 
+For the embedded-notes source change (pending the next installer release), run `.\kotlin.bat run -m desktopApp` and check these Windows scenarios. These are manual acceptance steps, not recorded passes:
+
+| Scenario | Action | Expected result |
+| --- | --- | --- |
+| Current release notes | About → CHECK FOR UPDATES → VIEW RELEASE NOTES while installed/current versions match | Notes and the fetched release version appear in the dialog; no browser opens and no installer download starts. |
+| Reading and keyboard | Expand notes, scroll with wheel/keyboard, select/copy text, Tab to HIDE RELEASE NOTES and CLOSE, then use Escape | Long content remains readable; controls remain reachable; text is selectable; links/HTML do not navigate or execute. |
+| Newer-release notes and retry | On an older updater-capable build, read notes, download, cancel, retry, then close/reopen from About | Notes remain associated with the same release through progress/cancel/retry and are available after reopening. |
+| Fresh offline check | Read notes, disconnect network, then CHECK FOR UPDATES again | Previous notes are cleared; an error and retry are visible; timer continues. |
+| Completion priority | Let a focus block finish while notes are expanded | Completion alert replaces the update dialog; no installation starts. |
+
+Missing/null/non-string/blank release bodies and Unicode-safe long-note truncation use fake metadata in deterministic service tests; do not change public release metadata for manual testing.
+
+Embedded-notes local verification (2026-10-01): Kotlin build, all 97 automated tests (32 shared, 65 desktop; zero failures/skips), executable JAR packaging, strict OpenSpec validation, and diff checks passed. Service tests verify one-request current/older/newer notes, optional-body tolerance, and bounded Unicode-safe text. Controller checks cover retained notes during download/cancel/retry/install failures and cleared notes on fresh/offline checks. The manual reading/keyboard/scrolling/selection and completion-priority scenarios above remain pending. This source change does not replace the published v0.3.0 installer.
+
 Use a disposable profile for installer/rollback checks. Do not downgrade a real version 3 snapshot into v0.1.0. Deterministic tests simulate newer releases so no fake public tag is required.
 
 | Scenario | Steps | Expected result |

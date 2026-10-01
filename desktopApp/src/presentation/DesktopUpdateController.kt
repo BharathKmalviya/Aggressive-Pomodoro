@@ -45,11 +45,12 @@ class DesktopUpdateController(
             try {
                 val latest = withContext(Dispatchers.IO) { service.check(version) }
                 if (operation != request) return@launch
-                release = latest
+                release = latest.update
                 state = UpdateUiState(
-                    status = if (latest == null) UpdateStatus.UP_TO_DATE else UpdateStatus.AVAILABLE,
-                    latestVersion = latest?.version,
-                    totalBytes = latest?.installerSize ?: 0,
+                    status = if (latest.update == null) UpdateStatus.UP_TO_DATE else UpdateStatus.AVAILABLE,
+                    latestVersion = latest.latestVersion,
+                    totalBytes = latest.update?.installerSize ?: 0,
+                    releaseNotes = latest.releaseNotes,
                 )
             } catch (error: Exception) {
                 if (operation == request) fail(error, "Could not check for updates. Try again when you are online.")
@@ -63,8 +64,8 @@ class DesktopUpdateController(
         val request = ++operation
         val token = AtomicBoolean(false).also { cancelled = it }
         installer = null
-        state = UpdateUiState(status = UpdateStatus.DOWNLOADING, latestVersion = latest.version,
-            totalBytes = latest.installerSize)
+        state = state.copy(status = UpdateStatus.DOWNLOADING, downloadedBytes = 0,
+            totalBytes = latest.installerSize, message = null)
         return scope.launch {
             try {
                 var lastProgressNs = 0L
@@ -86,8 +87,8 @@ class DesktopUpdateController(
                     return@launch
                 }
                 installer = file
-                state = UpdateUiState(status = UpdateStatus.READY, latestVersion = latest.version,
-                    downloadedBytes = latest.installerSize, totalBytes = latest.installerSize)
+                state = state.copy(status = UpdateStatus.READY,
+                    downloadedBytes = latest.installerSize, totalBytes = latest.installerSize, message = null)
             } catch (_: CancellationException) {
                 if (operation == request) cancelledState(latest)
             } catch (error: Exception) {
@@ -120,10 +121,8 @@ class DesktopUpdateController(
         }
     }
 
-    fun releaseUrl(): String = release?.releaseUrl ?: "https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases"
-
     private fun cancelledState(latest: AppRelease) {
-        state = UpdateUiState(status = UpdateStatus.AVAILABLE, latestVersion = latest.version,
+        state = state.copy(status = UpdateStatus.AVAILABLE, downloadedBytes = 0,
             totalBytes = latest.installerSize, message = "Download cancelled. Your current app is unchanged.")
     }
 

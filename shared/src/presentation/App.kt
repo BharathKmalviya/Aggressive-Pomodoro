@@ -56,7 +56,6 @@ fun App(
     onCancelUpdate: () -> Unit,
     onInstallUpdate: () -> Unit,
     onOpenRepository: () -> Unit,
-    onOpenRelease: () -> Unit,
     browserWarning: String?,
     onSessionCommand: (SessionCommand) -> Unit,
     onTaskCommand: (TaskCommand) -> Unit,
@@ -234,9 +233,9 @@ fun App(
             dismissButton = { TextButton(onClick = { onUiClick(); aboutOpen = false }) { Text("CLOSE") } },
         )
         if (!pending && updatesOpen) UpdateDialog(
-            state = updateState, currentVersion = version, browserWarning = browserWarning,
+            state = updateState, currentVersion = version,
             onCheck = onCheckUpdates, onDownload = onDownloadUpdate, onCancel = onCancelUpdate,
-            onInstall = onInstallUpdate, onOpenRelease = onOpenRelease,
+            onInstall = onInstallUpdate,
             onDismiss = { onUiClick(); updatesOpen = false },
         )
     }

@@ -37,6 +37,7 @@ A manual check against GitHub confirms the installed release is current:
 - Independent completion and button-click sounds, including a bundled [Kenney CC0 interface click](https://kenney.nl/assets/interface-sounds) that works offline. Alarm playback does not overlap, rapid click cues are throttled, and unavailable audio shows a visible explanation while the timer keeps working. Asset provenance is recorded in [sound credits](desktopApp/resources/sounds/README.md).
 - Short phase-color transitions, status/instruction entrances, smooth elapsed progress, and a single final-minute emphasis. Countdown numbers and control positions stay immediate; **Settings → Reduce motion** disables custom motion and is saved across restarts.
 - **About → Check for updates** finds newer stable Windows releases. Download with progress/cancel, then confirm **Install & Exit** to verify the installer, save and back up your session, and open Windows Installer. About also links directly to the GitHub repository.
+- After checking, **View release notes** shows the latest stable release's notes inside the update dialog, even when you're up to date. Notes are selectable and scrollable; viewing them does not open GitHub. This source improvement is pending the next installer release.
 
 The timer continues while the window is minimized. It cannot alert after the application exits, and it does not block other applications.
 

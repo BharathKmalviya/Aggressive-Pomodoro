@@ -168,7 +168,6 @@ fun main() {
                 onDownloadUpdate = { if (!closing) updates.download() },
                 onCancelUpdate = { if (!closing) updates.cancel() },
                 onOpenRepository = { if (!closing) openLink(REPOSITORY_URL) },
-                onOpenRelease = { if (!closing) openLink(updates.releaseUrl()) },
                 onInstallUpdate = {
                     if (!closing) session.tick()
                     if (!closing && session.state.pending.isEmpty() && updates.state.status == UpdateStatus.READY) {

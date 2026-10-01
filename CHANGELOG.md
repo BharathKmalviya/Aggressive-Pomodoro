@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- **View release notes** now expands selectable, scrollable notes inside the update dialog without opening GitHub, including when no newer version is available.
+- Read notes from the existing manual check, handle missing or malformed bodies without blocking updates, bound long text with a visible notice, and retain notes through download/cancel/retry failures. Fresh checks clear stale metadata.
+- Added deterministic release-note parsing and update-state regression coverage. Native Windows reading, keyboard/scrolling, and completion-alert checks remain manual; v0.3.0 installers are unchanged.
+
 ## 0.3.0
 
 - Added offline Kenney CC0 click feedback and distinct focus-complete/break-complete chord alarms, with separate previews that stop on Settings dismissal or completion preemption.
