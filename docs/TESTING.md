@@ -71,6 +71,8 @@ Automated audio tests use fake clips and latches to verify races without relying
 
 Local verification (2026-10-01): Kotlin build passed; all 93 tests passed (32 shared, 61 desktop), zero failures or skips. Executable JAR packaging passed, and bundled click/license/credit resources were read from the produced JAR and matched the source. Strict OpenSpec validation and Git whitespace checks passed. The manual sound/motion scenarios above have not been run; no new version or installer release was produced.
 
+Release preparation (2026-10-01): the owner subsequently requested publication as v0.3.0 with these manual gaps disclosed. Build, all 93 tests with no failures/skips, executable JAR packaging, strict OpenSpec validation, and diff checks passed again after the version update. Packaged metadata reports 0.3.0 and bundled sound/license resources match source. Automated Windows release gates and fresh asset verification are required before a publication claim; manual acceptance remains pending.
+
 ## Recorded aggressive-refresh verification — 2026-09-28, before updater additions
 
 - `./kotlin.bat build`: passed, including shared and desktop test compilation.

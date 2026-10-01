@@ -16,10 +16,16 @@ Install JDK 21 and WiX 3.14.1 build tools on Windows. Add `candle.exe` and `ligh
 ```powershell
 .\scripts\package-windows.ps1 -Msi
 Get-Content .\build\distribution\artifacts\SHA256SUMS.txt
-Get-FileHash .\build\distribution\artifacts\AggressivePomodoro-0.2.0.msi -Algorithm SHA256
+Get-FileHash .\build\distribution\artifacts\AggressivePomodoro-0.3.0.msi -Algorithm SHA256
 ```
 
-The script uses the checked-in Kotlin Toolchain wrapper, runs build and tests, builds the executable JAR, creates a runtime-bundled app image and MSI with `jpackage`, smoke-checks the app-image process, and writes a SHA-256 checksum for the exact MSI. It places the MIT License alongside the artifacts and passes it to the MSI packager. The versioned filename follows `desktopApp/resources/version.properties`; replace `0.2.0` in the example after a version change.
+The script uses the checked-in Kotlin Toolchain wrapper, runs build and tests, builds the executable JAR, creates a runtime-bundled app image and MSI with `jpackage`, smoke-checks the app-image process, and writes a SHA-256 checksum for the exact MSI. It places the MIT License alongside the artifacts and passes it to the MSI packager. The versioned filename follows `desktopApp/resources/version.properties`; replace `0.3.0` in the example after a version change.
+
+## v0.3.0 release scope
+
+On 2026-10-01 the owner requested publication of the sound/motion update after the outstanding Windows manual checks were disclosed. This is an exception for this release to the manual acceptance timing above, not a manual test pass. Automated Windows build/tests, runtime packaging, clean MSI install/launch, baseline upgrade/data preservation, checksums, and MIT License gates remain mandatory. The active OpenSpec change stays open for the remaining manual acceptance.
+
+This release bundles Kenney CC0 button feedback and its license, distinct focus/break completion alarms and previews, bounded timer animations, saved Reduce motion, and hardened playback cancellation/cleanup. Snapshot format stays at 3. v0.2.0 ignores the optional new motion property and can read the same timer/tasks/history; close the app and back up `session.properties` before installation or rollback. v0.1.0 still requires a pre-format-3 backup. Installer signing status and manual audio, keyboard, minimize/sleep, and interactive updater/UAC acceptance are unchanged.
 
 ## CI and publication
 

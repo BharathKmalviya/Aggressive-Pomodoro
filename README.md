@@ -6,7 +6,7 @@ Aggressive Pomodoro is a Windows desktop focus timer built with Kotlin and Compo
 
 ## Screenshots
 
-The Windows app in v0.2.0, captured from the running app with sample tasks and history in an isolated demo profile. Dialog screenshots are cropped for readability.
+The Windows app in v0.2.0, captured from the running app with sample tasks and history in an isolated demo profile. Dialog screenshots are cropped for readability. Version 0.3.0 adds separate focus/break alarm previews and Reduce motion in Settings; the images below retain the previous release's version and Settings layout.
 
 Live focus countdown, direct prompts, and the task earning the current block:
 
@@ -73,6 +73,8 @@ Obtain the MSI, checksum file, and MIT License from [GitHub Releases](https://gi
 On Windows, the application stores its timer state, settings, tasks, and daily totals in `%APPDATA%\AggressivePomodoro\session.properties`. Changes are saved without blocking the UI. After a restart, an expired phase is completed once; missed cycles are not backfilled. If the saved file cannot be read, the application starts a fresh focus session and shows a recovery message. See [Architecture](docs/ARCHITECTURE.md) for the persistence and clock rules.
 
 Version 0.2.0 migrates older snapshots to format 3. Close the app and back up the saved file before upgrading if you may downgrade: v0.1.0 cannot read the new format, so restore the pre-upgrade backup before launching it again.
+
+Version 0.3.0 keeps snapshot format 3 and adds an optional saved Reduce motion preference. v0.2.0 can read the same session/tasks/history and ignores that extra preference. Back up the saved file before either upgrading or rolling back.
 
 Only one instance can use the saved state at a time. The application has no account, telemetry, or cloud sync.
 

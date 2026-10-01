@@ -91,3 +91,9 @@ Post-publication screenshot smoke confirmed the real UI can start a demo focus b
 - [x] 11.4 Update sound attribution, README, architecture, changelog, and exact Windows scenarios; run full build/tests and strict OpenSpec/diff checks. Record manual Windows evidence separately without closing prior acceptance gates.
 
 Section 11 local verification (2026-10-01): build, all 93 tests (32 shared, 61 desktop), executable JAR packaging, strict OpenSpec validation, and diff checks passed. The packaged WAV/license/credit files match source. Original manual Windows gates and new sound/motion acceptance remain open in `docs/TESTING.md`; the change stays active. No version bump or new public installer release is included.
+
+## 12. Version 0.3.0 publication
+
+- [x] 12.1 Prepare v0.3.0 metadata, release notes, format-3 compatibility/rollback guidance, and documented owner-authorized publication with pending manual acceptance; run build/tests and strict OpenSpec/diff checks.
+- [ ] 12.2 Commit and push the release update to main; require the exact commit's Windows CI and release packaging, clean installation/launch, baseline upgrade/data-preservation, checksum, and license gates to pass.
+- [ ] 12.3 Read back the immutable v0.3.0 tag and assets, independently download and verify their hashes and MIT License, and record release evidence without closing pending manual acceptance tasks.

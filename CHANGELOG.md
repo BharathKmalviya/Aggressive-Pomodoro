@@ -1,11 +1,13 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
 
 - Added offline Kenney CC0 click feedback and distinct focus-complete/break-complete chord alarms, with separate previews that stop on Settings dismissal or completion preemption.
 - Added short phase-accent and status/instruction transitions, smooth running progress, and one-shot final-minute emphasis. Saved **Reduce motion** disables custom animation; pause/wait/reset remain immediate and truthful.
 - Hardened audio replacement, mute/acknowledgement/shutdown and click-disable cancellation, stale callbacks, and callback-thread cleanup. Existing format-3 snapshots remain compatible; absent motion preferences use defaults.
 - Added deterministic audio and preference compatibility regressions and exact manual Windows sound/motion scenarios. Audible quality and native UI acceptance still require manual verification.
+- Snapshot format remains 3, preserving v0.2.0 compatibility. Close the app and back up `%APPDATA%\AggressivePomodoro\session.properties` before upgrading or rolling back; v0.1.0 still needs a pre-format-3 backup.
+- Windows audio, keyboard, minimize/sleep, and interactive updater/UAC checks remain pending. Publication is requested with those gaps disclosed and remains gated on automated Windows build, tests, packaging, installation/launch, upgrade/data preservation, checksum, and license validation. The installer is unsigned.
 
 ## 0.2.0
 
