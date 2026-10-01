@@ -11,7 +11,7 @@
 
 - [x] 2.1 Implement a pure session state machine in `shared` for defaults, focus/short/long cycle counting, start/pause/resume/reset/skip, and unique phase IDs; verify deterministic tests cover fourth-focus long break, skipped focus, reset, repeated completion, and invalid commands.
 - [x] 2.2 Implement deadline-derived countdown and injectable monotonic/wall clocks; verify tests with delayed ticks, pause/resume, zero boundary, and no duplicate phase completion.
-- [x] 2.3 Implement typed settings with 1–180 minute focus, 1–60 minute breaks, 2–12 focus long-break interval, auto transition default, and sound toggle; verify validation and next-phase-only application with tests.
+- [x] 2.3 Implement typed settings with 1–180 minute focus, 1–60 minute breaks, 2–12 focus long-break interval, auto transition default, and sound toggle; verify validation and preservation of running/paused duration with tests. Save/reset/recovery refresh behavior is tracked in section 14.
 - [x] 2.4 Add `docs/ARCHITECTURE.md` for state transitions, clock rules, settings ownership, and module boundaries; verify it reflects the implemented model and links from README.
 
 ## 3. Alerts and desktop UI
@@ -107,3 +107,11 @@ Section 12 verification (2026-10-01): immutable v0.3.0 was published from `acd7b
 - [x] 13.3 Run build, all tests, executable JAR packaging, strict OpenSpec and diff validation; record automated results separately from pending Windows acceptance.
 
 Section 13 local verification (2026-10-01): build, all 97 tests (32 shared, 65 desktop) with no failures/skips, executable JAR packaging, strict OpenSpec validation, and diff checks passed. Tests cover current/older/newer notes with one request, absent/null/malformed/blank bodies, Unicode-safe truncation, and retention/clearing through cancellation/download/installation errors and rechecking. Native Windows reading/selection/scrolling/keyboard and completion priority remain pending in `docs/TESTING.md`. The published v0.3.0 installer is unchanged; the change stays active with prior manual gates open.
+
+## 14. Saved rules and timer refresh
+
+- [x] 14.1 Apply latest saved durations to idle/waiting phases, explicit resets, and stale unstarted snapshot recovery while preserving active progress, deadline reconciliation, completion queues, and task/history credit.
+- [x] 14.2 Add deterministic regressions for all phase types, running/paused/reset/resume, waiting acknowledgement, invalid edits, live preference updates, and save/relaunch through real storage.
+- [x] 14.3 Update Settings guidance, README, architecture, changelog, and exact Windows scenarios; run build/tests, strict OpenSpec validation, and diff checks and record pending manual acceptance separately.
+
+Section 14 local verification (2026-10-01): five new regression tests failed against the original implementation, reproducing stale save/reset/waiting/recovery durations and incorrect post-reset report duration. After the fix, build, all 106 tests (39 shared, 67 desktop; no failures/errors/skips), executable JAR packaging, strict OpenSpec validation, and diff checks passed. Nine new tests cover all phase types, shorter/longer resets, paused progress/resume, invalid edits, waiting acknowledgement, preference acceptance, deadline credit, task recapture, and real-store save/relaunch. Reset confirmation now displays the saved target duration. Native Windows scenarios are documented and pending in `docs/TESTING.md`; no version bump or installer publication is included, and prior manual gates stay open.

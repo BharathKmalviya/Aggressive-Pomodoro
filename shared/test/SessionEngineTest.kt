@@ -98,6 +98,93 @@ class SessionEngineTest {
         assertEquals(180_000, state.durationMs)
     }
 
+    @Test fun savedDurationsRefreshEveryIdlePhaseBeforeStart() {
+        val changed = shortSettings.copy(focusMinutes = 10, shortBreakMinutes = 3, longBreakMinutes = 7)
+        for (phase in Phase.entries) {
+            val initial = newSession(shortSettings).copy(phase = phase, completedFocus = 3, focusInCycle = 1)
+            val saved = act(initial, SessionCommand.ChangeSettings(changed), 0)
+            assertEquals(changed.durationMs(phase), saved.durationMs, phase.name)
+            assertEquals(saved.durationMs, saved.remainingMs)
+            assertEquals(initial.phaseId, saved.phaseId)
+            assertEquals(initial.completedFocus, saved.completedFocus)
+            assertEquals(initial.focusInCycle, saved.focusInCycle)
+            val started = act(saved, SessionCommand.StartPhase(saved.phaseId), 5_000)
+            assertEquals(5_000 + changed.durationMs(phase), started.deadlineMonotonicMs)
+            assertEquals(started.deadlineMonotonicMs, started.deadlineWallMs)
+            assertEquals(saved, act(saved, SessionCommand.ChangeSettings(changed.copy(focusMinutes = 0)), 0))
+        }
+    }
+
+    @Test fun resetUsesLatestSavedRulesForRunningAndPausedPhases() {
+        for (phase in Phase.entries) for (paused in listOf(false, true)) for (minutes in listOf(1, 10)) {
+            val original = shortSettings.copy(focusMinutes = 5, shortBreakMinutes = 5, longBreakMinutes = 5)
+            val changed = original.copy(focusMinutes = minutes, shortBreakMinutes = minutes, longBreakMinutes = minutes)
+            var state = act(newSession(original).copy(phase = phase), SessionCommand.Start, 0)
+            if (paused) state = act(state, SessionCommand.Pause, 20_000)
+            state = act(state, SessionCommand.ChangeSettings(changed), 20_000)
+            assertEquals(300_000L, state.durationMs)
+            assertEquals(280_000L, state.remainingMs)
+            val reset = act(state, SessionCommand.ResetPhase(state.phaseId), 20_000)
+            assertEquals(phase, reset.phase)
+            assertEquals(SessionStatus.IDLE, reset.status)
+            assertEquals(minutes * 60_000L, reset.durationMs)
+            assertEquals(reset.durationMs, reset.remainingMs)
+            assertEquals(null, reset.deadlineMonotonicMs)
+            assertEquals(null, reset.deadlineWallMs)
+            assertEquals(null, reset.lastMark)
+            assertEquals(0, reset.completedFocus)
+            assertTrue(reset.pending.isEmpty())
+            val started = act(reset, SessionCommand.Start, 30_000)
+            assertEquals(30_000 + reset.durationMs, started.deadlineMonotonicMs)
+        }
+    }
+
+    @Test fun pausedSaveAndResumeKeepProgressWhilePreferencesApplyImmediately() {
+        var state = act(newSession(shortSettings), SessionCommand.Start, 0)
+        state = act(state, SessionCommand.Pause, 20_000)
+        val changed = shortSettings.copy(focusMinutes = 10, automaticTransitions = false, soundEnabled = false,
+            clickSoundEnabled = false, aggressiveAlertsEnabled = false, reduceMotion = true)
+        val saved = act(state, SessionCommand.ChangeSettings(changed), 100_000)
+        assertEquals(state.copy(settings = changed), saved)
+        val resumed = act(saved, SessionCommand.Resume, 100_000)
+        assertEquals(140_000L, resumed.deadlineMonotonicMs)
+        val completed = act(resumed, SessionCommand.Tick, 140_000)
+        assertEquals(SessionStatus.WAITING, completed.status)
+        assertEquals(changed, completed.settings)
+        assertEquals(1, completed.completedFocus)
+    }
+
+    @Test fun savedRulesRefreshWaitingPhaseWithoutDismissingCompletion() {
+        var state = act(newSession(shortSettings.copy(automaticTransitions = false)), SessionCommand.Start, 0)
+        state = act(state, SessionCommand.Tick, 60_000)
+        val changed = state.settings.copy(shortBreakMinutes = 4, automaticTransitions = true)
+        val saved = act(state, SessionCommand.ChangeSettings(changed), 60_000)
+        assertEquals(SessionStatus.WAITING, saved.status)
+        assertEquals(240_000L, saved.remainingMs)
+        assertEquals(state.pending, saved.pending)
+        assertEquals(state.completedFocus, saved.completedFocus)
+        assertEquals(null, saved.deadlineMonotonicMs)
+        val started = act(saved, SessionCommand.AcknowledgeCompletion(saved.pending.single().phaseId), 70_000)
+        assertEquals(310_000L, started.deadlineMonotonicMs)
+        assertTrue(started.pending.isEmpty())
+    }
+
+    @Test fun recoveryRefreshesStaleUnstartedDurationsButPreservesPausedProgress() {
+        val changed = shortSettings.copy(focusMinutes = 10, shortBreakMinutes = 3, longBreakMinutes = 7)
+        for (phase in Phase.entries) {
+            val idle = newSession(shortSettings).copy(phase = phase, settings = changed, phaseId = 3)
+            val recovered = SessionEngine.recover(idle, at(0))
+            assertEquals(changed.durationMs(phase), recovered.remainingMs)
+            assertEquals(recovered.durationMs, recovered.remainingMs)
+            val waiting = idle.copy(status = SessionStatus.WAITING,
+                pending = listOf(com.pomodoro.domain.Completion(2, Phase.FOCUS)))
+            assertEquals(waiting.copy(durationMs = changed.durationMs(phase), remainingMs = changed.durationMs(phase)),
+                SessionEngine.recover(waiting, at(0)))
+            val paused = idle.copy(status = SessionStatus.PAUSED, remainingMs = 40_000)
+            assertEquals(paused, SessionEngine.recover(paused, at(0)))
+        }
+    }
+
     @Test fun automaticQueueStopsAfterSecondUnacknowledgedCompletion() {
         var state = act(newSession(shortSettings), SessionCommand.Start, 0)
         state = act(state, SessionCommand.Tick, 60_000)

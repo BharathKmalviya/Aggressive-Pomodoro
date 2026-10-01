@@ -19,6 +19,41 @@ class ProductEngineTest {
     private fun act(state: ProductState, command: ProductCommand, ms: Long = 0) =
         ProductEngine.reduce(state, command, TimeMark(ms, ms), date)
 
+    @Test fun resetAfterRuleChangeClearsCapturedTaskAndCreditsOnlyTheNewDuration() {
+        var state = ProductState(session = newSession(TimerSettings(focusMinutes = 1)))
+        state = act(state, ProductCommand.Task(TaskCommand.Add("Current", 1)))
+        state = act(state, ProductCommand.Task(TaskCommand.Add("Next", 1)))
+        state = act(state, ProductCommand.Session(SessionCommand.Start))
+        state = act(state, ProductCommand.Task(TaskCommand.Select(2)), 10_000)
+        state = act(state, ProductCommand.Session(SessionCommand.ChangeSettings(state.session.settings.copy(focusMinutes = 10))), 20_000)
+        assertEquals(1, state.activeTaskId)
+        state = act(state, ProductCommand.Session(SessionCommand.ResetPhase(state.session.phaseId)), 20_000)
+        assertNull(state.activeTaskId)
+        assertEquals(0, state.history.on(date).sessions)
+        state = act(state, ProductCommand.Session(SessionCommand.Start), 30_000)
+        assertEquals(2, state.activeTaskId)
+        state = act(state, ProductCommand.Session(SessionCommand.Tick), 630_000)
+        assertEquals(0, state.board.tasks.first().completed)
+        assertEquals(1, state.board.tasks.last().completed)
+        assertEquals(1, state.history.on(date).sessions)
+        assertEquals(600_000L, state.history.on(date).focusedMs)
+    }
+
+    @Test fun ruleChangeAtDeadlinePreservesOriginalCreditAndStartedSuccessor() {
+        var state = ProductState(session = newSession(TimerSettings(focusMinutes = 1, shortBreakMinutes = 1)))
+        state = act(state, ProductCommand.Task(TaskCommand.Add("Current", 1)))
+        state = act(state, ProductCommand.Session(SessionCommand.Start))
+        state = act(state, ProductCommand.Session(SessionCommand.ChangeSettings(
+            state.session.settings.copy(focusMinutes = 10, shortBreakMinutes = 3))), 60_000)
+        assertEquals(1, state.board.tasks.single().completed)
+        assertEquals(60_000L, state.history.on(date).focusedMs)
+        assertEquals(60_000L, state.session.durationMs)
+        assertEquals(120_000L, state.session.deadlineMonotonicMs)
+        state = act(state, ProductCommand.Session(SessionCommand.Acknowledge), 60_000)
+        state = act(state, ProductCommand.Session(SessionCommand.Tick), 120_000)
+        assertEquals(600_000L, state.session.durationMs)
+    }
+
     @Test fun taskValidationSelectionAndCompletion() {
         var state = ProductState(session = newSession(TimerSettings(focusMinutes = 1)))
         state = act(state, ProductCommand.Task(TaskCommand.Add("  Ship the report  ", 2)))

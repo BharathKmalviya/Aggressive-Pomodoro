@@ -95,7 +95,7 @@ internal fun SettingsDialog(
                 else if (previewRequested) Text("Test requested. If you hear nothing, check your Windows output device and volume.",
                     color = UiColor.breakTime, fontSize = 12.sp)
                 if (!candidate.isValid()) Text("Enter values within the ranges shown above.", color = UiColor.focus)
-                Text("New durations apply when the next phase begins. The current block keeps its duration.", color = UiColor.muted)
+                Text("Saving updates blocks that have not started. Running or paused blocks keep their time; RESET BLOCK uses the new duration. Other preferences apply on save.", color = UiColor.muted)
             }
         },
         confirmButton = { Button(enabled = candidate.isValid(), shape = MaterialTheme.shapes.small,

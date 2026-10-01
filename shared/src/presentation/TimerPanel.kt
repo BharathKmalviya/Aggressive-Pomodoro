@@ -220,7 +220,7 @@ internal fun TimerPanel(
             title = { Text(if (skip) "ABANDON THIS PHASE?" else "RESTART THIS BLOCK?") },
             text = { Text(if (skip)
                 "Skip ${state.phase.displayName().lowercase()} and move to the next phase. An unfinished focus block earns no task credit or completed focus time."
-                else "Discard this block's elapsed time and return to ${timerText(state.durationMs)}. The timer will stop until you start it again.") },
+                else "Discard this block's elapsed time and return to ${timerText(state.settings.durationMs(state.phase))} using your saved rules. The timer will stop until you start it again.") },
             confirmButton = { Button(shape = MaterialTheme.shapes.small, onClick = {
                 if (request.phaseId == state.phaseId && state.pending.isEmpty()) onCommand(request.command)
                 confirmation = null

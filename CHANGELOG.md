@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Fixed **Reset Block** retaining an old duration after **Save rules**. Idle/waiting blocks now refresh on save, and older unstarted snapshots refresh on recovery. Running/paused progress and completed-block credit stay intact; other saved preferences apply immediately.
+- Added regressions for focus/both breaks, shorter/longer reset durations, paused resume, pending acknowledgements, deadline credit, and settings/reset persistence through real storage and relaunch.
 - **View release notes** now expands selectable, scrollable notes inside the update dialog without opening GitHub, including when no newer version is available.
 - Read notes from the existing manual check, handle missing or malformed bodies without blocking updates, bound long text with a visible notice, and retain notes through download/cancel/retry failures. Fresh checks clear stale metadata.
 - Added deterministic release-note parsing and update-state regression coverage. Native Windows reading, keyboard/scrolling, and completion-alert checks remain manual; v0.3.0 installers are unchanged.

@@ -10,6 +10,7 @@ The repository began as a Compose desktop starter. A first Windows release needs
 - Add short and long breaks, a focus cycle count, and configurable durations. Default to 25-minute focus, 5-minute short break, and a 15-minute long break after four completed focus sessions.
 - Show a phase-completion dialog and issue an audible cue and desktop attention request. Start the next break automatically by default; offer a setting that waits for confirmation instead. Apply the same transition preference when a break ends.
 - Persist settings and active-session state locally so relaunch and suspend/resume have defined behavior. Avoid duplicate transitions and silently lost alerts.
+- Apply saved durations to unstarted blocks and explicit resets, repair stale unstarted durations on recovery, and preserve running/paused progress and earned credit when rules change.
 - Add a local task list with estimates and selection, credit the task captured at focus start, and show daily focus totals in a seven-day report.
 - Use a responsive timer-and-tasks desktop layout with optional short button-click feedback separate from completion sound.
 - Make the aggressive identity functional: default-on ten-second completion reminders until acknowledgement, a testable alarm, forceful phase-specific prompts, final-minute urgency, and unmistakable focus/break styling while retaining mute and reminder controls.

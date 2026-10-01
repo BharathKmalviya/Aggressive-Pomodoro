@@ -29,6 +29,8 @@ Use a single session reducer in `shared` with phase (`focus`, `short break`, `lo
 
 This keeps the Compose layer thin and avoids separate timer and dialog booleans drifting apart. Alternative considered: a simple `LaunchedEffect` that decrements an integer; it is easier initially but drifts under delayed UI updates and makes restart recovery fragile.
 
+Saved rules refresh the full duration of idle and waiting phases in the reducer. Running and paused phases retain their duration and progress; explicit reset reloads the current phase's duration from saved settings and clears deadlines without credit. Recovery also refreshes valid legacy idle/waiting snapshots whose cached duration is stale. Completion reconciliation still runs before settings commands, preserving earned credit and already-started successors. Settings copy explains save/reset timing; tests cover all phase types, paused resume, waiting acknowledgement, invalid edits, preferences, task/history credit, and serialized persistence/relaunch.
+
 ### 2. Deadline-based timing with dual clock checks
 
 During one process lifetime, use monotonic elapsed time to calculate the running phase deadline, and a wall-clock anchor for persistence. On wake or relaunch, reconcile from the saved wall deadline once; cap catch-up at one phase and start any automatic next phase at reconciliation time. Detect a substantial wall/monotonic discrepancy while both are available, pause, and show a resolution prompt. Persist a versioned snapshot after commands and transitions, with throttled checkpointing while running; never write every UI frame. The display can update once per second from derived remaining time.

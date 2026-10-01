@@ -11,7 +11,7 @@ Run `./kotlin.bat build`, `./kotlin.bat test`, and `./kotlin.bat run -m desktopA
 | Confirmation transition | Disable automatic transitions, finish a break, then acknowledge | Next focus remains stopped until the dialog's start action. |
 | Unattended limit | In automatic mode, let focus and its next short break finish without acknowledging the first dialog | Two completion events remain; another focus timer does not start until both are acknowledged. |
 | Focus cycle | Complete four 1-minute focus blocks and their intervening breaks | Fourth completed focus leads to a long break; skipped focus never increments the count. |
-| Reset and skip | While running, use Reset and Skip and cancel once, then confirm | Cancel preserves timer; reset returns full current duration; skip advances without focus credit. |
+| Reset and skip | While running, use Reset and Skip and cancel once, then confirm | Cancel preserves timer; reset returns the latest saved full duration; skip advances without focus credit. |
 | Tasks and report | Add a task with estimate 2, select it, complete focus, then open Reports | Task shows 1/2; today's block and minutes increase once. Skipping does not add credit. |
 | Seven-day dates | Open Reports on a day with no completed focus and after a local-date rollover | Today and the previous six calendar dates appear; dates without a completed focus show zero. Older dates are excluded. |
 | Minimize and restore | Start a 1-minute focus, minimize the window, wait for completion, restore | Timer progresses while minimized; taskbar attention is requested and completion dialog is still present. |
@@ -24,9 +24,26 @@ Run `./kotlin.bat build`, `./kotlin.bat test`, and `./kotlin.bat run -m desktopA
 
 Do not treat a passing build or app-image process smoke check as proof of these visual, audio, install, or sleep scenarios. Record the Windows version, app version, outcome, and any screenshot or log when performing release acceptance.
 
+## Saved rules and reset regression checks
+
+Saving durations refreshes unstarted blocks immediately. Running/paused blocks keep their progress until reset or completion; use Reset Block after saving all durations as 1 minute if a block is already active. Keep a backup of existing data before persistence experiments.
+
+Run these against the updated source build; the published v0.3.0 installer does not include this fix yet. Automated regressions cover duration/state/credit/storage behavior; Windows rendering and keyboard interaction remain manual acceptance.
+
+| Scenario | Steps | Expected result |
+| --- | --- | --- |
+| Reported focus reset | Save focus as 1 minute, start, pause after about 10 seconds. Save focus as 10, then Reset Block and confirm | Save preserves paused remaining time; reset shows 10:00 idle, with no added task/report credit. Start counts down from 10:00. |
+| Save before start | With focus idle, save 1 then 10 minutes, reopen Settings, then start | Idle timer immediately shows 10:00; Settings retains 10; Start uses 10 minutes. Cancel an unsaved edit to 2 and verify the saved duration remains 10. |
+| Both breaks and shorter rules | Skip idle focus to a short break. Save short break as 3, start/pause, save it as 1, reset. Reach a long break by completing the configured focus cycle; repeat with long break 7 then 2 | Each idle break refreshes on save; active/paused break preserves progress until reset. Reset shows the latest full duration for that break, with unchanged focus credit. |
+| Resume after saving | Start a 1-minute focus, pause near 0:50, save focus as 10, then Resume without reset | Countdown resumes near 0:50. Its completion adds one minute to Reports; the next focus uses 10 minutes. |
+| Transition and cycle rules | Set both breaks to 1 and cycle length 2. Disable automatic transitions while focus runs and let it end. Acknowledge/start, finish the break, then complete the second focus | Upcoming transitions wait for acknowledgement; the second completed focus leads to a long break. Existing progress and counts are preserved on save. |
+| Preferences and relaunch | Change completion sound, clicks, reminders and Reduce motion; save/reopen Settings. Save focus as 10, reset, close normally and relaunch | Toggles reflect saved values and their next interactions/alerts use them; Reduce motion applies immediately. Relaunch shows 10:00 idle with tasks/history preserved. |
+
+Native Windows results for these scenarios are pending; record outcomes before closing manual acceptance gates.
+
 ## Aggressive interface and regression checks
 
-New durations apply to the next created phase. After setting all durations to 1 minute, skip the idle focus and idle break to create a fresh 1-minute focus before starting these checks. Keep a backup of existing data before persistence experiments.
+Use 1-minute durations for these checks. Save refreshes an idle block immediately; reset any running/paused block to load the saved duration before starting.
 
 | Scenario | Steps | Expected result |
 | --- | --- | --- |

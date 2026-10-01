@@ -13,7 +13,7 @@
 
 The session begins as an idle focus phase. `Start` anchors a monotonic and wall deadline. The UI derives remaining time from the monotonic deadline; it never decrements a counter per tick. Pause captures remaining time, and resume creates new deadlines. Each phase has a unique ID, so repeated ticks cannot complete it twice.
 
-Completed focus increments the cycle count and the task captured when that focus block started. Changing the selected task during a countdown affects the next focus block, not credit for the running block. The fourth completed focus block starts a long break by default. Skip advances without focus credit. Settings are validated before acceptance and only change the duration of a newly created phase.
+Completed focus increments the cycle count and the task captured when that focus block started. Changing the selected task during a countdown affects the next focus block, not credit for the running block. The fourth completed focus block starts a long break by default. Skip advances without focus credit. Settings are validated before acceptance. Saved durations immediately refresh idle/waiting phases; running and paused phases preserve duration and progress until reset or completion. Reset reloads the current phase's full duration from the latest saved settings, clears deadlines and captured task ownership, and earns no credit. Sound, click, reminder, motion, transition, and cycle preferences are accepted on save; transition/cycle rules govern subsequent completions, without starting a waiting phase or altering active countdown progress.
 
 Every desktop command samples current time. Reducers reconcile elapsed time before applying commands, so a late pause/reset/skip cannot erase an earned block or act on its successor. Settings at the boundary affect future phases after the expired phase transitions under its previous settings. Task commands also reconcile first so a selection at an expired break cannot retroactively change the task captured by its automatic focus start.
 
@@ -40,6 +40,8 @@ Implementation references: [Compose value animations](https://developer.android.
 ## Recovery and clocks
 
 The snapshot stores a wall deadline for a running phase. On restart, the reducer reanchors it to the new process's monotonic clock. If that wall deadline passed, one phase completes and at most one subsequent phase starts at recovery time. The app does not backfill multiple cycles.
+
+Valid older snapshots may have a stale cached duration after rules were saved. Recovery refreshes idle/waiting durations from saved settings without changing phase IDs, completions, tasks, or history; the desktop controller queues the repaired snapshot. Running and paused snapshots keep their planned duration and progress. This requires no snapshot format change.
 
 A material wall/monotonic disagreement is 120 seconds. A positive disagreement after a monotonic gap over 10 seconds is treated as likely sleep and reconciled against the wall deadline; a rapid jump or material backward disagreement pauses the timer. On restart, a wall deadline that would increase the saved remaining duration also pauses with an explanation rather than extending the block. Forward clock edits during a long process stall remain indistinguishable from sleep under this heuristic. Real Windows sleep and manual clock changes still require the hands-on checks in [TESTING.md](TESTING.md).
 

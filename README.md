@@ -28,6 +28,7 @@ A manual check against GitHub confirms the installed release is current:
 
 - Focus, short break, and long break phases. The default schedule is 25 / 5 / 15 minutes, with a long break after four completed focus blocks. Durations and transition behavior are configurable.
 - Start, pause, resume, reset, and skip controls. Automatic transitions can be disabled when each next phase should wait for confirmation. Completion alerts remain visible until acknowledged.
+- **Save rules** refreshes an unstarted block immediately. Running and paused blocks keep their remaining time; **Reset Block** reloads the latest saved duration for focus or either break. Saved preferences survive restart, including repair of stale unstarted durations from older versions. This fix is pending the next installer release.
 - Aggressive reminders are enabled by default: pending completions repeat the alarm and request taskbar attention every ten seconds until reviewed. Disable reminders or completion sound independently in Settings; mute an alarm directly in its completion dialog. Use the alarm previews in Settings even when automatic completion sound is muted.
 - High-contrast focus and break screens, direct phase instructions, an explicit paused state, and final-minute urgency. Reset/skip confirms before discarding running or paused progress, and confirmations expire when their phase ends.
 - Local tasks with estimated focus blocks. A completed focus block is credited to the task selected when that block began; skipped blocks receive no credit.

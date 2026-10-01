@@ -69,11 +69,23 @@ The application SHALL expose start, pause, resume, reset-current-phase, and skip
 - **THEN** the app moves to an idle focus phase without changing the completed focus count
 
 ### Requirement: Configurable cycle lengths
-The application SHALL allow users to set focus duration from 1 to 180 minutes, either break duration from 1 to 60 minutes, and the long-break interval from 2 to 12 completed focus phases. Changes SHALL take effect at the next phase, leaving the active phase's planned duration unchanged.
+The application SHALL allow users to set focus duration from 1 to 180 minutes, either break duration from 1 to 60 minutes, and the long-break interval from 2 to 12 completed focus phases. Saved durations SHALL immediately refresh an idle or waiting phase that has not started. Running and paused phases SHALL retain their planned duration and progress until reset or completion. Reset SHALL use the latest saved duration for the current phase. Other preferences SHALL take effect on save without changing active timer progress.
 
 #### Scenario: Edit duration during focus
 - **WHEN** the user changes the focus duration while a focus phase is running
 - **THEN** the current countdown keeps its original duration and the next focus phase uses the new duration
+
+#### Scenario: Save before starting
+- **WHEN** the user saves new durations while focus or either break is idle or waiting for acknowledgement
+- **THEN** that unstarted phase shows and starts with its latest configured duration, preserving pending completions and cycle counts
+
+#### Scenario: Reset after saving
+- **WHEN** the user saves a different duration and resets a running or paused phase
+- **THEN** the same phase becomes idle at its latest configured full duration, clears its deadlines, and receives no completion credit
+
+#### Scenario: Restart with stale unstarted duration
+- **WHEN** a valid older snapshot contains an idle or waiting phase with a duration different from its saved rules
+- **THEN** recovery refreshes that unstarted duration while preserving tasks, history, cycle counts, and pending completions; running and paused snapshots retain their progress
 
 #### Scenario: Invalid setting
 - **WHEN** the user enters a value outside the supported range

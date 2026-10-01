@@ -77,7 +77,7 @@ object SessionEngine {
 
     /** Re-anchor a saved running phase on launch or after a likely system sleep. */
     fun recover(state: SessionState, now: TimeMark): SessionState {
-        if (state.status != SessionStatus.RUNNING) return state
+        if (state.status != SessionStatus.RUNNING) return refreshUnstartedDuration(state)
         val wallDeadline = state.deadlineWallMs ?: return newSession(state.settings,
             "Session recovery failed. A new focus session is ready.")
         val remaining = max(0L, wallDeadline - now.wallMs)
@@ -116,16 +116,23 @@ object SessionEngine {
             state.copy(status = SessionStatus.PAUSED, remainingMs = state.remainingAt(now),
                 deadlineMonotonicMs = null, deadlineWallMs = null, lastMark = null) else state
         SessionCommand.Reset -> if (state.status != SessionStatus.WAITING)
-            state.copy(status = SessionStatus.IDLE, remainingMs = state.durationMs,
-                deadlineMonotonicMs = null, deadlineWallMs = null, lastMark = null, message = null) else state
+            refreshUnstartedDuration(state.copy(status = SessionStatus.IDLE,
+                deadlineMonotonicMs = null, deadlineWallMs = null, lastMark = null, message = null)) else state
         SessionCommand.Skip -> if (state.status != SessionStatus.WAITING) advance(state, completed = false)
             else state
         SessionCommand.Tick -> tick(state, now)
         SessionCommand.Acknowledge -> acknowledge(state, now)
         is SessionCommand.ChangeSettings -> if (command.settings.isValid())
-            state.copy(settings = command.settings) else state
+            refreshUnstartedDuration(state.copy(settings = command.settings)) else state
         is SessionCommand.StartPhase, is SessionCommand.PausePhase, is SessionCommand.ResumePhase,
         is SessionCommand.ResetPhase, is SessionCommand.SkipPhase, is SessionCommand.AcknowledgeCompletion -> state
+    }
+
+    // Idle/waiting blocks have no elapsed progress. Active and paused blocks keep theirs until reset.
+    private fun refreshUnstartedDuration(state: SessionState): SessionState {
+        if (state.status != SessionStatus.IDLE && state.status != SessionStatus.WAITING) return state
+        val duration = state.settings.durationMs(state.phase)
+        return state.copy(durationMs = duration, remainingMs = duration)
     }
 
     private fun start(state: SessionState, now: TimeMark): SessionState = state.copy(

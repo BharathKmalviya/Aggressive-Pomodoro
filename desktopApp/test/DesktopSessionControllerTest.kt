@@ -49,6 +49,72 @@ class DesktopSessionControllerTest {
         fun tick(time: Long) { at(time); controller.tick() }
     }
 
+    @Test fun savedRulesAndResetSurviveRealStorageAndRelaunch() = runBlocking {
+        val directory = Files.createTempDirectory("pomodoro-rules-test")
+        try {
+            val store = AppStore(directory.resolve("session.properties"))
+            val fixture = Fixture(store = store)
+            val controller = fixture.controller
+            controller.dispatchTask(TaskCommand.Add("Keep this task", 2))
+            controller.dispatchSession(SessionCommand.Start)
+            fixture.at(20_000)
+            controller.dispatchSession(SessionCommand.Pause)
+            val changed = controller.state.settings.copy(focusMinutes = 10, shortBreakMinutes = 3,
+                longBreakMinutes = 7, longBreakEvery = 2, automaticTransitions = false,
+                soundEnabled = false, clickSoundEnabled = false, aggressiveAlertsEnabled = false, reduceMotion = true)
+            controller.dispatchSession(SessionCommand.ChangeSettings(changed))
+            controller.close()
+            val paused = store.load()
+            assertEquals(changed, paused.session.settings)
+            assertEquals(40_000L, paused.session.remainingMs)
+            assertEquals(60_000L, paused.session.durationMs)
+            val reopened = Fixture(saved = paused, store = store).controller
+            try {
+                reopened.dispatchSession(SessionCommand.ResetPhase(reopened.state.phaseId))
+                assertEquals(600_000L, reopened.state.remainingMs)
+                assertEquals(null, reopened.product.activeTaskId)
+                assertEquals(paused.board, reopened.product.board)
+                assertEquals(paused.history, reopened.product.history)
+            } finally {
+                reopened.close()
+            }
+            val idle = store.load()
+            assertEquals(SessionStatus.IDLE, idle.session.status)
+            assertEquals(600_000L, idle.session.durationMs)
+            val third = Fixture(saved = idle, store = store).controller
+            try {
+                assertEquals(changed, third.state.settings)
+                third.dispatchSession(SessionCommand.StartPhase(third.state.phaseId))
+                assertEquals(600_000L, third.state.deadlineMonotonicMs)
+            } finally {
+                third.close()
+            }
+        } finally {
+            directory.toFile().deleteRecursively()
+        }
+    }
+
+    @Test fun legacyIdleRuleMismatchIsRepairedAndPersistedOnLaunch() = runBlocking {
+        val directory = Files.createTempDirectory("pomodoro-legacy-rules-test")
+        try {
+            val store = AppStore(directory.resolve("session.properties"))
+            val legacy = ProductState(session = newSession(TimerSettings(focusMinutes = 1))
+                .copy(settings = TimerSettings(focusMinutes = 10)))
+            store.save(legacy)
+            val fixture = Fixture(saved = store.load(), store = store)
+            try {
+                assertEquals(600_000L, fixture.controller.state.remainingMs)
+                assertEquals(legacy.board, fixture.controller.product.board)
+                assertEquals(legacy.history, fixture.controller.product.history)
+            } finally {
+                fixture.controller.close()
+            }
+            assertEquals(600_000L, store.load().session.durationMs)
+        } finally {
+            directory.toFile().deleteRecursively()
+        }
+    }
+
     @Test fun remindersRepeatAtTenSecondsWithoutChangingCompletionCredit() = runBlocking {
         val fixture = Fixture()
         val controller = fixture.controller
