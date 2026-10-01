@@ -2,7 +2,7 @@
 
 Aggressive Pomodoro is a Windows desktop focus timer built with Kotlin and Compose Multiplatform. Commit to one outcome, finish the block, and take the break. An assertive timer, a multi-pulse alarm, and persistent completion reminders keep phase changes hard to miss.
 
-**Downloads:** [v0.3.0 release](https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases/tag/v0.3.0) includes the verified Windows installer, checksum, and license. Windows is the only packaged target at present.
+**Downloads:** [v0.3.1 release](https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases/tag/v0.3.1) includes the Windows installer, checksum, and license. Windows is the only packaged target at present.
 
 ## Screenshots
 
@@ -28,7 +28,7 @@ A manual check against GitHub confirms the installed release is current:
 
 - Focus, short break, and long break phases. The default schedule is 25 / 5 / 15 minutes, with a long break after four completed focus blocks. Durations and transition behavior are configurable.
 - Start, pause, resume, reset, and skip controls. Automatic transitions can be disabled when each next phase should wait for confirmation. Completion alerts remain visible until acknowledged.
-- **Save rules** refreshes an unstarted block immediately. Running and paused blocks keep their remaining time; **Reset Block** reloads the latest saved duration for focus or either break. Saved preferences survive restart, including repair of stale unstarted durations from older versions. This fix is pending the next installer release.
+- **Save rules** refreshes an unstarted block immediately. Running and paused blocks keep their remaining time; **Reset Block** reloads the latest saved duration for focus or either break. Saved preferences survive restart, including repair of stale unstarted durations from older versions. Fixed in v0.3.1.
 - Aggressive reminders are enabled by default: pending completions repeat the alarm and request taskbar attention every ten seconds until reviewed. Disable reminders or completion sound independently in Settings; mute an alarm directly in its completion dialog. Use the alarm previews in Settings even when automatic completion sound is muted.
 - High-contrast focus and break screens, direct phase instructions, an explicit paused state, and final-minute urgency. Reset/skip confirms before discarding running or paused progress, and confirmations expire when their phase ends.
 - Local tasks with estimated focus blocks. A completed focus block is credited to the task selected when that block began; skipped blocks receive no credit.
@@ -38,7 +38,7 @@ A manual check against GitHub confirms the installed release is current:
 - Independent completion and button-click sounds, including a bundled [Kenney CC0 interface click](https://kenney.nl/assets/interface-sounds) that works offline. Alarm playback does not overlap, rapid click cues are throttled, and unavailable audio shows a visible explanation while the timer keeps working. Asset provenance is recorded in [sound credits](desktopApp/resources/sounds/README.md).
 - Short phase-color transitions, status/instruction entrances, smooth elapsed progress, and a single final-minute emphasis. Countdown numbers and control positions stay immediate; **Settings → Reduce motion** disables custom motion and is saved across restarts.
 - **About → Check for updates** finds newer stable Windows releases. Download with progress/cancel, then confirm **Install & Exit** to verify the installer, save and back up your session, and open Windows Installer. About also links directly to the GitHub repository.
-- After checking, **View release notes** shows the latest stable release's notes inside the update dialog, even when you're up to date. Notes are selectable and scrollable; viewing them does not open GitHub. This source improvement is pending the next installer release.
+- After checking, **View release notes** shows the latest stable release's notes inside the update dialog, even when you're up to date. Notes are selectable and scrollable; viewing them does not open GitHub. Added in v0.3.1.
 
 The timer continues while the window is minimized. It cannot alert after the application exits, and it does not block other applications.
 

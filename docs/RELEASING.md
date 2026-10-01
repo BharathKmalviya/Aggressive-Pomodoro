@@ -16,10 +16,16 @@ Install JDK 21 and WiX 3.14.1 build tools on Windows. Add `candle.exe` and `ligh
 ```powershell
 .\scripts\package-windows.ps1 -Msi
 Get-Content .\build\distribution\artifacts\SHA256SUMS.txt
-Get-FileHash .\build\distribution\artifacts\AggressivePomodoro-0.3.0.msi -Algorithm SHA256
+Get-FileHash .\build\distribution\artifacts\AggressivePomodoro-0.3.1.msi -Algorithm SHA256
 ```
 
-The script uses the checked-in Kotlin Toolchain wrapper, runs build and tests, builds the executable JAR, creates a runtime-bundled app image and MSI with `jpackage`, smoke-checks the app-image process, and writes a SHA-256 checksum for the exact MSI. It places the MIT License alongside the artifacts and passes it to the MSI packager. The versioned filename follows `desktopApp/resources/version.properties`; replace `0.3.0` in the example after a version change.
+The script uses the checked-in Kotlin Toolchain wrapper, runs build and tests, builds the executable JAR, creates a runtime-bundled app image and MSI with `jpackage`, smoke-checks the app-image process, and writes a SHA-256 checksum for the exact MSI. It places the MIT License alongside the artifacts and passes it to the MSI packager. The versioned filename follows `desktopApp/resources/version.properties`; replace `0.3.1` in the example after a version change.
+
+## v0.3.1 release scope
+
+On 2026-10-01 the owner requested a new release after the saved-rules fixes passed build, all 106 tests, executable JAR packaging, and strict OpenSpec validation, with native Windows manual acceptance disclosed as pending. This authorizes publication through the existing automated gates and is an exception for this release to manual acceptance timing, not a manual pass. Automated Windows build/tests, runtime packaging, clean MSI installation/launch, baseline upgrade/data preservation, checksum, and MIT License gates remain mandatory.
+
+Version 0.3.1 includes refreshed idle/waiting durations on Save Rules, latest saved durations on Reset Block, stale unstarted snapshot repair, truthful reset confirmation, and embedded selectable release notes. Running/paused progress and task/history credit stay intact. Snapshot format remains 3 with v0.2.0/v0.3.0 readability; close the app and back up `session.properties` before upgrade or rollback. Installer signing and manual UI, audio, keyboard, sleep, and interactive updater/UAC acceptance remain unchanged. The active OpenSpec change stays open for its remaining manual gates.
 
 ## v0.3.0 release scope
 

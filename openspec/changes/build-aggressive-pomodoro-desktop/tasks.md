@@ -115,3 +115,9 @@ Section 13 local verification (2026-10-01): build, all 97 tests (32 shared, 65 d
 - [x] 14.3 Update Settings guidance, README, architecture, changelog, and exact Windows scenarios; run build/tests, strict OpenSpec validation, and diff checks and record pending manual acceptance separately.
 
 Section 14 local verification (2026-10-01): five new regression tests failed against the original implementation, reproducing stale save/reset/waiting/recovery durations and incorrect post-reset report duration. After the fix, build, all 106 tests (39 shared, 67 desktop; no failures/errors/skips), executable JAR packaging, strict OpenSpec validation, and diff checks passed. Nine new tests cover all phase types, shorter/longer resets, paused progress/resume, invalid edits, waiting acknowledgement, preference acceptance, deadline credit, task recapture, and real-store save/relaunch. Reset confirmation now displays the saved target duration. Native Windows scenarios are documented and pending in `docs/TESTING.md`; no version bump or installer publication is included, and prior manual gates stay open.
+
+## 15. Version 0.3.1 publication
+
+- [x] 15.1 Prepare patch-version metadata and release notes for saved-rules fixes and embedded release notes; document owner-authorized publication with pending manual acceptance, and validate build/tests, packaging, OpenSpec, and diff checks.
+- [ ] 15.2 Commit and push the release update to main; require the exact commit's Windows CI and release packaging, clean installation/launch, baseline upgrade/data-preservation, checksum, and license gates to pass.
+- [ ] 15.3 Read back the immutable v0.3.1 tag and assets, independently download and verify their hashes and MIT License, and record release evidence without closing pending manual acceptance tasks.

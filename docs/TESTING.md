@@ -28,7 +28,7 @@ Do not treat a passing build or app-image process smoke check as proof of these 
 
 Saving durations refreshes unstarted blocks immediately. Running/paused blocks keep their progress until reset or completion; use Reset Block after saving all durations as 1 minute if a block is already active. Keep a backup of existing data before persistence experiments.
 
-Run these against the updated source build; the published v0.3.0 installer does not include this fix yet. Automated regressions cover duration/state/credit/storage behavior; Windows rendering and keyboard interaction remain manual acceptance.
+Run these against v0.3.1 or the updated source build. Automated regressions cover duration/state/credit/storage behavior; Windows rendering and keyboard interaction remain manual acceptance.
 
 | Scenario | Steps | Expected result |
 | --- | --- | --- |
@@ -101,7 +101,7 @@ Published verification (2026-10-01): [Windows CI](https://github.com/BharathKmal
 
 ## Manual update and About checks
 
-For the embedded-notes source change (pending the next installer release), run `.\kotlin.bat run -m desktopApp` and check these Windows scenarios. These are manual acceptance steps, not recorded passes:
+For embedded notes in v0.3.1 or the source build (`.\kotlin.bat run -m desktopApp`), check these Windows scenarios. These are manual acceptance steps, not recorded passes:
 
 | Scenario | Action | Expected result |
 | --- | --- | --- |
