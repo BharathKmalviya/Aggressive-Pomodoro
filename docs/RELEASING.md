@@ -82,3 +82,15 @@ The [immutable v0.3.0 release](https://github.com/BharathKmalviya/Aggressive-Pom
 - `LICENSE`: 1,072 bytes; SHA-256 `cc9829233de2b0ba9f107178cf4da58612848a70f07b2344eab1f1ec6df1f3fc`.
 
 No installer was executed on the development machine. Manual sound/motion quality, keyboard, minimize/sleep, and interactive updater/UAC acceptance remain pending in [TESTING.md](TESTING.md). Snapshot format remains 3 and the active OpenSpec change remains open for its acceptance tasks.
+
+## v0.3.1 published verification
+
+On 2026-10-01, [Windows CI](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/36875954691) and the [release workflow](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/36875955080) passed for `2a57bff99ac4c27ca1dfaf69646bf690247ea699`. The release log confirms all 106 tests passed (39 shared, 67 desktop), zero failures. Runtime packaging, clean MSI installation/launch, baseline v0.1.0 upgrade, old-product removal, paused timer/task/history preservation, checksum, and MIT License gates passed before publication.
+
+The [immutable v0.3.1 release](https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases/tag/v0.3.1) was published at 19:57:25 IST on 2026-10-01. Fresh API and remote-tag readback confirmed stable, published, immutable status and that the tag targets the validated commit. Independent downloads of all three assets matched their GitHub sizes/digests; the MSI also matched `SHA256SUMS.txt` and the MIT License matched its pinned hash:
+
+- `AggressivePomodoro-0.3.1.msi`: 93,479,832 bytes; SHA-256 `33eb9193df97752cdd00e3ea9449b5d66c26b94647f35135094ce586a0cbf160`.
+- `SHA256SUMS.txt`: 96 bytes; SHA-256 `84b28a7bee12448f56228d8417521fa65c2c6b7fbdc1b8a86fc6d4aa2bf28cab`.
+- `LICENSE`: 1,072 bytes; SHA-256 `cc9829233de2b0ba9f107178cf4da58612848a70f07b2344eab1f1ec6df1f3fc`.
+
+No installer was executed on the development machine. The saved-rules and embedded-note Windows manual checks and earlier native acceptance remain pending in [TESTING.md](TESTING.md). Snapshot format stays at 3 and the active OpenSpec change remains open.

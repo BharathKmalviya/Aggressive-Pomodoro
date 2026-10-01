@@ -119,5 +119,7 @@ Section 14 local verification (2026-10-01): five new regression tests failed aga
 ## 15. Version 0.3.1 publication
 
 - [x] 15.1 Prepare patch-version metadata and release notes for saved-rules fixes and embedded release notes; document owner-authorized publication with pending manual acceptance, and validate build/tests, packaging, OpenSpec, and diff checks.
-- [ ] 15.2 Commit and push the release update to main; require the exact commit's Windows CI and release packaging, clean installation/launch, baseline upgrade/data-preservation, checksum, and license gates to pass.
-- [ ] 15.3 Read back the immutable v0.3.1 tag and assets, independently download and verify their hashes and MIT License, and record release evidence without closing pending manual acceptance tasks.
+- [x] 15.2 Commit and push the release update to main; require the exact commit's Windows CI and release packaging, clean installation/launch, baseline upgrade/data-preservation, checksum, and license gates to pass.
+- [x] 15.3 Read back the immutable v0.3.1 tag and assets, independently download and verify their hashes and MIT License, and record release evidence without closing pending manual acceptance tasks.
+
+Section 15 verification (2026-10-01): immutable v0.3.1 was published from `2a57bff99ac4c27ca1dfaf69646bf690247ea699` after Windows CI `36875954691` and release workflow `36875955080` passed all automated build/test/package/clean-install/upgrade gates, including 106 passing tests. Fresh API/tag readback and independent downloads verified all three public assets, the MSI checksum, and pinned MIT License. MSI SHA-256: `33eb9193df97752cdd00e3ea9449b5d66c26b94647f35135094ce586a0cbf160`. Evidence is in `docs/RELEASING.md` and `docs/TESTING.md`; saved-rules, embedded-note, and earlier manual acceptance remain pending, so the change stays active.
