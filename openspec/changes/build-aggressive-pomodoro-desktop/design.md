@@ -83,6 +83,14 @@ The desktop AWT tray adapter owns the bundled icon, Show and Exit menu actions, 
 
 Only explicit Exit freezes commands, waits for the final save, closes audio, removes the tray icon and releases ownership. Failed saving restores the window and retains retry/continue behavior. Update installation and Exit Anyway also remove the tray icon. The Windows upgrade smoke harness must request close, target the owned close-choice dialog and activate its Exit keyboard action for the new build; the immutable older baseline retains its existing direct-close flow. Native tray, keyboard and notification acceptance remains manual.
 
+### 10. Tray timer controls and app shortcuts
+
+Project immutable product state into a small desktop presentation model with phase/countdown, status, today's completed blocks/minutes, saved alarm/reminder checkbox values and enabled actions. Update the existing AWT menu and tooltip on the desktop event thread, setting native properties only when they change. Use ASCII punctuation in native menu labels to avoid unsupported ellipsis glyphs. Keep timer state and persistence in the existing controller; tray Start/Pause/Resume emits the same phase-bound commands as the timer panel.
+
+Tray Reset/Skip restores the same window and requests the timer panel's existing confirmation, including for an idle phase. Bind requests to a phase ID, reconcile time before opening, and discard requests/confirmations on phase change, pending completion, close choice or hidden/minimized window. Reports, Settings, About and updates use transient sequenced requests into the existing app dialogs. Only one secondary dialog opens; pending completions and close/save-error dialogs take priority. The update shortcut checks only when no existing check/download/available/ready operation needs viewing. No download or installation is triggered from the tray.
+
+Alarm and repeat-reminder toggles copy only their field from the controller's latest saved settings and dispatch through the same audio-cancellation/persistence path as Settings. Refresh individual saved Settings fields so unrelated unsaved edits survive tray toggles. Consume transient requests once to prevent replay after cancellation or layout changes. Disable timer controls and secondary navigation during close/save-error/install, while pending completions offer Review and retain available mute/reminder controls. No new snapshot fields or background process are needed. Deterministic tests cover projections, phase-bound deadline/stale actions and persisted toggles; native popup keyboard, scaling, glyphs and tooltip behavior remain manual acceptance.
+
 ## Risks / Trade-offs
 
 ### Selectable bundled alarms (2026-10-09)

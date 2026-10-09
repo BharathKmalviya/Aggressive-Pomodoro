@@ -71,3 +71,22 @@ The application SHALL prevent two simultaneously running processes from independ
 #### Scenario: Second launch
 - **WHEN** the user opens a second instance while one is already running
 - **THEN** the second instance does not start another timer and the user receives a clear indication that the app is already open
+
+### Requirement: Useful state-driven tray menu
+The installed tray SHALL show current phase, rounded-up countdown, timer status and today's completed blocks/minutes, and refresh its tooltip. It SHALL expose state-appropriate phase-bound Start/Pause/Resume, confirmed Reset/Skip, saved alarm and repeat-reminder toggles, and shortcuts to the existing Reports, Settings, About and update dialogs. Native labels SHALL use supported ASCII punctuation. Pending completions SHALL offer Review instead of timer mutation; close/save-error/installation SHALL disable conflicting actions. Secondary shortcuts SHALL restore the same window and yield to completion alerts. Updates SHALL preserve an existing check/download/result, and SHALL NOT download or install through a tray click.
+
+#### Scenario: Control a hidden timer
+- **WHEN** the user starts, pauses or resumes a phase from the tray
+- **THEN** the same controller changes that phase, preserves task ownership and saving, and the tray reflects the new state without requiring the window to open
+
+#### Scenario: Stale or destructive tray action
+- **WHEN** Reset/Skip is selected or a previously displayed timer command arrives at a phase deadline
+- **THEN** Reset/Skip requires an in-app phase-bound confirmation, and an expired command cannot alter the successor or erase completion credit
+
+#### Scenario: Toggle sound with a pending completion
+- **WHEN** the user disables Alarm sound or Repeat completion reminders from the tray
+- **THEN** the existing playback is invalidated through the normal settings path, the changed field is saved without overwriting other settings, and the pending visual completion remains available
+
+#### Scenario: Restore a secondary dialog or ongoing update
+- **WHEN** the user chooses Reports, Settings, About or the update shortcut while the window is hidden
+- **THEN** the same window opens the requested dialog when permitted, or shows its higher-priority alert, and an ongoing update remains available without restarting or cancelling it

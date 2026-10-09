@@ -27,6 +27,67 @@ import kotlin.test.assertTrue
 import java.util.concurrent.atomic.AtomicBoolean
 
 class DesktopSessionControllerTest {
+    @Test fun trayPauseAtDeadlineAndStaleCommandsPreserveSuccessorAndCredit() = runBlocking {
+        val fixture = Fixture()
+        val controller = fixture.controller
+        try {
+            controller.dispatchTask(TaskCommand.Add("Tray focus", 2))
+            controller.dispatchSession(desktopTrayState(controller.product, controller.state.remainingMs,
+                "2026-09-28", UpdateStatus.IDLE).primaryCommand!!)
+            val captured = controller.product.activeTaskId
+            fixture.tick(59_000)
+            val pause = desktopTrayState(controller.product, controller.state.remainingAt(controller.now),
+                "2026-09-28", UpdateStatus.IDLE).primaryCommand!!
+            fixture.at(60_000)
+            controller.dispatchSession(pause)
+            assertEquals(Phase.SHORT_BREAK, controller.state.phase)
+            assertEquals(SessionStatus.RUNNING, controller.state.status)
+            assertEquals(1, controller.product.board.tasks.single { it.id == captured }.completed)
+            assertEquals(1, controller.product.history.on("2026-09-28").sessions)
+            controller.dispatchSession(pause)
+            controller.dispatchSession(SessionCommand.ResetPhase(1))
+            controller.dispatchSession(SessionCommand.SkipPhase(1))
+            assertEquals(Phase.SHORT_BREAK, controller.state.phase)
+            assertEquals(SessionStatus.RUNNING, controller.state.status)
+            assertEquals(1, controller.state.pending.size)
+            assertEquals(1, controller.state.completedFocus)
+        } finally { controller.close() }
+    }
+
+    @Test fun trayPauseResumeAndSavedTogglesRetainProgressOwnershipAndPendingEvents() = runBlocking {
+        val store = MemoryStore()
+        val fixture = Fixture(store = store)
+        val controller = fixture.controller
+        try {
+            controller.dispatchTask(TaskCommand.Add("Stay with this task", 1))
+            controller.dispatchSession(SessionCommand.StartPhase(controller.state.phaseId))
+            val captured = controller.product.activeTaskId
+            fixture.at(20_000)
+            controller.dispatchSession(desktopTrayState(controller.product, 40_000,
+                "2026-09-28", UpdateStatus.IDLE).primaryCommand!!)
+            fixture.at(30_000)
+            controller.dispatchSession(SessionCommand.ChangeSettings(controller.state.settings.copy(soundEnabled = false)))
+            controller.dispatchSession(desktopTrayState(controller.product, controller.state.remainingMs,
+                "2026-09-28", UpdateStatus.IDLE).primaryCommand!!)
+            assertEquals(captured, controller.product.activeTaskId)
+            assertEquals(40_000L, controller.state.remainingAt(controller.now))
+            fixture.tick(70_000)
+            val before = controller.product
+            controller.dispatchSession(SessionCommand.ChangeSettings(controller.state.settings.copy(aggressiveAlertsEnabled = false)))
+            assertEquals(before.session.pending, controller.state.pending)
+            assertEquals(before.history, controller.product.history)
+            assertEquals(before.board, controller.product.board)
+            assertEquals(before.session.remainingMs, controller.state.remainingMs)
+            assertEquals(before.session.settings.copy(aggressiveAlertsEnabled = false), controller.state.settings)
+            controller.close()
+            val saved = store.snapshots.last()
+            assertEquals(controller.product, saved)
+            assertEquals(false, saved.session.settings.soundEnabled)
+            assertEquals(false, saved.session.settings.aggressiveAlertsEnabled)
+            assertEquals(1, saved.session.pending.size)
+        } finally { controller.close() }
+    }
+
     private class MemoryStore : SnapshotStore {
         val snapshots = mutableListOf<ProductState>()
         override fun load() = ProductState()

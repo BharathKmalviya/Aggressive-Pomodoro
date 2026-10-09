@@ -45,6 +45,8 @@ A manual check against GitHub confirms the installed release is current:
 
 Version 0.3.2 makes the window's **Close** button (or Alt+F4) offer **Run in background**, **Exit**, and **Cancel**, in every timer state. Background mode keeps the timer, alarms, and saving active; reopen using the tray icon's **Show Aggressive Pomodoro** action. Its **Exit…** action brings back the same choice. If the tray is unavailable, **Minimize** keeps the app reachable from the taskbar. A background completion attempts a tray notification and retains its alert for when you reopen.
 
+The source build now expands the tray menu with live phase/time/status, today's completed blocks and minutes, **Start/Pause/Resume**, confirmed **Reset current block... / Skip current phase...**, saved **Alarm sound / Repeat completion reminders** checkboxes, and **Reports / Settings / About / Check for updates** shortcuts. Hover the icon for timer status. Pending completions offer **Review completed phase...**; Reset/Skip restores the timer's confirmation, and secondary shortcuts open the same app window. An existing update shows **View update...** without restarting its check/download or installing anything. Native labels use ordinary dots, including **Exit...**, to avoid the missing glyph shown by some Windows tray fonts. See [tray acceptance checks](docs/TESTING.md#expanded-tray-menu-checks--2026-10-09) for manual verification. These additions are not in the published v0.3.2 installer.
+
 The timer continues while the window is minimized or running in the tray. Explicit **Exit** saves and stops the application; it cannot alert after exiting, and it does not block other applications.
 
 ## Run from source

@@ -43,17 +43,18 @@ internal fun SettingsDialog(
     onSave: (TimerSettings) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var focus by remember(settings) { mutableStateOf(settings.focusMinutes.toString()) }
-    var short by remember(settings) { mutableStateOf(settings.shortBreakMinutes.toString()) }
-    var long by remember(settings) { mutableStateOf(settings.longBreakMinutes.toString()) }
-    var interval by remember(settings) { mutableStateOf(settings.longBreakEvery.toString()) }
-    var automatic by remember(settings) { mutableStateOf(settings.automaticTransitions) }
-    var sound by remember(settings) { mutableStateOf(settings.soundEnabled) }
-    var clicks by remember(settings) { mutableStateOf(settings.clickSoundEnabled) }
-    var reminders by remember(settings) { mutableStateOf(settings.aggressiveAlertsEnabled) }
-    var reduceMotion by remember(settings) { mutableStateOf(settings.reduceMotion) }
-    var focusAlarm by remember(settings) { mutableStateOf(settings.focusAlarm) }
-    var breakAlarm by remember(settings) { mutableStateOf(settings.breakAlarm) }
+    // A tray toggle refreshes its own field without discarding other unsaved edits.
+    var focus by remember(settings.focusMinutes) { mutableStateOf(settings.focusMinutes.toString()) }
+    var short by remember(settings.shortBreakMinutes) { mutableStateOf(settings.shortBreakMinutes.toString()) }
+    var long by remember(settings.longBreakMinutes) { mutableStateOf(settings.longBreakMinutes.toString()) }
+    var interval by remember(settings.longBreakEvery) { mutableStateOf(settings.longBreakEvery.toString()) }
+    var automatic by remember(settings.automaticTransitions) { mutableStateOf(settings.automaticTransitions) }
+    var sound by remember(settings.soundEnabled) { mutableStateOf(settings.soundEnabled) }
+    var clicks by remember(settings.clickSoundEnabled) { mutableStateOf(settings.clickSoundEnabled) }
+    var reminders by remember(settings.aggressiveAlertsEnabled) { mutableStateOf(settings.aggressiveAlertsEnabled) }
+    var reduceMotion by remember(settings.reduceMotion) { mutableStateOf(settings.reduceMotion) }
+    var focusAlarm by remember(settings.focusAlarm) { mutableStateOf(settings.focusAlarm) }
+    var breakAlarm by remember(settings.breakAlarm) { mutableStateOf(settings.breakAlarm) }
     var previewRequested by remember { mutableStateOf(false) }
     val candidate = settings.copy(
         focusMinutes = focus.toIntOrNull() ?: 0,

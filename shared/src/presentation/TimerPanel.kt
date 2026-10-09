@@ -67,12 +67,24 @@ internal fun TimerPanel(
     nextTask: FocusTask?,
     modifier: Modifier = Modifier,
     scrollable: Boolean = false,
+    appRequest: AppRequest? = null,
+    onAppRequestHandled: (AppRequest) -> Unit = {},
+    dialogsAllowed: Boolean = true,
     onCommand: (SessionCommand) -> Unit,
     onUiClick: () -> Unit,
 ) {
     var confirmation by remember(state.phaseId, state.pending.isNotEmpty()) {
         mutableStateOf<PhaseConfirmation?>(null)
     }
+    LaunchedEffect(appRequest) {
+        val request = appRequest ?: return@LaunchedEffect
+        if (request.destination !in setOf(AppDestination.RESET, AppDestination.SKIP)) return@LaunchedEffect
+        confirmation = if (dialogsAllowed) request.confirmationCommand(state)?.let {
+            PhaseConfirmation(state.phaseId, it)
+        } else null
+        onAppRequestHandled(request)
+    }
+    LaunchedEffect(dialogsAllowed) { if (!dialogsAllowed) confirmation = null }
     val focus = state.phase == Phase.FOCUS
     val motion = !state.settings.reduceMotion
     val accent by animateColorAsState(if (focus) UiColor.focus else UiColor.breakTime,
@@ -213,7 +225,7 @@ internal fun TimerPanel(
         }
     }
 
-    confirmation?.takeIf { it.phaseId == state.phaseId && state.pending.isEmpty() }?.let { request ->
+    confirmation?.takeIf { dialogsAllowed && it.phaseId == state.phaseId && state.pending.isEmpty() }?.let { request ->
         val skip = request.command is SessionCommand.SkipPhase
         AlertDialog(
             onDismissRequest = { confirmation = null },

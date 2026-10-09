@@ -31,6 +31,9 @@ import com.pomodoro.platform.backupBeforeUpdate
 import com.pomodoro.platform.launchWindowsInstaller
 import com.pomodoro.platform.openProjectPage
 import com.pomodoro.presentation.App
+import com.pomodoro.presentation.AppDestination
+import com.pomodoro.presentation.AppRequest
+import com.pomodoro.presentation.desktopTrayState
 import com.pomodoro.presentation.CloseDialog
 import com.pomodoro.presentation.DesktopSessionController
 import com.pomodoro.presentation.DesktopUpdateController
@@ -74,6 +77,8 @@ fun main() {
         var clickPlayback by remember { mutableStateOf<Job?>(null) }
         var previewing by remember { mutableStateOf(false) }
         var browserWarning by remember { mutableStateOf<String?>(null) }
+        var appRequest by remember { mutableStateOf<AppRequest?>(null) }
+        var requestSequence by remember { mutableStateOf(0L) }
         val updates = remember { DesktopUpdateController(AppVersion.value, directory.resolve("updates"),
             GitHubUpdateService(), scope) }
         fun openLink(url: String) {
@@ -170,6 +175,28 @@ fun main() {
                     }, scope = scope)
             }
             controller = session
+            fun dispatchSession(command: SessionCommand) {
+                if (closing) return
+                if (command == SessionCommand.Acknowledge || command is SessionCommand.AcknowledgeCompletion ||
+                    command is SessionCommand.ChangeSettings &&
+                    (!command.settings.soundEnabled || !command.settings.aggressiveAlertsEnabled ||
+                        command.settings.focusAlarm != session.state.settings.focusAlarm ||
+                        command.settings.breakAlarm != session.state.settings.breakAlarm)) stopAlarm()
+                session.dispatchSession(command)
+                if (!session.state.settings.clickSoundEnabled) stopClick() else playClick()
+            }
+            fun openFromTray(destination: AppDestination, phaseId: Long?) {
+                if (closing || confirmExit || exitError) return
+                session.tick()
+                showWindow()
+                if (session.state.pending.isNotEmpty() || phaseId != null && phaseId != session.state.phaseId) return
+                appRequest = AppRequest(++requestSequence, destination, phaseId)
+                playClick()
+            }
+            val remainingMs = session.state.remainingAt(session.now)
+            val todayDate = LocalDate.now().toString()
+            val trayState = desktopTrayState(session.product, remainingMs, todayDate, updates.state.status,
+                blocked = closing || confirmExit || exitError)
             LaunchedEffect(session.state.pending.map { it.phaseId }) {
                 if (session.state.pending.isNotEmpty()) confirmExit = false
             }
@@ -180,8 +207,18 @@ fun main() {
                 }
                 if (image != null) {
                     window.iconImage = image
-                    tray = DesktopTray.create(image, onShow = ::showWindow, onExit = {
+                    tray = DesktopTray.create(image, initialState = trayState, onShow = ::showWindow, onExit = {
                         if (!closing && !exitError) { showWindow(); confirmExit = true }
+                    }, onTimerCommand = { command ->
+                        if (!closing && !confirmExit && !exitError) dispatchSession(command)
+                    }, onOpen = ::openFromTray, onSoundChanged = { enabled ->
+                        if (!closing && !confirmExit && !exitError) {
+                            dispatchSession(SessionCommand.ChangeSettings(session.state.settings.copy(soundEnabled = enabled)))
+                        }
+                    }, onRemindersChanged = { enabled ->
+                        if (!closing && !confirmExit && !exitError) {
+                            dispatchSession(SessionCommand.ChangeSettings(session.state.settings.copy(aggressiveAlertsEnabled = enabled)))
+                        }
                     }, onUnavailable = {
                         trayAvailable = false
                         if (!windowVisible) showWindow()
@@ -189,6 +226,7 @@ fun main() {
                     trayAvailable = tray != null
                 }
             }
+            LaunchedEffect(tray, trayState) { tray?.update(trayState) }
             DisposableEffect(window) { onDispose { tray?.close() } }
             LaunchedEffect(session) {
                 while (true) {
@@ -196,13 +234,15 @@ fun main() {
                     delay(250.milliseconds)
                 }
             }
-            App(session.product, session.state.remainingAt(session.now), LocalDate.now().toString(), AppVersion.value,
+            App(session.product, remainingMs, todayDate, AppVersion.value,
                 if (closing) "Saving session before closing…" else session.persistenceWarning,
                 audioWarning = audioWarning,
                 updateState = updates.state,
                 browserWarning = browserWarning,
                 closeRequested = confirmExit || exitError,
                 dialogsVisible = windowVisible && !windowState.isMinimized,
+                appRequest = appRequest,
+                onAppRequestHandled = { request -> if (appRequest == request) appRequest = null },
                 onCheckUpdates = { if (!closing) updates.check() },
                 onDownloadUpdate = { if (!closing) updates.download() },
                 onCancelUpdate = { if (!closing) updates.cancel() },
@@ -235,17 +275,7 @@ fun main() {
                 },
                 onPreviewAlarm = { phase, selection -> if (!closing) playAlarm(phase, selection, preview = true) },
                 onStopPreview = ::stopPreview,
-                onSessionCommand = { command ->
-                    if (!closing) {
-                        if (command == SessionCommand.Acknowledge || command is SessionCommand.AcknowledgeCompletion ||
-                            command is SessionCommand.ChangeSettings &&
-                            (!command.settings.soundEnabled || !command.settings.aggressiveAlertsEnabled ||
-                                command.settings.focusAlarm != session.state.settings.focusAlarm ||
-                                command.settings.breakAlarm != session.state.settings.breakAlarm)) stopAlarm()
-                        session.dispatchSession(command)
-                        if (!session.state.settings.clickSoundEnabled) stopClick() else playClick()
-                    }
-                },
+                onSessionCommand = ::dispatchSession,
                 onTaskCommand = { command ->
                     if (!closing) {
                         session.dispatchTask(command)

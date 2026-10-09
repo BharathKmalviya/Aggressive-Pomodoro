@@ -28,6 +28,23 @@ Run `./kotlin.bat build`, `./kotlin.bat test`, and `./kotlin.bat run -m desktopA
 
 Do not treat a passing build or app-image process smoke check as proof of these visual, audio, install, or sleep scenarios. Record the Windows version, app version, outcome, and any screenshot or log when performing release acceptance.
 
+## Expanded tray menu checks — 2026-10-09
+
+Run the source build with `.\kotlin.bat run -m desktopApp`; the published v0.3.2 MSI has the original Show/Exit menu. These are manual acceptance steps, not recorded passes. Use one-minute focus/break durations for completion checks and a disposable profile for save-failure checks.
+
+| Scenario | Action | Expected result |
+| --- | --- | --- |
+| Native menu and tooltip | Right-click the tray icon while idle, running focus, paused, and in both breaks; hover between checks; repeat at Windows 100%, 150%, 200% scaling | Phase, rounded-up time and Ready/Running/Paused/Waiting are current; daily blocks/minutes match the app. Native labels, especially Exit..., have no missing glyph. Menu fits and keyboard arrows/Enter/Escape work. |
+| Hidden controls | Background a selected task's focus; tray Start/Pause/Resume, wait 15 seconds while paused, then resume and Show | Same timer/controller; pause holds exact time, resume retains captured task, no extra credit or forced window opening. |
+| Reset and skip | From idle/running/paused and each phase choose Reset or Skip; cancel, repeat and confirm; resize narrow/wide and minimize/restore after cancellation | Same window restores and asks before mutation, including idle tray actions. Cancel preserves progress; confirmation uses saved reset duration; skip earns no credit. Cancelled requests never reopen on resize/restore. |
+| Stale confirmation | Open Reset/Skip just before a one-minute deadline; wait for completion, then try the old confirm action | Completion takes priority; old command cannot reset/skip/pause the successor or erase earned focus/task/report credit. |
+| Shortcuts and unsaved edits | Background, open each Reports/Settings/About shortcut; enter an unsaved duration/sound choice in Settings, toggle tray Alarm sound or reminders, then Save/Cancel; request Reset while Settings is open | Only requested dialog opens in the same window. Tray toggles update their own field while other unsaved edits remain. Reset replaces Settings with the timer confirmation; no stacked dialogs or delayed preview. |
+| Pending alerts and mute | Background a one-minute focus and leave focus/break pending; open menu, choose Review, mute Alarm sound and disable reminders; exit/relaunch | Review restores retained alerts; timer/destructive/secondary actions disabled while pending. Mute stops opening/playing alarm; reminder toggle preserves queued events/credit. Saved checkmarks survive restart. |
+| Update view and retry | Tray Check for updates, then reopen during checking/download and with available/ready result; repeat a failed/offline check | Existing operation/result is viewed without resetting progress or starting another request. Idle/current/error permits a fresh manual check. No tray action downloads or installs; completion still takes priority. |
+| Close/save/install priority | Open close choice or a disposable save error, then the tray; separately inspect during Install & Exit | Conflicting timer, settings, checkbox and exit actions are disabled; Show remains reachable. Cancel/recover restores correct action availability; successful shutdown removes the icon. |
+
+Local verification (2026-10-09): Kotlin build, all 117 tests (40 shared, 77 desktop; zero failures/errors/skips), executable JAR packaging, strict OpenSpec and Git diff checks passed. Six new deterministic regressions cover phase controls, rounded countdown/local-date totals, pending/blocked action policy, update/checkmark projection, stale confirmation requests, deadline credit, pause/resume task ownership and saved toggles with pending events. Packaged class inspection confirms the tray model, native adapter and app-request bridge are included. Native acceptance above remains pending; no native app or installer was run locally, and no version bump/public installer publication is included.
+
 ## Close choice and background checks — 2026-10-09
 
 Run the updated source with `.\kotlin.bat run -m desktopApp`. These changes are not in the published v0.3.1 installer. Save 1-minute durations and use Reset Block if a phase is already active. These are pending manual acceptance scenarios, not recorded passes.

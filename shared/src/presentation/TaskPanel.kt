@@ -41,10 +41,11 @@ import kotlin.math.max
 @Composable
 internal fun TaskPanel(board: TaskBoard, modifier: Modifier = Modifier,
     activeTaskId: Long?, suppressDialogs: Boolean,
+    appRequest: AppRequest? = null,
     onTaskCommand: (TaskCommand) -> Unit, onUiClick: () -> Unit) {
     var title by remember { mutableStateOf("") }
     var estimate by remember { mutableStateOf("1") }
-    var deleting by remember(suppressDialogs) { mutableStateOf<FocusTask?>(null) }
+    var deleting by remember(suppressDialogs, appRequest) { mutableStateOf<FocusTask?>(null) }
     val parsedEstimate = estimate.toIntOrNull()
     val canAdd = title.trim().isNotEmpty() && title.trim().length <= 120 &&
         parsedEstimate != null && parsedEstimate in 1..20 && board.tasks.size < 200

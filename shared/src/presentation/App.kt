@@ -60,6 +60,8 @@ fun App(
     browserWarning: String?,
     closeRequested: Boolean = false,
     dialogsVisible: Boolean = true,
+    appRequest: AppRequest? = null,
+    onAppRequestHandled: (AppRequest) -> Unit = {},
     onSessionCommand: (SessionCommand) -> Unit,
     onTaskCommand: (TaskCommand) -> Unit,
     onUiClick: () -> Unit,
@@ -68,6 +70,7 @@ fun App(
     var reportsOpen by remember { mutableStateOf(false) }
     var aboutOpen by remember { mutableStateOf(false) }
     var updatesOpen by remember { mutableStateOf(false) }
+    var timerRequest by remember { mutableStateOf<AppRequest?>(null) }
     val session = product.session
     val today = product.history.on(todayDate)
     val pending = session.pending.isNotEmpty()
@@ -78,8 +81,27 @@ fun App(
             reportsOpen = false
             aboutOpen = false
             updatesOpen = false
+            timerRequest = null
         }
     }
+    LaunchedEffect(appRequest) {
+        val request = appRequest ?: return@LaunchedEffect
+        if (pending || closeRequested || !dialogsVisible) {
+            onAppRequestHandled(request)
+            return@LaunchedEffect
+        }
+        settingsOpen = request.destination == AppDestination.SETTINGS
+        reportsOpen = request.destination == AppDestination.REPORTS
+        aboutOpen = request.destination == AppDestination.ABOUT
+        updatesOpen = request.destination == AppDestination.UPDATES
+        timerRequest = request.takeIf { it.destination in setOf(AppDestination.RESET, AppDestination.SKIP) }
+        if (updatesOpen && updateState.status in setOf(UpdateStatus.IDLE, UpdateStatus.UP_TO_DATE, UpdateStatus.ERROR)) {
+            onCheckUpdates()
+        }
+        onAppRequestHandled(request)
+    }
+    val timerDialogsAllowed = dialogsVisible && !closeRequested &&
+        !settingsOpen && !reportsOpen && !aboutOpen && !updatesOpen
 
     ProductTheme {
         BoxWithConstraints(Modifier.fillMaxSize().background(UiColor.background)) {
@@ -119,18 +141,26 @@ fun App(
                     Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(18.dp)) {
                         TimerPanel(session, remainingMs, activeTask, product.board.selected,
                             modifier = Modifier.weight(1.15f).fillMaxHeight(), scrollable = true,
+                            appRequest = timerRequest,
+                            onAppRequestHandled = { if (timerRequest == it) timerRequest = null },
+                            dialogsAllowed = timerDialogsAllowed,
                             onCommand = onSessionCommand, onUiClick = onUiClick)
                         TaskPanel(product.board, Modifier.weight(0.85f).fillMaxHeight(),
-                            activeTaskId = product.activeTaskId, suppressDialogs = pending || closeRequested,
+                            activeTaskId = product.activeTaskId, suppressDialogs = pending || !timerDialogsAllowed,
+                            appRequest = appRequest,
                             onTaskCommand = onTaskCommand, onUiClick = onUiClick)
                     }
                 } else {
                     Column(Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(18.dp)) {
                         TimerPanel(session, remainingMs, activeTask, product.board.selected,
-                            modifier = Modifier.fillMaxWidth(), onCommand = onSessionCommand, onUiClick = onUiClick)
+                            modifier = Modifier.fillMaxWidth(), appRequest = timerRequest,
+                            onAppRequestHandled = { if (timerRequest == it) timerRequest = null },
+                            dialogsAllowed = timerDialogsAllowed,
+                            onCommand = onSessionCommand, onUiClick = onUiClick)
                         TaskPanel(product.board, Modifier.fillMaxWidth().height(560.dp),
-                            activeTaskId = product.activeTaskId, suppressDialogs = pending || closeRequested,
+                            activeTaskId = product.activeTaskId, suppressDialogs = pending || !timerDialogsAllowed,
+                            appRequest = appRequest,
                             onTaskCommand = onTaskCommand, onUiClick = onUiClick)
                     }
                 }
