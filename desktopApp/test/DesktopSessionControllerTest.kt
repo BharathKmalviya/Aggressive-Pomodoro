@@ -3,6 +3,7 @@ package com.pomodoro.presentation
 import com.pomodoro.data.AppStore
 import com.pomodoro.data.SnapshotStore
 import com.pomodoro.domain.Phase
+import com.pomodoro.domain.CloseBehavior
 import com.pomodoro.domain.Completion
 import com.pomodoro.domain.ProductState
 import com.pomodoro.domain.SessionCommand
@@ -27,6 +28,40 @@ import kotlin.test.assertTrue
 import java.util.concurrent.atomic.AtomicBoolean
 
 class DesktopSessionControllerTest {
+    @Test fun rememberedCloseChoiceIsInFinalSaveAndCanReturnToAskAfterRelaunch() = runBlocking {
+        val directory = Files.createTempDirectory("pomodoro-close-choice-test")
+        try {
+            val store = AppStore(directory.resolve("session.properties"))
+            for (behavior in listOf(CloseBehavior.BACKGROUND, CloseBehavior.EXIT)) {
+                val fixture = Fixture(store = store)
+                val controller = fixture.controller
+                try {
+                    controller.dispatchTask(TaskCommand.Add("Preserve this focus", 2))
+                    controller.dispatchSession(SessionCommand.Start)
+                    fixture.at(20_000)
+                    controller.dispatchSession(SessionCommand.Pause)
+                    val before = controller.product
+                    controller.dispatchSession(SessionCommand.ChangeSettings(controller.state.settings.copy(closeBehavior = behavior)))
+                    assertEquals(before.session.remainingMs, controller.state.remainingMs)
+                    assertEquals(before.activeTaskId, controller.product.activeTaskId)
+                    assertEquals(before.board, controller.product.board)
+                    assertEquals(before.history, controller.product.history)
+                    assertEquals(before.session.settings.copy(closeBehavior = behavior), controller.state.settings)
+                    controller.close()
+                    val saved = store.load()
+                    assertEquals(controller.product, saved)
+                    val reopened = Fixture(saved = saved, store = store).controller
+                    try {
+                        assertEquals(behavior, reopened.state.settings.closeBehavior)
+                        reopened.dispatchSession(SessionCommand.ChangeSettings(reopened.state.settings.copy(closeBehavior = CloseBehavior.ASK)))
+                    } finally { reopened.close() }
+                    assertEquals(CloseBehavior.ASK, store.load().session.settings.closeBehavior)
+                    assertEquals(saved.session.remainingMs, store.load().session.remainingMs)
+                } finally { controller.close() }
+            }
+        } finally { directory.toFile().deleteRecursively() }
+    }
+
     @Test fun trayPauseAtDeadlineAndStaleCommandsPreserveSuccessorAndCredit() = runBlocking {
         val fixture = Fixture()
         val controller = fixture.controller

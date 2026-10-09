@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.sp
 import com.pomodoro.domain.TimerSettings
 import com.pomodoro.domain.Phase
 import com.pomodoro.domain.AlarmSound
+import com.pomodoro.domain.CloseBehavior
 
 @Composable
 internal fun SettingsDialog(
@@ -55,6 +56,7 @@ internal fun SettingsDialog(
     var reduceMotion by remember(settings.reduceMotion) { mutableStateOf(settings.reduceMotion) }
     var focusAlarm by remember(settings.focusAlarm) { mutableStateOf(settings.focusAlarm) }
     var breakAlarm by remember(settings.breakAlarm) { mutableStateOf(settings.breakAlarm) }
+    var closeBehavior by remember(settings.closeBehavior) { mutableStateOf(settings.closeBehavior) }
     var previewRequested by remember { mutableStateOf(false) }
     val candidate = settings.copy(
         focusMinutes = focus.toIntOrNull() ?: 0,
@@ -68,6 +70,7 @@ internal fun SettingsDialog(
         reduceMotion = reduceMotion,
         focusAlarm = focusAlarm,
         breakAlarm = breakAlarm,
+        closeBehavior = closeBehavior,
     )
 
     AlertDialog(
@@ -105,6 +108,12 @@ internal fun SettingsDialog(
                 SettingToggle("Reduce motion", reduceMotion, { reduceMotion = it })
                 Text("Keep timer transitions and emphasis still. Countdown and alerts work as usual.",
                     color = UiColor.muted, fontSize = 12.sp)
+                CloseBehaviorChoice(closeBehavior) { closeBehavior = it }
+                Text(when (closeBehavior) {
+                    CloseBehavior.ASK -> "X and Alt+F4 offer Background, Exit and Cancel each time."
+                    CloseBehavior.BACKGROUND -> "X and Alt+F4 keep the timer running in the tray, or minimize when the tray is unavailable."
+                    CloseBehavior.EXIT -> "X and Alt+F4 save and exit immediately. Timer and alarms stop after exit."
+                } + " Tray Exit always asks. SAVE RULES keeps this choice.", color = UiColor.muted, fontSize = 12.sp)
                 if (audioWarning != null) Text(audioWarning, color = UiColor.focus)
                 else if (previewRequested) Text("Test requested. If you hear nothing, check your Windows output device and volume.",
                     color = UiColor.breakTime, fontSize = 12.sp)
@@ -116,6 +125,25 @@ internal fun SettingsDialog(
             onClick = { onSave(candidate) }) { Text("SAVE RULES") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("CANCEL") } },
     )
+}
+
+@Composable
+private fun CloseBehaviorChoice(selected: CloseBehavior, onSelect: (CloseBehavior) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("When closing the window", fontWeight = FontWeight.Bold)
+        Box {
+            OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
+                Text("${selected.label} ▾")
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                CloseBehavior.entries.forEach { choice ->
+                    DropdownMenuItem(text = { Text(if (choice == selected) "✓ ${choice.label}" else choice.label) },
+                        onClick = { onSelect(choice); expanded = false })
+                }
+            }
+        }
+    }
 }
 
 @Composable

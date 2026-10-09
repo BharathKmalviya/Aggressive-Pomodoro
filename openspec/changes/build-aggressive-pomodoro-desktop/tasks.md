@@ -160,3 +160,20 @@ Section 18 publication verification (2026-10-09): immutable stable v0.3.2 was pu
 - [ ] 19.5 Manually verify native tray keyboard navigation, countdown/tooltip refresh, 100/150/200% scaling, restored dialogs, Reset/Skip cancellation, pending alerts, mute persistence and update-progress behavior on Windows.
 
 Section 19 local verification (2026-10-09): Kotlin build, all 117 tests (40 shared, 77 desktop; zero failures/errors/skips), executable JAR packaging, strict OpenSpec and Git diff checks passed. Six new deterministic tests cover all phase/status controls, rounded countdown/local-date totals, pending/blocked action policy, existing update labels and saved checkmarks, stale confirmation requests, deadline credit, paused/resumed task ownership and saved toggles with pending events. Native tray/menu/tooltip/keyboard/scaling/restored-dialog/unsaved-editor/update progress acceptance is documented and pending in `docs/TESTING.md`; no native app or installer was run locally. No version bump or installer publication is included; the change stays active with manual gates open.
+
+## 20. Remember window-close choices
+
+- [x] 20.1 Add stable Ask/Background/Exit settings with optional format-3 persistence and safe missing/unknown fallback; verify round-trip and legacy-data preservation.
+- [x] 20.2 Add unchecked Remember my choice to the close dialog and When closing the window to Settings; apply saved X/Alt+F4 behavior, retain tray Exit confirmation and taskbar fallback, and preserve cancel/save-failure behavior.
+- [x] 20.3 Verify the desktop close policy and final-save/relaunch behavior with injected-time regressions; update README, architecture, changelog, rollback guidance and exact manual Windows scenarios, then run build/tests/JAR/OpenSpec/diff checks.
+- [ ] 20.4 Manually verify remembered Background/Exit/Ask, checkbox cancellation, B/E/Tab/Space/Escape, tray loss/fallback and save failures in all timer states at Windows 100/150/200% scaling.
+
+Section 20 local verification (2026-10-09): Kotlin build, all 121 tests (40 shared, 81 desktop; zero failures/errors/skips), executable JAR packaging, strict OpenSpec and Git diff checks passed. Four new regressions cover saved close policy/tray fallback/explicit tray Exit, all choice round-trips with paused timer/tasks/history/pending events, missing/unknown/legacy preference preservation, and final-save/relaunch/reset-to-Ask with preserved task ownership and progress. Packaged inspection verifies version 0.3.3 and the tray model, close policy, shared close preference and app-request bridge. Native checkbox/keyboard/scaling/close behavior remains pending in `docs/TESTING.md`; no native app or installer was run locally.
+
+## 21. Version 0.3.3 publication
+
+- [x] 21.1 Prepare v0.3.3 metadata, expanded-tray/remembered-close release notes, optional format-3 preference/rollback guidance and owner-requested publication scope; run build/tests, executable JAR packaging, strict OpenSpec and diff checks.
+- [ ] 21.2 Commit and push to main; require the exact commit's Windows CI and release runtime packaging, clean MSI install/launch, baseline upgrade/data preservation, checksum and license gates to pass.
+- [ ] 21.3 Read back the immutable v0.3.3 tag and public assets, independently download and verify asset hashes/MSI checksum/license, and record release evidence while keeping native acceptance pending.
+
+Section 21 local preparation (2026-10-09): release-version build, all 121 tests, executable JAR packaging, strict OpenSpec and diff checks passed. The packaged version is 0.3.3 and contains the expanded tray and saved close behavior. Local executable JAR SHA-256: `b1c1b8282136153d4fc88df7e75ec4fcc5dc60c8c144bc0338da6683390dccbc`. Owner-requested publication remains gated on the exact commit's automated Windows checks; manual acceptance remains pending.

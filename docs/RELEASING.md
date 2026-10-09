@@ -25,6 +25,12 @@ Get-FileHash .\build\distribution\artifacts\AggressivePomodoro-0.3.2.msi -Algori
 
 The script uses the checked-in Kotlin Toolchain wrapper, runs build and tests, builds the executable JAR, creates a runtime-bundled app image and MSI with `jpackage`, smoke-checks the app-image process, and writes a SHA-256 checksum for the exact MSI. It places the MIT License alongside the artifacts and passes it to the MSI packager. The versioned filename follows `desktopApp/resources/version.properties`; replace `0.3.2` in the example after a version change.
 
+## v0.3.3 release scope
+
+On 2026-10-09 the owner requested release after adding saved close options, including the previously implemented tray expansion. This authorizes v0.3.3 publication through the mandatory Windows build/tests/runtime-package/clean MSI install and launch/baseline upgrade/data preservation/checksum/license gates. Native close-choice/tray/tooltip/keyboard/scaling/audio/sleep/updater acceptance remains pending in `TESTING.md`; this request does not mark those manual checks passed. Keep the active OpenSpec change open.
+
+Snapshot format remains 3 and the pinned installer UpgradeCode is unchanged. `closeBehavior` is optional; absent/unknown values default to Ask without discarding valid data. The baseline upgrade profile has no close preference and still opens the close chooser for the harness's explicit Exit. Earlier format-3 builds ignore and may drop this preference on save. Exit and back up `session.properties` before upgrading or rolling back. The installer remains unsigned. Publication evidence must identify the exact validated commit, immutable tag and freshly verified MSI/checksum/license assets.
+
 ## v0.3.2 release scope
 
 On 2026-10-09 the owner requested release of the close/background choice and selectable supplied sounds after source build, all 111 tests, executable JAR packaging, strict OpenSpec validation and Windows CI passed, with native manual acceptance disclosed as pending. This authorizes publication through the existing automated gates and is an exception for this release to manual acceptance timing, not a manual pass. Automated Windows build/tests, runtime packaging, clean MSI installation/launch, baseline upgrade/data preservation, checksum, and MIT License gates remain mandatory. Publication evidence is recorded below.

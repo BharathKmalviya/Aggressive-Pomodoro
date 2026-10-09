@@ -2,6 +2,7 @@ package com.pomodoro.data
 
 import com.pomodoro.domain.Completion
 import com.pomodoro.domain.AlarmSound
+import com.pomodoro.domain.CloseBehavior
 import com.pomodoro.domain.FocusDay
 import com.pomodoro.domain.FocusHistory
 import com.pomodoro.domain.FocusTask
@@ -38,6 +39,7 @@ class AppStore(private val file: Path) : SnapshotStore {
                 reduceMotion = if (values.containsKey("reduceMotion")) values.boolean("reduceMotion") else false,
                 focusAlarm = AlarmSound.fromId(values.getProperty("focusAlarm")),
                 breakAlarm = AlarmSound.fromId(values.getProperty("breakAlarm")),
+                closeBehavior = CloseBehavior.fromId(values.getProperty("closeBehavior")),
             )
             require(settings.isValid())
             val phase = enumValueOf<Phase>(values.required("phase"))
@@ -106,6 +108,7 @@ class AppStore(private val file: Path) : SnapshotStore {
             setProperty("reduceMotion", state.settings.reduceMotion.toString())
             setProperty("focusAlarm", state.settings.focusAlarm.id)
             setProperty("breakAlarm", state.settings.breakAlarm.id)
+            setProperty("closeBehavior", state.settings.closeBehavior.id)
             setProperty("taskIds", snapshot.board.tasks.joinToString(",") { it.id.toString() })
             setProperty("selectedTaskId", snapshot.board.selectedId?.toString() ?: "")
             setProperty("nextTaskId", snapshot.board.nextId.toString())

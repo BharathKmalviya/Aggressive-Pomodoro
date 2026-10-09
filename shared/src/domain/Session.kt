@@ -17,6 +17,7 @@ data class TimerSettings(
     val reduceMotion: Boolean = false,
     val focusAlarm: AlarmSound = AlarmSound.ORIGINAL,
     val breakAlarm: AlarmSound = AlarmSound.ORIGINAL,
+    val closeBehavior: CloseBehavior = CloseBehavior.ASK,
 ) {
     fun isValid(): Boolean = focusMinutes in 1..180 && shortBreakMinutes in 1..60 &&
         longBreakMinutes in 1..60 && longBreakEvery in 2..12

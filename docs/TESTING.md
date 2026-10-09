@@ -28,9 +28,25 @@ Run `./kotlin.bat build`, `./kotlin.bat test`, and `./kotlin.bat run -m desktopA
 
 Do not treat a passing build or app-image process smoke check as proof of these visual, audio, install, or sleep scenarios. Record the Windows version, app version, outcome, and any screenshot or log when performing release acceptance.
 
+## Saved close choice checks — 2026-10-09
+
+Use v0.3.3 or `.\kotlin.bat run -m desktopApp`; native acceptance is pending. Start with **Settings → When closing the window → Ask every time → Save Rules**. Repeat X/Alt+F4 in idle, running focus/both breaks, paused and waiting states. Use a disposable profile for storage failures.
+
+| Scenario | Action | Expected result |
+| --- | --- | --- |
+| Default and cancellation | Open the close dialog, check Remember my choice, then Cancel/Escape/dialog X; close again | No action or preference was saved; checkbox starts unchecked in each new chooser. |
+| Remember Background | Check Remember and choose Background (or B); Show, then close with X/Alt+F4; tray Exit, exit explicitly and relaunch | Later window closes hide without a chooser; same timer/credit/alerts persist. Tray Exit still asks. Relaunch is visible and the saved Background setting remains. |
+| Remember Exit | Check Remember and choose Exit (or E); relaunch, inspect Settings, then X/Alt+F4 with active/paused timer | Choice survives restart; later close waits for saving and exits without a chooser. Relaunch restores data and no alarms run after exit. |
+| Change and discard in Settings | Choose Ask every time, Cancel Settings, close through tray Exit and return; then select Ask and Save Rules | Cancel retains the previous saved choice; Save restores the window-close chooser. Switching close choice preserves timer progress, other settings and unsaved sound/duration edits. |
+| Tray fallback/loss | Save Background, exercise an unavailable tray or restart Explorer while hidden, then close/restore | Unavailable tray minimizes to taskbar; removed tray restores a hidden window; Background preference is not rewritten. Tray/taskbar restore stays reachable. |
+| Keyboard and scale | At 100%, 150%, 200% scaling use Tab/Space on Remember, B/E actions, Escape and the Settings dropdown | Focus/checkmark visible, all text/actions reachable, keyboard actions honor the checked value and Cancel saves nothing. |
+| Save failure and retry | Make disposable profile saves fail after choosing remembered Exit; restore access and Retry Save or reopen Settings | App remains visible and usable; successful retry writes the latest choice and data. Exit Anyway keeps its explicit data-loss warning. |
+
+Local v0.3.3 preparation (2026-10-09): Kotlin build, all 121 tests (40 shared, 81 desktop; zero failures/errors/skips), executable JAR packaging, strict OpenSpec and Git diff checks passed. Four new deterministic tests cover close policy/fallback/explicit tray Exit, saved/unknown/legacy preferences with retained data, and final-save/relaunch/reset-to-Ask with unchanged progress/task ownership. Read-only JAR inspection verifies 0.3.3 and the expanded tray/close policy/shared preference/request bridge. Native scenarios above remain pending; no native app or installer was run on the development machine. The owner requested publication through the existing automated Windows gates after implementation.
+
 ## Expanded tray menu checks — 2026-10-09
 
-Run the source build with `.\kotlin.bat run -m desktopApp`; the published v0.3.2 MSI has the original Show/Exit menu. These are manual acceptance steps, not recorded passes. Use one-minute focus/break durations for completion checks and a disposable profile for save-failure checks.
+Use v0.3.3 or the source build with `.\kotlin.bat run -m desktopApp`; v0.3.2 has the original Show/Exit menu. These are manual acceptance steps, not recorded passes. Use one-minute focus/break durations for completion checks and a disposable profile for save-failure checks.
 
 | Scenario | Action | Expected result |
 | --- | --- | --- |
@@ -46,6 +62,8 @@ Run the source build with `.\kotlin.bat run -m desktopApp`; the published v0.3.2
 Local verification (2026-10-09): Kotlin build, all 117 tests (40 shared, 77 desktop; zero failures/errors/skips), executable JAR packaging, strict OpenSpec and Git diff checks passed. Six new deterministic regressions cover phase controls, rounded countdown/local-date totals, pending/blocked action policy, update/checkmark projection, stale confirmation requests, deadline credit, pause/resume task ownership and saved toggles with pending events. Packaged class inspection confirms the tray model, native adapter and app-request bridge are included. Native acceptance above remains pending; no native app or installer was run locally, and no version bump/public installer publication is included.
 
 ## Close choice and background checks — 2026-10-09
+
+For v0.3.3, set **When closing the window → Ask every time** before this original close-choice matrix; saved-choice checks are listed above.
 
 Run the updated source with `.\kotlin.bat run -m desktopApp`. These changes are not in the published v0.3.1 installer. Save 1-minute durations and use Reset Block if a phase is already active. These are pending manual acceptance scenarios, not recorded passes.
 

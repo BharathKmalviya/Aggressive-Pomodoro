@@ -1,5 +1,6 @@
 package com.pomodoro.data
 
+import com.pomodoro.domain.CloseBehavior
 import com.pomodoro.domain.SessionCommand
 import com.pomodoro.domain.SessionEngine
 import com.pomodoro.domain.SessionStatus
@@ -19,6 +20,41 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class AppStoreTest {
+    @Test fun closePreferencesRoundTripAndUnknownChoicesPreserveData() = withStore { store, file ->
+        var snapshot = ProductState(session = newSession(TimerSettings(focusMinutes = 1,
+            soundEnabled = false, reduceMotion = true)))
+        snapshot = ProductEngine.reduce(snapshot, ProductCommand.Task(TaskCommand.Add("Keep my work", 2)), TimeMark(0, 0), date)
+        snapshot = ProductEngine.reduce(snapshot, ProductCommand.Session(SessionCommand.Start), TimeMark(0, 0), date)
+        snapshot = ProductEngine.reduce(snapshot, ProductCommand.Session(SessionCommand.Tick), TimeMark(60_000, 60_000), date)
+        snapshot = ProductEngine.reduce(snapshot, ProductCommand.Session(SessionCommand.Pause), TimeMark(60_001, 60_001), date)
+        CloseBehavior.entries.forEach { behavior ->
+            val chosen = snapshot.copy(session = snapshot.session.copy(settings = snapshot.session.settings.copy(closeBehavior = behavior)))
+            store.save(chosen)
+            assertEquals(chosen, store.load())
+        }
+        for (unknown in listOf(null, "", "future-action", "EXIT")) {
+            store.save(snapshot.copy(session = snapshot.session.copy(settings = snapshot.session.settings.copy(closeBehavior = CloseBehavior.EXIT))))
+            editProperties(file) {
+                if (unknown == null) remove("closeBehavior") else setProperty("closeBehavior", unknown)
+            }
+            assertEquals(snapshot, store.load())
+        }
+    }
+
+    @Test fun legacySnapshotsWithoutCloseChoiceKeepAsking() = withStore { store, file ->
+        for (version in listOf("1", "2", "3")) {
+            store.save(ProductState(session = newSession(TimerSettings(focusMinutes = 7,
+                soundEnabled = false, closeBehavior = CloseBehavior.EXIT))))
+            editProperties(file) { setProperty("version", version); remove("closeBehavior") }
+            val restored = store.load()
+            assertEquals(CloseBehavior.ASK, restored.session.settings.closeBehavior)
+            assertEquals(7, restored.session.settings.focusMinutes)
+            assertEquals(420_000L, restored.session.remainingMs)
+            assertEquals(false, restored.session.settings.soundEnabled)
+            assertEquals(null, restored.session.message)
+        }
+    }
+
     @Test fun alarmChoicesRoundTripAndUnknownIdsPreserveOtherData() = withStore { store, file ->
         var snapshot = ProductState(session = newSession(TimerSettings(focusMinutes = 1,
             focusAlarm = AlarmSound.FUNNY, breakAlarm = AlarmSound.HAPPY_BELLS)))

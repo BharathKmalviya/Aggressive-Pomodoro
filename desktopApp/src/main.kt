@@ -19,6 +19,7 @@ import com.pomodoro.data.AppStore
 import com.pomodoro.domain.SessionCommand
 import com.pomodoro.domain.Phase
 import com.pomodoro.domain.AlarmSound
+import com.pomodoro.domain.CloseBehavior
 import com.pomodoro.platform.DesktopAlert
 import com.pomodoro.platform.DesktopTray
 import com.pomodoro.platform.AppVersion
@@ -35,6 +36,8 @@ import com.pomodoro.presentation.AppDestination
 import com.pomodoro.presentation.AppRequest
 import com.pomodoro.presentation.desktopTrayState
 import com.pomodoro.presentation.CloseDialog
+import com.pomodoro.presentation.DesktopCloseAction
+import com.pomodoro.presentation.windowCloseAction
 import com.pomodoro.presentation.DesktopSessionController
 import com.pomodoro.presentation.DesktopUpdateController
 import com.pomodoro.presentation.UpdateStatus
@@ -111,12 +114,22 @@ fun main() {
                 }
             }
         }
+        fun background() {
+            if (closing) return
+            confirmExit = false
+            if (trayAvailable) windowVisible = false else windowState.isMinimized = true
+        }
+        fun requestClose(explicitTrayExit: Boolean = false) {
+            if (closing || exitError) return
+            when (windowCloseAction(controller?.state?.settings?.closeBehavior ?: CloseBehavior.ASK,
+                    trayAvailable, explicitTrayExit)) {
+                DesktopCloseAction.ASK -> confirmExit = true
+                DesktopCloseAction.BACKGROUND, DesktopCloseAction.MINIMIZE -> background()
+                DesktopCloseAction.EXIT -> { confirmExit = false; exit() }
+            }
+        }
         Window(
-            onCloseRequest = {
-                if (!closing && !exitError) {
-                    confirmExit = true
-                }
-            },
+            onCloseRequest = { requestClose() },
             title = "Aggressive Pomodoro",
             state = windowState,
             visible = windowVisible,
@@ -126,11 +139,6 @@ fun main() {
                 windowVisible = true
                 windowState.isMinimized = false
                 SwingUtilities.invokeLater { window.toFront(); window.requestFocus() }
-            }
-            fun background() {
-                if (closing) return
-                confirmExit = false
-                if (trayAvailable) windowVisible = false else windowState.isMinimized = true
             }
             val alert = remember(window) { DesktopAlert(window, onPlaybackResult = { warning ->
                 SwingUtilities.invokeLater { audioWarning = warning }
@@ -185,6 +193,16 @@ fun main() {
                 session.dispatchSession(command)
                 if (!session.state.settings.clickSoundEnabled) stopClick() else playClick()
             }
+            fun chooseCloseBehavior(behavior: CloseBehavior, rememberChoice: Boolean) {
+                if (closing || exitError) return
+                if (rememberChoice) dispatchSession(SessionCommand.ChangeSettings(session.state.settings.copy(closeBehavior = behavior)))
+                confirmExit = false
+                when (behavior) {
+                    CloseBehavior.BACKGROUND -> background()
+                    CloseBehavior.EXIT -> exit()
+                    CloseBehavior.ASK -> Unit
+                }
+            }
             fun openFromTray(destination: AppDestination, phaseId: Long?) {
                 if (closing || confirmExit || exitError) return
                 session.tick()
@@ -208,7 +226,7 @@ fun main() {
                 if (image != null) {
                     window.iconImage = image
                     tray = DesktopTray.create(image, initialState = trayState, onShow = ::showWindow, onExit = {
-                        if (!closing && !exitError) { showWindow(); confirmExit = true }
+                        if (!closing && !exitError) { showWindow(); requestClose(explicitTrayExit = true) }
                     }, onTimerCommand = { command ->
                         if (!closing && !confirmExit && !exitError) dispatchSession(command)
                     }, onOpen = ::openFromTray, onSoundChanged = { enabled ->
@@ -287,8 +305,8 @@ fun main() {
                 })
             if (confirmExit) CloseDialog(
                 trayAvailable = trayAvailable,
-                onBackground = ::background,
-                onExit = { confirmExit = false; exit() },
+                onBackground = { rememberChoice -> chooseCloseBehavior(CloseBehavior.BACKGROUND, rememberChoice) },
+                onExit = { rememberChoice -> chooseCloseBehavior(CloseBehavior.EXIT, rememberChoice) },
                 onCancel = { confirmExit = false },
             )
             if (exitError) AlertDialog(

@@ -47,11 +47,27 @@ The application SHALL detect a material disagreement between elapsed monotonic t
 - **THEN** the timer stops advancing and the user is prompted to resume or reset the phase
 
 ### Requirement: Explicit exit behavior
-The application SHALL ask on every window-close request whether to run in the background, exit, or cancel, including idle, paused and waiting states. It SHALL explain that alerts stop after Exit. Background mode SHALL retain the existing timer, persistence and single-instance ownership, hide the window only with an installed tray restore path, and offer taskbar minimization when the tray is unavailable. Only explicit Exit SHALL save and shut down. Tray Show SHALL restore the same window; tray Exit SHALL restore and ask for confirmation. Native tray removal SHALL restore a hidden window. Successful exit, forced exit and update installation SHALL remove tray resources. Saving failures SHALL keep the app usable and visible.
+The application SHALL default to asking on window-close requests whether to run in the background, exit, or cancel, including idle, paused and waiting states. It SHALL explain that alerts stop after Exit. Users SHALL be able to remember Background/Minimize or Exit for later window-close/Alt+F4 requests and change this in Settings, including returning to Ask every time. Remember SHALL default to unchecked and SHALL save only when an action is chosen; Cancel or dismissal SHALL NOT save. Missing or unknown stored preferences SHALL default to Ask while preserving valid data. Background mode SHALL retain the existing timer, persistence and single-instance ownership, hide the window only with an installed tray restore path, and minimize when the tray is unavailable without rewriting the saved preference. Exit selected explicitly or by a saved close preference SHALL save and shut down. Tray Show SHALL restore the same window; tray Exit SHALL always restore and ask for confirmation regardless of the saved preference. Native tray removal SHALL restore a hidden window. Successful exit, forced exit and update installation SHALL remove tray resources. Saving failures SHALL keep the app usable and visible.
 
 #### Scenario: Close running app
-- **WHEN** the user requests to close the window in any timer state
+- **WHEN** the user requests to close the window in any timer state with Ask every time selected
 - **THEN** the application offers background/minimize, Exit and Cancel; dismissing or cancelling preserves the window and session
+
+#### Scenario: Remember background or exit
+- **WHEN** the user checks Remember my choice and chooses Background/Minimize or Exit
+- **THEN** the chosen preference is saved with existing settings, subsequent X/Alt+F4 requests perform it without the chooser, and Settings can restore Ask every time without changing timer progress
+
+#### Scenario: Cancel a remembered selection
+- **WHEN** Remember my choice is checked but the user cancels or dismisses the chooser
+- **THEN** no close preference is changed and the app continues normally
+
+#### Scenario: Saved background without a tray and explicit tray exit
+- **WHEN** Background is saved but the tray is unavailable, or the user explicitly activates tray Exit with any saved preference
+- **THEN** window close minimizes to the taskbar without losing the saved choice, while tray Exit restores the explicit close dialog
+
+#### Scenario: Older or unknown close preference
+- **WHEN** a valid snapshot has no close preference or contains an unknown value
+- **THEN** the app uses Ask every time and retains the valid timer, tasks, history and other settings
 
 #### Scenario: Background and restore
 - **WHEN** the user chooses Run in background and later activates tray Show

@@ -2,11 +2,16 @@
 
 ## Unreleased
 
+## 0.3.3
+
 - Expanded the tray with live phase/countdown/status, today's blocks/minutes, and a timer tooltip. Start, pause or resume without reopening the window.
 - Added confirmed Reset/Skip and shortcuts to Reports, Settings, About and manual updates; existing update progress/results remain available through View update.
 - Added saved Alarm sound and Repeat completion reminders checkboxes through the existing audio/persistence path. Other unsaved Settings edits survive these toggles.
 - Preserved completion/close priority, phase-bound stale-command protection and deliberate exit. Native menu labels use ASCII dots so Exit no longer depends on an unsupported ellipsis glyph.
-- Native Windows tray keyboard, scaling, tooltip and restored-dialog acceptance remains pending. These source changes do not replace the published v0.3.2 installer.
+- Added **Remember my choice** to the close dialog. Save Background/Minimize or Exit for later X/Alt+F4 requests; Cancel never saves a choice.
+- Added **Settings → When closing the window** with Ask every time, Run in background and Exit the app. Existing profiles keep asking; unavailable trays minimize, and tray Exit always asks.
+- Kept snapshot format 3 with a tolerant optional close preference. Older builds ignore and may drop this preference when saving; back up your profile before rollback. Exit still waits for saving and recovers visibly on failure.
+- Publication is owner-requested through automated Windows build/test/runtime-package/clean-install/upgrade/checksum/license gates. Native audio, tray/notification, close-choice keyboard/scaling, sleep and updater/UAC acceptance remains pending. The installer remains unsigned.
 
 ## 0.3.2
 
