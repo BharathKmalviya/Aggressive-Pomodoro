@@ -1,5 +1,9 @@
 # Windows acceptance checks
 
+## v0.3.5 published verification — 2026-10-09
+
+[Windows CI](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/37946042697) and the [release workflow](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/37946042644) passed for `a2ba6f79ba8ad123ba4117508d8d7cb2caba8c04`: all 138 tests (40 shared, 98 desktop; zero failures), runtime packaging, clean MSI installation/launch, second-launch acknowledgement and baseline upgrade/data preservation. Both jobs' packaged updater probe downloaded and reverified the full v0.3.4 MSI before publishing the correction. Fresh API/latest/tag readback confirmed immutable stable v0.3.5; independent asset downloads passed digests, exact MSI checksum and MIT License. Read-only MSI metadata confirms version 0.3.5 and unchanged UpgradeCode. Full hashes and evidence are in [Releasing](RELEASING.md#v035-published-verification). Native scenarios below remain pending; no local app/installer was launched.
+
 ## Updater connection correction checks — 2026-10-09
 
 The owner supplied v0.3.3 screenshots showing v0.3.4 stuck at 0%, then a generic connection failure. Network-only diagnostics reproduced a timeout to the first release-assets address while the other resolved addresses connected. These observations establish the failure, not a native acceptance pass for the fix. Use v0.3.5; install its MSI manually once if the old updater cannot download it, after explicitly choosing Exit and backing up the profile.
@@ -7,7 +11,7 @@ The owner supplied v0.3.3 screenshots showing v0.3.4 stuck at 0%, then a generic
 | Scenario | Manual action | Expected result |
 | --- | --- | --- |
 | Startup and upgrade | Install v0.3.5, reopen, inspect About and saved work | Version is 0.3.5; timer, tasks, close choice, alarm choices and reports recover. No automatic network check. |
-| Stages and progress | With an older disposable v0.3.5 source version, explicitly check and download a newer stable release | Checksum fetching and connecting show activity without a misleading 0%; transfer shows bytes/percent; verification appears before Ready. No install starts during download. A current-version check remains Up to date. |
+| Stages and progress | In a disposable source checkout/profile, retain the correction code but locally set `version.properties` to 0.3.4; explicitly check/download v0.3.5. Do not commit that version edit. | Checksum fetching and connecting show activity without a misleading 0%; transfer shows bytes/percent; verification appears before Ready. No install starts during download. The unmodified v0.3.5 build remains Up to date until a later stable release exists. |
 | Cancel while connecting or stalled | On a controlled disconnected/slow network, press Cancel during checksum/connection/body wait | Cancelling completes promptly, partial files disappear, Download Update is available again and notes remain. No overlapping requests or frozen timer. Restore the network before retrying. |
 | Failure and retry | Let a controlled timeout/offline download fail, reconnect, press Download Again | Error identifies the connection problem; primary button retries the checked release, secondary checks for a newer version; success clears the old error. |
 | Hidden dialog and completion | Close the dialog during download, let a phase finish, reopen the update from About/tray | Timer and completion review keep priority; download continues and its result remains available. |
