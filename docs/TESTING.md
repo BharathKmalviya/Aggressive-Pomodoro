@@ -32,6 +32,8 @@ The owner's request to prevent recurrence added `stalledFirstConnectionDoesNotDe
 
 Local Kotlin build and all **139 tests** (40 shared, 99 desktop; zero failures or skips) passed. This strengthens test coverage for the existing v0.3.5 transport; it does not change production behavior or require another installer. Windows CI and every new-version release already require the normal test suite and a full download/checksum verification through the packaged updater. All-address outages and GitHub/server failures can still fail a request; bounded timeouts, cancellation and the existing retry/error flow remain the recovery path. Earlier pending native acceptance scenarios are unchanged.
 
+[Windows CI 37970343418](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/37970343418) passed for safeguard commit `17ebe33ac4bfb71ae41a1dba04e6aaec73ec5e09`: all 139 tests, including the stalled-first-connection case, runtime packaging/smoke check and the complete packaged-updater download of v0.3.5 (103,027,608 bytes; SHA-256 `45c4d007b172a0bd6b6e6dd6d9b7764087df63e707ef3d829cdf853274434b96`). The unchanged-version release workflow succeeded with publication skipped, preserving the existing immutable release.
+
 | Scenario | Manual action | Expected result |
 | --- | --- | --- |
 | Startup and upgrade | Install v0.3.5, reopen, inspect About and saved work | Version is 0.3.5; timer, tasks, close choice, alarm choices and reports recover. No automatic network check. |
