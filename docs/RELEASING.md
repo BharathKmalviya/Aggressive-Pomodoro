@@ -27,6 +27,20 @@ The script uses the checked-in Kotlin Toolchain wrapper, runs build and tests, b
 
 CI and releases also run `./scripts/verify-update-download.ps1` after packaging. This network-only gate compiles `UpdateDownloadProbe.java` against the executable JAR's bundled libraries, checks GitHub and downloads/reverifies the latest published stable MSI through the production updater service. Its isolated files stay under `build/updater-verification`; it opens no app/installer and touches no user profile. The gate needs JDK 21 and reachable GitHub/CDN servers. It is not proof of native dialog, UAC or installed-runtime interaction.
 
+## v0.3.6 published verification
+
+Immutable stable [v0.3.6](https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases/tag/v0.3.6) was published at `2026-10-09T18:34:30Z` (2026-10-10 00:04:30 IST) from `0b29e913ad0f5b63088a1f52b1271c946bd351c1`. [Windows CI](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/37973272632) and [release attempt 2](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/37973272658/attempts/2) passed all 144 tests (40 shared, 104 desktop), bundled-runtime packaging, complete packaged-updater download/reverification, clean MSI install/launch, second-launch acknowledgement, baseline upgrade/data preservation, checksum and MIT License gates. Attempt 1 blocked publication on a runner's GitHub request limit; retrying the unchanged commit on a fresh runner passed the same full validation, without weakening any gate.
+
+Independent fresh API/latest/tag readback confirms the exact validated commit, immutable stable release and required automatic-discovery/direct-Exit notes. All three public assets were downloaded independently and checked against their API sizes/digests; the manifest identifies the exact MSI and the license matches the pinned MIT file.
+
+| Asset | Bytes | SHA-256 |
+| --- | ---: | --- |
+| AggressivePomodoro-0.3.6.msi | 103,035,800 | `d843af297446f3c2e5087cdde431356ce8b79416b64539058fe3e6af2442bb95` |
+| SHA256SUMS.txt | 96 | `d83b7fff1cac1270ffd2a7f9c503338e00f29c988e89325a6105da16feb1bdaf` |
+| LICENSE | 1,072 | `cc9829233de2b0ba9f107178cf4da58612848a70f07b2344eab1f1ec6df1f3fc` |
+
+Read-only Windows Installer inspection confirms ProductVersion `0.3.6`, ProductName `AggressivePomodoro` and unchanged UpgradeCode `{8B4BB341-127A-3A18-945B-B92F5C0CD1FD}`. Before publication, both Windows jobs' packaged updater downloaded/reverified every byte of public v0.3.5 with its matching checksum. No local native app/installer was run for this release preparation; the real installed profile was not changed. Automatic notice, direct tray Exit, priority/recovery/keyboard/scaling and earlier native acceptance remain open in TESTING.md. Install v0.3.6 once to receive automatic notices for future releases; older builds still use their existing manual check. The active OpenSpec change remains open.
+
 ## v0.3.6 release scope
 
 On 2026-10-09 the owner requested v0.3.6 publication with direct tray Exit and automatic visible update discovery alongside the recurrence safeguards. Include automatic startup/six-hour metadata checks, quiet 15-minute discovery retries and a main-window Update available/View Update banner; downloads and installation remain explicit. Include bounded transient launcher-write recovery, the stalled-first-connection regression and existing v0.3.5 download recovery. All 144 tests must pass. Publish only after the exact release commit passes automated Windows build/tests/runtime packaging, clean MSI installation/launch, second-launch acknowledgement, baseline upgrade/data preservation, full packaged download/reverification, checksum and MIT License gates. Independently read back the immutable tag/latest release and freshly verify all public asset hashes, MSI ProductVersion and pinned UpgradeCode. Keep snapshot format 3, release naming and the installed user's profile intact. This request authorizes publication with the earlier manual acceptance gaps still recorded; it does not mark them passed or archive the active OpenSpec change.

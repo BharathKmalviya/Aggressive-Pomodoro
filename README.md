@@ -2,9 +2,9 @@
 
 Aggressive Pomodoro is a Windows desktop focus timer built with Kotlin and Compose Multiplatform. Commit to one outcome, finish the block, and take the break. An assertive timer, a multi-pulse alarm, and persistent completion reminders keep phase changes hard to miss.
 
-**Downloads:** [v0.3.5 release](https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases/tag/v0.3.5) includes the Windows installer, checksum, and license. Windows is the only packaged target at present.
+**Downloads:** [v0.3.6 release](https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases/tag/v0.3.6) includes the Windows installer, checksum, and license. Windows is the only packaged target at present.
 
-Version 0.3.5 passed automated Windows build, all 138 tests, packaging, clean installation/launch, second-launch activation acknowledgement, upgrade preservation and a full download/reverification through the packaged updater code. The public MSI/checksum/license assets were independently downloaded and verified. Manual launcher focus, audio, saved close choices, tray/notification, keyboard/scaling, sleep and updater/UAC acceptance remains pending in [Testing](docs/TESTING.md).
+Version 0.3.6 adds automatic update discovery with a main-window notice and direct tray Exit. It passed automated Windows build, all 144 tests, packaging, clean installation/launch, second-launch activation acknowledgement, upgrade preservation and a full download/reverification through the packaged updater code. The public MSI/checksum/license assets were independently downloaded and verified. Install this version once to receive future update notices automatically. Native notice/tray/launcher focus, audio, saved close choices, keyboard/scaling, sleep and updater/UAC acceptance remains pending in [Testing](docs/TESTING.md).
 
 ## Screenshots
 
