@@ -26,6 +26,12 @@ Separately ran the existing network-only updater probe against libraries extract
 
 The owner supplied v0.3.3 screenshots showing v0.3.4 stuck at 0%, then a generic connection failure. Network-only diagnostics reproduced a timeout to the first release-assets address while the other resolved addresses connected. These observations establish the failure, not a native acceptance pass for the fix. Use v0.3.5; install its MSI manually once if the old updater cannot download it, after explicitly choosing Exit and backing up the profile.
 
+### Future-release regression guard — 2026-10-09
+
+The owner's request to prevent recurrence added `stalledFirstConnectionDoesNotDelayWorkingAddress` to the existing transport regressions. An injected socket factory holds the first TCP connection attempt open while the alternate address serves a real loopback HTTP response. The request must complete within a bounded three-second wait while the first attempt remains blocked; cleanup releases that simulated attempt. This catches loss of concurrent address fallback, which the existing immediately refused-address regression alone would not detect. No machine DNS, routing, firewall or installed-app settings are changed.
+
+Local Kotlin build and all **139 tests** (40 shared, 99 desktop; zero failures or skips) passed. This strengthens test coverage for the existing v0.3.5 transport; it does not change production behavior or require another installer. Windows CI and every new-version release already require the normal test suite and a full download/checksum verification through the packaged updater. All-address outages and GitHub/server failures can still fail a request; bounded timeouts, cancellation and the existing retry/error flow remain the recovery path. Earlier pending native acceptance scenarios are unchanged.
+
 | Scenario | Manual action | Expected result |
 | --- | --- | --- |
 | Startup and upgrade | Install v0.3.5, reopen, inspect About and saved work | Version is 0.3.5; timer, tasks, close choice, alarm choices and reports recover. No automatic network check. |

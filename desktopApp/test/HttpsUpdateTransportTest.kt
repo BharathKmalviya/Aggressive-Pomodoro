@@ -2,9 +2,12 @@ package com.pomodoro.platform
 
 import java.io.IOException
 import java.net.InetAddress
+import java.net.InetSocketAddress
 import java.net.Proxy
 import java.net.ServerSocket
 import java.net.Socket
+import java.net.SocketAddress
+import java.net.SocketTimeoutException
 import java.net.URI
 import java.net.UnknownHostException
 import java.util.concurrent.CountDownLatch
@@ -14,6 +17,7 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import javax.net.ssl.SSLHandshakeException
+import javax.net.SocketFactory
 import okhttp3.Dns
 import okhttp3.EventListener
 import okhttp3.Call
@@ -76,6 +80,61 @@ class HttpsUpdateTransportTest {
                 assertEquals("OK", it.body.readBytes().decodeToString())
             }
             assertTrue(failed.get(), "The first route must fail before the reachable route succeeds")
+        }
+    }
+
+    @Test fun stalledFirstConnectionDoesNotDelayWorkingAddress() {
+        val stalledAddress = InetAddress.getByName("127.0.0.2")
+        val firstStarted = CountDownLatch(1)
+        val releaseFirst = CountDownLatch(1)
+        val firstFinished = CountDownLatch(1)
+        val delegate = SocketFactory.getDefault()
+        val sockets = object : SocketFactory() {
+            override fun createSocket(): Socket = object : Socket() {
+                override fun connect(endpoint: SocketAddress, timeout: Int) {
+                    if ((endpoint as InetSocketAddress).address != stalledAddress) {
+                        super.connect(endpoint, timeout)
+                        return
+                    }
+                    firstStarted.countDown()
+                    try {
+                        // Model a blackholed TCP attempt without changing host networking.
+                        releaseFirst.await(10, TimeUnit.SECONDS)
+                        throw SocketTimeoutException("Simulated unreachable first address")
+                    } finally { firstFinished.countDown() }
+                }
+            }
+            override fun createSocket(host: String, port: Int): Socket = delegate.createSocket(host, port)
+            override fun createSocket(host: String, port: Int, local: InetAddress, localPort: Int): Socket =
+                delegate.createSocket(host, port, local, localPort)
+            override fun createSocket(host: InetAddress, port: Int): Socket = delegate.createSocket(host, port)
+            override fun createSocket(host: InetAddress, port: Int, local: InetAddress, localPort: Int): Socket =
+                delegate.createSocket(host, port, local, localPort)
+        }
+        val executor = Executors.newSingleThreadExecutor()
+        try {
+            withServer({ socket ->
+                readRequest(socket)
+                socket.getOutputStream().write("HTTP/1.1 200 OK\r\nContent-Length: 2\r\nConnection: close\r\n\r\nOK".toByteArray())
+            }) { uri ->
+                val http = client().dns(Dns { listOf(stalledAddress, loopback) }).socketFactory(sockets).build()
+                val result = executor.submit<String> {
+                    HttpsUpdateTransport(http).open(uri).use { it.body.readBytes().decodeToString() }
+                }
+                try {
+                    assertTrue(firstStarted.await(3, TimeUnit.SECONDS), "The first connection must be attempted")
+                    assertEquals("OK", result.get(3, TimeUnit.SECONDS))
+                    assertEquals(1L, firstFinished.count, "A working address must finish while the first remains blocked")
+                } finally {
+                    releaseFirst.countDown()
+                    result.cancel(true)
+                }
+            }
+        } finally {
+            releaseFirst.countDown()
+            executor.shutdownNow()
+            executor.awaitTermination(5, TimeUnit.SECONDS)
+            assertTrue(firstFinished.await(5, TimeUnit.SECONDS), "The simulated connection must be released")
         }
     }
 

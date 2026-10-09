@@ -64,6 +64,8 @@ Use Windows with JDK 21 available on `PATH`. The checked-in Kotlin Toolchain wra
 .\kotlin.bat run -m desktopApp
 ```
 
+Updater regressions cover both a refused first address and a connection that remains stalled while another address succeeds. Windows CI and new-version releases require these tests plus a full download and checksum verification through the packaged updater, helping prevent the v0.3.3 connection failure from returning. See [Testing](docs/TESTING.md#future-release-regression-guard--2026-10-09) for evidence and remaining native checks.
+
 ## Build a Windows package
 
 The packaging script runs the build and tests, creates an app image with a bundled Java runtime, and checks that its process launches:
