@@ -2,6 +2,7 @@ package com.pomodoro.presentation
 
 import com.pomodoro.domain.AppRelease
 import com.pomodoro.domain.UpdateCheckResult
+import com.pomodoro.domain.UpdateDownloadStage
 import com.pomodoro.platform.UpdateService
 import java.io.IOException
 import java.nio.file.Path
@@ -86,6 +87,7 @@ class DesktopUpdateControllerTest {
         assertEquals(0, service.downloaded)
         controller.download()!!.join()
         assertEquals(UpdateStatus.READY, controller.state.status)
+        assertNull(controller.state.downloadStage)
         assertEquals(service.notes, controller.state.releaseNotes)
         assertFalse(installed)
         controller.install { path, candidate ->
@@ -126,6 +128,7 @@ class DesktopUpdateControllerTest {
             proceed.countDown()
             download.join()
             assertEquals(UpdateStatus.AVAILABLE, controller.state.status)
+            assertNull(controller.state.downloadStage)
             assertEquals(service.notes, controller.state.releaseNotes)
             shouldBlock = false
             controller.download()!!.join()
@@ -177,6 +180,7 @@ class DesktopUpdateControllerTest {
         controller.check()!!.join()
         controller.download()!!.join()
         assertEquals(UpdateStatus.ERROR, controller.state.status)
+        assertNull(controller.state.downloadStage)
         assertEquals(service.notes, controller.state.releaseNotes)
         failDownload = false
         controller.download()!!.join()
@@ -188,5 +192,37 @@ class DesktopUpdateControllerTest {
         assertNull(controller.state.releaseNotes)
         checking.join()
         assertEquals(service.notes, controller.state.releaseNotes)
+    }
+
+    @Test fun connectionStageIsVisibleWhileBlockedAndLateCallbacksCannotReplaceReady() = runBlocking {
+        val entered = CountDownLatch(1)
+        val proceed = CountDownLatch(1)
+        val service = object : FakeService() {
+            override fun download(release: AppRelease, targetDirectory: Path,
+                onProgress: (Long, Long) -> Unit, isCancelled: () -> Boolean,
+                onStage: (UpdateDownloadStage) -> Unit): Path {
+                onStage(UpdateDownloadStage.CONNECTING)
+                entered.countDown()
+                check(proceed.await(5, TimeUnit.SECONDS))
+                onStage(UpdateDownloadStage.VERIFYING)
+                return super.download(release, targetDirectory, onProgress, isCancelled)
+            }
+        }
+        val controller = DesktopUpdateController("0.2.0", Path.of("updates"), service, this, windows = true)
+        controller.check()!!.join()
+        val downloading = controller.download()!!
+        assertEquals(UpdateDownloadStage.FETCHING_CHECKSUM, controller.state.downloadStage)
+        try {
+            kotlinx.coroutines.yield()
+            assertTrue(entered.await(3, TimeUnit.SECONDS))
+            kotlinx.coroutines.yield()
+            assertEquals(UpdateDownloadStage.CONNECTING, controller.state.downloadStage)
+            assertEquals(0L, controller.state.downloadedBytes)
+            proceed.countDown()
+            downloading.join()
+            kotlinx.coroutines.yield()
+            assertEquals(UpdateStatus.READY, controller.state.status)
+            assertNull(controller.state.downloadStage)
+        } finally { proceed.countDown() }
     }
 }

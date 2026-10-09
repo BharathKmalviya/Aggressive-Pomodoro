@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 0.3.5
+
+- Fixed update downloads that stalled at 0% when GitHub's first download-server address was unreachable. The updater now tries alternate addresses with normal HTTPS verification.
+- Show checksum fetching, server connection, installer download and verification separately. Cancel interrupts blocked network requests; failed downloads offer **Download Again** as the primary action.
+- Keep exact installer size/checksum checks, trusted redirects, partial-file cleanup, release notes and explicit **Install & Exit**. Timer, tasks, settings and snapshot format 3 are preserved.
+- Added real socket fallback/cancellation regressions and a release gate that downloads and reverifies the published installer through the packaged updater code without opening the UI.
+- If v0.3.3 or v0.3.4 cannot download this fix, download the v0.3.5 MSI from this release once, explicitly Exit the app, and install it. Native updater/keyboard/UAC acceptance remains manual; the installer remains unsigned.
+
 ## 0.3.4
 
 - Opening the launcher or desktop/Start-menu shortcut again now brings the existing app forward instead of showing Already running. Hidden/minimized windows restore, startup requests are retained, and one timer owns the profile. Unresponsive or older running versions retain a bounded recovery fallback.

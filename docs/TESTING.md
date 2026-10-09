@@ -1,5 +1,23 @@
 # Windows acceptance checks
 
+## Updater connection correction checks — 2026-10-09
+
+The owner supplied v0.3.3 screenshots showing v0.3.4 stuck at 0%, then a generic connection failure. Network-only diagnostics reproduced a timeout to the first release-assets address while the other resolved addresses connected. These observations establish the failure, not a native acceptance pass for the fix. Use v0.3.5; install its MSI manually once if the old updater cannot download it, after explicitly choosing Exit and backing up the profile.
+
+| Scenario | Manual action | Expected result |
+| --- | --- | --- |
+| Startup and upgrade | Install v0.3.5, reopen, inspect About and saved work | Version is 0.3.5; timer, tasks, close choice, alarm choices and reports recover. No automatic network check. |
+| Stages and progress | With an older disposable v0.3.5 source version, explicitly check and download a newer stable release | Checksum fetching and connecting show activity without a misleading 0%; transfer shows bytes/percent; verification appears before Ready. No install starts during download. A current-version check remains Up to date. |
+| Cancel while connecting or stalled | On a controlled disconnected/slow network, press Cancel during checksum/connection/body wait | Cancelling completes promptly, partial files disappear, Download Update is available again and notes remain. No overlapping requests or frozen timer. Restore the network before retrying. |
+| Failure and retry | Let a controlled timeout/offline download fail, reconnect, press Download Again | Error identifies the connection problem; primary button retries the checked release, secondary checks for a newer version; success clears the old error. |
+| Hidden dialog and completion | Close the dialog during download, let a phase finish, reopen the update from About/tray | Timer and completion review keep priority; download continues and its result remains available. |
+| Keyboard and scaling | Tab/Enter/Escape through download/error/notes at 100%, 150% and 200% display scaling | All actions are reachable and labels remain readable; dismissing does not install or cancel the download. |
+| Install and recovery | In a backed-up disposable profile confirm Install & Exit; separately cancel confirmation or exercise a save/launch failure | Confirmation cancellation keeps focusing. Success verifies, saves, backs up and opens interactive MSI/UAC, then exits. Failure leaves the app and saved work usable. |
+
+These native checks remain pending. Network-only packaged download/reverification and socket/controller regressions are separate automated evidence; no native app or installer is launched on the development machine.
+
+Local verification (2026-10-09): build, all 138 tests (40 shared, 98 desktop; zero failures/errors/skips), executable JAR packaging, strict OpenSpec, workflow actionlint and PowerShell parsing passed. Seven new tests cover real alternate-route success, blocked headers/body cancellation, manual redirects, sanitized errors, ordered service stages and guarded controller callbacks. The packaged production updater downloaded and reverified the complete v0.3.4 MSI twice on the affected network (101,704,600 bytes; SHA-256 `2fd09c445b3bef0261e235287d7aa6ceebe414c991daf3c2cedb367cd76d0fcd`); the final probe also checked bundled Apache dependency notices. This verifies the corrected transport route on this machine, not the native updater/UAC flow.
+
 ## v0.3.4 published verification — 2026-10-09
 
 [Windows CI](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/37940027472) and the [release workflow](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/37940027327) passed for `ebd50725c0b52d085d5fdf46842ab647be92e54d`: all 131 tests (40 shared, 91 desktop; zero failures), runtime packaging, clean MSI installation/launch and baseline upgrade/data preservation. The installed app acknowledged a second launcher and stayed alive while that new process exited successfully. Fresh API/latest/tag readback confirmed immutable stable v0.3.4; independent asset downloads passed digests, MSI checksum and MIT License. Read-only MSI metadata confirms version 0.3.4 and the pinned UpgradeCode. Hashes and exact evidence are in [Releasing](RELEASING.md#v034-published-verification).

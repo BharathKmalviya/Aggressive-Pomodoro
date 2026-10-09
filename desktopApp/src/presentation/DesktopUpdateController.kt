@@ -4,6 +4,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.pomodoro.domain.AppRelease
+import com.pomodoro.domain.UpdateDownloadStage
 import com.pomodoro.platform.UpdateService
 import java.nio.file.Path
 import java.util.concurrent.CancellationException
@@ -65,7 +66,7 @@ class DesktopUpdateController(
         val token = AtomicBoolean(false).also { cancelled = it }
         installer = null
         state = state.copy(status = UpdateStatus.DOWNLOADING, downloadedBytes = 0,
-            totalBytes = latest.installerSize, message = null)
+            totalBytes = latest.installerSize, message = null, downloadStage = UpdateDownloadStage.FETCHING_CHECKSUM)
         return scope.launch {
             try {
                 var lastProgressNs = 0L
@@ -80,7 +81,13 @@ class DesktopUpdateController(
                                 }
                             }
                         }
-                    }, isCancelled = token::get)
+                    }, isCancelled = token::get, onStage = { stage ->
+                        scope.launch {
+                            if (operation == request && state.status == UpdateStatus.DOWNLOADING && !token.get()) {
+                                state = state.copy(downloadStage = stage)
+                            }
+                        }
+                    })
                 }
                 if (operation != request || token.get()) {
                     if (operation == request) cancelledState(latest)
@@ -88,7 +95,8 @@ class DesktopUpdateController(
                 }
                 installer = file
                 state = state.copy(status = UpdateStatus.READY,
-                    downloadedBytes = latest.installerSize, totalBytes = latest.installerSize, message = null)
+                    downloadedBytes = latest.installerSize, totalBytes = latest.installerSize,
+                    message = null, downloadStage = null)
             } catch (_: CancellationException) {
                 if (operation == request) cancelledState(latest)
             } catch (error: Exception) {
@@ -123,10 +131,11 @@ class DesktopUpdateController(
 
     private fun cancelledState(latest: AppRelease) {
         state = state.copy(status = UpdateStatus.AVAILABLE, downloadedBytes = 0,
-            totalBytes = latest.installerSize, message = "Download cancelled. Your current app is unchanged.")
+            totalBytes = latest.installerSize, message = "Download cancelled. Your current app is unchanged.", downloadStage = null)
     }
 
     private fun fail(error: Exception, fallback: String) {
-        state = state.copy(status = UpdateStatus.ERROR, message = error.message?.takeIf { it.isNotBlank() } ?: fallback)
+        state = state.copy(status = UpdateStatus.ERROR, downloadStage = null,
+            message = error.message?.takeIf { it.isNotBlank() } ?: fallback)
     }
 }

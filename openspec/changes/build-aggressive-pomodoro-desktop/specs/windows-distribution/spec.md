@@ -35,6 +35,20 @@ About SHALL show the installed version and a link to the public GitHub repositor
 ### Requirement: Verified download and deliberate installation
 The update flow SHALL show download progress, support cancellation and retry, validate the exact versioned MSI against its SHA-256 checksum, and reject unexpected download locations or malformed release metadata. Installation SHALL require explicit user confirmation. Before opening the interactive Windows installer, the app SHALL reverify the file, save and back up local state, and keep persistence usable if preparation or launch fails. Windows packages SHALL preserve the published product UpgradeCode.
 
+The download transport SHALL try alternate system-resolved server addresses when one connection fails, retain default HTTPS certificate/hostname verification and manual trusted redirects, and permit cancellation during connection or blocked body reads. The UI SHALL distinguish checksum fetch, connection, byte transfer and verification rather than implying a stalled transfer at 0%. Download errors SHALL provide actionable timeout/DNS/secure-connection feedback without signed URL details, and retry SHALL retain available release notes and metadata.
+
+#### Scenario: One release-server address is unreachable
+- **WHEN** the first system-resolved address cannot connect but another address is reachable
+- **THEN** the updater tries an alternate route and completes the same trusted, size-and-checksum-verified download
+
+#### Scenario: Cancel a blocked connection or read
+- **WHEN** the user cancels while connection setup or a response read is blocked
+- **THEN** the active request is cancelled, partial files are removed, no installer is authorized and a fresh retry is available
+
+#### Scenario: Download setup and verification feedback
+- **WHEN** the updater is fetching a checksum, connecting, transferring bytes or verifying the complete file
+- **THEN** the dialog identifies that stage; setup/verification uses an indeterminate indicator and byte progress represents actual transfer
+
 #### Scenario: Cancel or corrupt download
 - **WHEN** the user cancels a download or its size/hash is invalid
 - **THEN** partial data cannot be installed and the UI offers a retry

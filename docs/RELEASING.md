@@ -20,10 +20,16 @@ Install JDK 21 and WiX 3.14.1 build tools on Windows. Add `candle.exe` and `ligh
 ```powershell
 .\scripts\package-windows.ps1 -Msi
 Get-Content .\build\distribution\artifacts\SHA256SUMS.txt
-Get-FileHash .\build\distribution\artifacts\AggressivePomodoro-0.3.4.msi -Algorithm SHA256
+Get-FileHash .\build\distribution\artifacts\AggressivePomodoro-0.3.5.msi -Algorithm SHA256
 ```
 
-The script uses the checked-in Kotlin Toolchain wrapper, runs build and tests, builds the executable JAR, creates a runtime-bundled app image and MSI with `jpackage`, smoke-checks the app-image process, and writes a SHA-256 checksum for the exact MSI. It places the MIT License alongside the artifacts and passes it to the MSI packager. The versioned filename follows `desktopApp/resources/version.properties`; replace `0.3.4` in the example after a version change.
+The script uses the checked-in Kotlin Toolchain wrapper, runs build and tests, builds the executable JAR, creates a runtime-bundled app image and MSI with `jpackage`, smoke-checks the app-image process, and writes a SHA-256 checksum for the exact MSI. It places the MIT License alongside the artifacts and passes it to the MSI packager. The versioned filename follows `desktopApp/resources/version.properties`; replace `0.3.5` in the example after a version change.
+
+CI and releases also run `./scripts/verify-update-download.ps1` after packaging. This network-only gate compiles `UpdateDownloadProbe.java` against the executable JAR's bundled libraries, checks GitHub and downloads/reverifies the latest published stable MSI through the production updater service. Its isolated files stay under `build/updater-verification`; it opens no app/installer and touches no user profile. The gate needs JDK 21 and reachable GitHub/CDN servers. It is not proof of native dialog, UAC or installed-runtime interaction.
+
+## v0.3.5 updater correction scope
+
+This patch continues the owner's release request after the v0.3.3 updater stalled while downloading v0.3.4. Diagnostics reproduced Java's timeout on the first system-resolved release-assets address; three other addresses connected and curl downloaded successfully. Use system DNS with alternate-address fallback, cancellable blocking IO, explicit download stages and actionable retry/errors. Do not change machine DNS, pin GitHub IPs or relax TLS/redirect/checksum validation. Publish after the exact commit's mandatory automated Windows gates and the packaged updater network probe pass, then verify the immutable tag and all assets independently. The prior installed updater cannot download its own correction on an affected route: provide a one-time direct MSI upgrade, with explicit Exit before installation. Keep snapshot format 3, UpgradeCode and active OpenSpec unchanged. Native updater stage/cancel/retry, completion priority, keyboard/scaling and interactive Install & Exit/UAC acceptance remains pending in TESTING.md.
 
 ## v0.3.4 correction scope
 

@@ -6,6 +6,7 @@ dependencies:
   - $compose.material3
   - $libs.kotlinx.coroutines.core
   - $libs.kotlinx.serialization.json
+  - $libs.okhttp
 
 settings:
   compose: enabled

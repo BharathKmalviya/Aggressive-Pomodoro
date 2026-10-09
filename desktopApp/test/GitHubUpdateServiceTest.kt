@@ -1,6 +1,7 @@
 package com.pomodoro.platform
 
 import com.pomodoro.domain.AppRelease
+import com.pomodoro.domain.UpdateDownloadStage
 import java.io.ByteArrayInputStream
 import java.io.IOException
 import java.net.URI
@@ -19,6 +20,17 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class GitHubUpdateServiceTest {
+    @Test fun checksumConnectionTransferAndVerificationStagesAreOrdered() {
+        val stages = mutableListOf<UpdateDownloadStage>()
+        val candidate = release()
+        val directory = Files.createTempDirectory("update-stages-")
+        try {
+            val service = GitHubUpdateService(transport(candidate))
+            val path = service.download(candidate, directory, { _, _ -> }, { false }, stages::add)
+            assertEquals(UpdateDownloadStage.entries.toList(), stages)
+            service.verifyBeforeInstall(path, candidate)
+        } finally { directory.toFile().deleteRecursively() }
+    }
     private val repository = GitHubUpdateService.REPOSITORY_URL
     private val latest = GitHubUpdateService.LATEST_URL
     private val installerBytes = "A verified test installer payload".toByteArray()

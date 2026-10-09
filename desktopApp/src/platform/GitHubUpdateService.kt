@@ -2,6 +2,7 @@ package com.pomodoro.platform
 
 import com.pomodoro.domain.AppRelease
 import com.pomodoro.domain.UpdateCheckResult
+import com.pomodoro.domain.UpdateDownloadStage
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
@@ -18,7 +19,6 @@ import java.nio.file.StandardOpenOption
 import java.security.MessageDigest
 import java.util.concurrent.CancellationException
 import java.util.concurrent.ConcurrentHashMap
-import javax.net.ssl.HttpsURLConnection
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -31,6 +31,9 @@ interface UpdateService {
     fun check(currentVersion: String): UpdateCheckResult
     fun download(release: AppRelease, targetDirectory: Path,
         onProgress: (Long, Long) -> Unit, isCancelled: () -> Boolean): Path
+    fun download(release: AppRelease, targetDirectory: Path,
+        onProgress: (Long, Long) -> Unit, isCancelled: () -> Boolean,
+        onStage: (UpdateDownloadStage) -> Unit): Path = download(release, targetDirectory, onProgress, isCancelled)
     fun verifyBeforeInstall(path: Path, release: AppRelease)
 }
 
@@ -81,9 +84,15 @@ class GitHubUpdateService internal constructor(private val transport: UpdateTran
     }
 
     override fun download(release: AppRelease, targetDirectory: Path,
-        onProgress: (Long, Long) -> Unit, isCancelled: () -> Boolean): Path {
+        onProgress: (Long, Long) -> Unit, isCancelled: () -> Boolean): Path =
+        download(release, targetDirectory, onProgress, isCancelled, {})
+
+    override fun download(release: AppRelease, targetDirectory: Path,
+        onProgress: (Long, Long) -> Unit, isCancelled: () -> Boolean,
+        onStage: (UpdateDownloadStage) -> Unit): Path {
         validateRelease(release)
         checkCancelled(isCancelled)
+        onStage(UpdateDownloadStage.FETCHING_CHECKSUM)
         val sums = fetchSmall(URI(release.checksumUrl), MAX_CHECKSUM_BYTES, isCancelled)
         val expected = expectedHash(sums, release.installerName)
         checkCancelled(isCancelled)
@@ -98,11 +107,13 @@ class GitHubUpdateService internal constructor(private val transport: UpdateTran
             onProgress(0, release.installerSize)
             var lastProgressBytes = 0L
             var lastProgressAt = System.nanoTime()
+            onStage(UpdateDownloadStage.CONNECTING)
             val total = openResponse(URI(release.installerUrl), MAX_INSTALLER_BYTES, isCancelled).use { response ->
                 val declaredSize = response.contentLength
                 if (declaredSize != null && declaredSize != release.installerSize) {
                     throw IOException("The installer size differs from the published release.")
                 }
+                onStage(UpdateDownloadStage.DOWNLOADING)
                 Files.newOutputStream(partial, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE).use { output ->
                     copyBounded(response.body, output, release.installerSize, isCancelled,
                         onBytes = { bytes, count -> digest.update(bytes, 0, count) },
@@ -117,6 +128,7 @@ class GitHubUpdateService internal constructor(private val transport: UpdateTran
                         })
                 }
             }
+            onStage(UpdateDownloadStage.VERIFYING)
             if (total != release.installerSize) throw IOException("The installer download was incomplete. Download it again.")
             if (digest.digest().hex() != expected) throw IOException("Installer checksum verification failed. The file was discarded.")
             checkCancelled(isCancelled)
@@ -170,7 +182,7 @@ class GitHubUpdateService internal constructor(private val transport: UpdateTran
         var uri = initial
         repeat(6) { redirect ->
             checkCancelled(isCancelled)
-            val response = transport.open(uri)
+            val response = transport.open(uri, isCancelled)
             if (response.status in listOf(301, 302, 303, 307, 308)) {
                 val location = response.location
                 response.close()
@@ -282,6 +294,7 @@ class GitHubUpdateService internal constructor(private val transport: UpdateTran
 
 internal fun interface UpdateTransport {
     fun open(uri: URI): UpdateResponse
+    fun open(uri: URI, isCancelled: () -> Boolean): UpdateResponse = open(uri)
 }
 
 internal class UpdateResponse(
@@ -292,25 +305,4 @@ internal class UpdateResponse(
     private val disconnect: () -> Unit = {},
 ) : AutoCloseable {
     override fun close() { try { body.close() } finally { disconnect() } }
-}
-
-private class HttpsUpdateTransport : UpdateTransport {
-    override fun open(uri: URI): UpdateResponse {
-        val connection = uri.toURL().openConnection() as HttpsURLConnection
-        connection.connectTimeout = 15_000
-        connection.readTimeout = 20_000
-        connection.instanceFollowRedirects = false
-        connection.setRequestProperty("User-Agent", "AggressivePomodoro-UpdateChecker")
-        connection.setRequestProperty("Accept", if (uri.host == "api.github.com") "application/vnd.github+json" else "application/octet-stream")
-        connection.setRequestProperty("X-GitHub-Api-Version", "2026-03-10")
-        try {
-            val status = connection.responseCode
-            return UpdateResponse(status, if (status == 200) connection.inputStream else InputStream.nullInputStream(),
-                connection.getHeaderFieldLong("Content-Length", -1).takeIf { it >= 0 },
-                connection.getHeaderField("Location"), connection::disconnect)
-        } catch (error: Exception) {
-            connection.disconnect()
-            throw IOException("Could not reach GitHub. Check your connection and try again.", error)
-        }
-    }
 }

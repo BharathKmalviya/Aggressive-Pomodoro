@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pomodoro.domain.UpdateDownloadStage
 
 @Composable
 internal fun UpdateDialog(
@@ -35,6 +36,7 @@ internal fun UpdateDialog(
     var confirmInstall by remember(state.status, state.latestVersion) { mutableStateOf(false) }
     var notesExpanded by remember(state.latestVersion, state.releaseNotes) { mutableStateOf(false) }
     val working = state.status in setOf(UpdateStatus.CHECKING, UpdateStatus.DOWNLOADING, UpdateStatus.INSTALLING)
+    val canRetryDownload = state.status == UpdateStatus.ERROR && state.totalBytes > 0
     val title = when (state.status) {
         UpdateStatus.IDLE -> "APP UPDATES"
         UpdateStatus.CHECKING -> "CHECKING FOR UPDATES"
@@ -89,7 +91,13 @@ internal fun UpdateDialog(
                         UpdateStatus.CHECKING, UpdateStatus.INSTALLING -> LinearProgressIndicator(
                             modifier = Modifier.fillMaxWidth(), color = UiColor.focus)
                         UpdateStatus.DOWNLOADING -> {
-                            if (state.totalBytes > 0) {
+                            Text(when (state.downloadStage) {
+                                UpdateDownloadStage.FETCHING_CHECKSUM -> "Fetching the release checksum…"
+                                UpdateDownloadStage.CONNECTING -> "Connecting to the download server…"
+                                UpdateDownloadStage.VERIFYING -> "Verifying the downloaded installer…"
+                                else -> if (state.downloadedBytes == 0L) "Waiting for installer data…" else "Downloading the installer…"
+                            }, fontWeight = FontWeight.SemiBold)
+                            if (state.downloadStage == UpdateDownloadStage.DOWNLOADING && state.totalBytes > 0 && state.downloadedBytes > 0) {
                                 val progress = (state.downloadedBytes.toDouble() / state.totalBytes).coerceIn(0.0, 1.0).toFloat()
                                 LinearProgressIndicator(progress = { progress }, modifier = Modifier.fillMaxWidth(),
                                     color = UiColor.focus)
@@ -97,7 +105,6 @@ internal fun UpdateDialog(
                                     color = UiColor.muted, fontSize = 12.sp)
                             } else {
                                 LinearProgressIndicator(modifier = Modifier.fillMaxWidth(), color = UiColor.focus)
-                                Text("${sizeText(state.downloadedBytes)} downloaded", color = UiColor.muted, fontSize = 12.sp)
                             }
                         }
                         else -> Unit
@@ -108,8 +115,8 @@ internal fun UpdateDialog(
                     if (state.status == UpdateStatus.DOWNLOADING) {
                         TextButton(onClick = onCancel) { Text("CANCEL DOWNLOAD") }
                     }
-                    if (state.status == UpdateStatus.ERROR && state.totalBytes > 0) {
-                        TextButton(onClick = onDownload) { Text("DOWNLOAD AGAIN", fontWeight = FontWeight.Bold) }
+                    if (canRetryDownload) {
+                        TextButton(onClick = onCheck) { Text("CHECK FOR A NEWER VERSION") }
                     }
                     if (state.releaseNotes != null) {
                         TextButton(onClick = { notesExpanded = !notesExpanded }) {
@@ -129,13 +136,14 @@ internal fun UpdateDialog(
                     val action = when (state.status) {
                         UpdateStatus.AVAILABLE -> "DOWNLOAD UPDATE"
                         UpdateStatus.READY -> "INSTALL & EXIT"
-                        UpdateStatus.ERROR -> "CHECK AGAIN"
+                        UpdateStatus.ERROR -> if (canRetryDownload) "DOWNLOAD AGAIN" else "CHECK AGAIN"
                         else -> "CHECK FOR UPDATES"
                     }
                     Button(shape = MaterialTheme.shapes.small, onClick = {
                         when (state.status) {
                             UpdateStatus.AVAILABLE -> onDownload()
                             UpdateStatus.READY -> confirmInstall = true
+                            UpdateStatus.ERROR -> if (canRetryDownload) onDownload() else onCheck()
                             else -> onCheck()
                         }
                     }) { Text(action, fontWeight = FontWeight.Bold) }

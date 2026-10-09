@@ -1,5 +1,7 @@
 package com.pomodoro.domain
 
+enum class UpdateDownloadStage { FETCHING_CHECKSUM, CONNECTING, DOWNLOADING, VERIFYING }
+
 /** Latest stable metadata remains readable even when no newer installer is offered. */
 data class UpdateCheckResult(
     val latestVersion: String,

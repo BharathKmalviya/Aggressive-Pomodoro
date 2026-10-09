@@ -22,3 +22,6 @@ jobs:
       - name: Build, test, and smoke-check bundled runtime
         shell: pwsh
         run: ./scripts/package-windows.ps1
+      - name: Verify packaged updater download without launching UI
+        shell: pwsh
+        run: ./scripts/verify-update-download.ps1

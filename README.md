@@ -41,6 +41,7 @@ A manual check against GitHub confirms the installed release is current:
 - Supplied alarm cues play for up to eight seconds per attempt, including reminders, and work offline. The original phase alarms remain the default. Source-input provenance and optional regeneration commands are in [sounds/README.md](sounds/README.md); normal builds need no audio conversion tools.
 - Short phase-color transitions, status/instruction entrances, smooth elapsed progress, and a single final-minute emphasis. Countdown numbers and control positions stay immediate; **Settings → Reduce motion** disables custom motion and is saved across restarts.
 - **About → Check for updates** finds newer stable Windows releases. Download with progress/cancel, then confirm **Install & Exit** to verify the installer, save and back up your session, and open Windows Installer. About also links directly to the GitHub repository.
+- Version 0.3.5 fixes downloads stuck at 0% when one GitHub download-server address is unreachable. Connection/checksum/transfer/verification have distinct feedback, blocked requests can be cancelled, and **Download Again** retries a failed transfer. If an older updater cannot download the fix, obtain the MSI from the release page once, explicitly **Exit** the app and install it manually; your saved work is preserved. See [updater acceptance checks](docs/TESTING.md#updater-connection-correction-checks--2026-10-09).
 - After checking, **View release notes** shows the latest stable release's notes inside the update dialog, even when you're up to date. Notes are selectable and scrollable; viewing them does not open GitHub. Added in v0.3.1.
 
 By default, the window's **Close** button (or Alt+F4) offers **Run in background**, **Exit**, and **Cancel**, in every timer state. Background mode keeps the timer, alarms, and saving active; reopen using the launcher or the tray icon's **Open Aggressive Pomodoro** action. Its **Exit...** action brings back the same choice. If the tray is unavailable, **Minimize** keeps the app reachable from the taskbar. A background completion attempts a tray notification and retains its alert for when you reopen.
@@ -114,3 +115,5 @@ Update checks and downloads contact GitHub only when you request them. They do n
 Aggressive Pomodoro is open source under the [MIT License](LICENSE). Copyright (c) 2026 Bharath Malviya. The license permits use, modification, and distribution, including commercial use, provided its notice is retained.
 
 Third-party sound recordings retain their applicable licenses; see the bundled [sound credits](desktopApp/resources/sounds/README.md).
+
+The updater's OkHttp/Okio libraries retain their Apache 2.0 license and [attribution](desktopApp/resources/licenses/NOTICE.txt), bundled in the app.

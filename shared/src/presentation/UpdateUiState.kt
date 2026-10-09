@@ -1,5 +1,7 @@
 package com.pomodoro.presentation
 
+import com.pomodoro.domain.UpdateDownloadStage
+
 enum class UpdateStatus { IDLE, CHECKING, UP_TO_DATE, AVAILABLE, DOWNLOADING, READY, INSTALLING, ERROR }
 
 data class UpdateUiState(
@@ -9,4 +11,5 @@ data class UpdateUiState(
     val totalBytes: Long = 0,
     val message: String? = null,
     val releaseNotes: String? = null,
+    val downloadStage: UpdateDownloadStage? = null,
 )

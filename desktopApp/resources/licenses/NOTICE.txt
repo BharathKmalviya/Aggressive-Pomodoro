@@ -1,0 +1,17 @@
+Aggressive Pomodoro updater dependencies
+
+OkHttp 5.5.0 (com.squareup.okhttp3:okhttp-jvm)
+Copyright 2019 Square, Inc.
+https://github.com/lysine-dev/okhttp/tree/parent-5.5.0
+
+Okio 3.18.1 (com.squareup.okio:okio-jvm), included by OkHttp
+Copyright 2013 Square, Inc.
+https://github.com/lysine-dev/okio/tree/parent-3.18.1
+
+Both libraries are licensed under the Apache License, Version 2.0.
+The unmodified license is bundled alongside this notice as Apache-2.0.txt.
+Sources for the license copies:
+https://raw.githubusercontent.com/lysine-dev/okhttp/parent-5.5.0/LICENSE.txt
+https://raw.githubusercontent.com/lysine-dev/okio/parent-3.18.1/LICENSE.txt
+
+The application code retains its separate MIT License.
