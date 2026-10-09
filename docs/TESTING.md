@@ -6,6 +6,14 @@
 
 ## Updater connection correction checks — 2026-10-09
 
+### Native local follow-up — 23:03–23:10 IST
+
+The owner explicitly requested running locally and debugging the continuing issue. Read-only inspection found the installed `C:\Program Files\AggressivePomodoro` configuration and bundled version resource still at **0.3.3**, without an OkHttp dependency. Installed JAR SHA-256: `4758fe4db386f9a9468e8ca851c892883d684e8e840391df026b10467648a877`. The published correction had not replaced this installed copy.
+
+Launched the packaged v0.3.5 libraries with an isolated `APPDATA` profile and a front-of-classpath version resource reporting 0.3.3 solely to offer the real v0.3.5 download. No repository version/source or installed files were changed. Through the actual Windows UI, About found v0.3.5, checksum-fetch feedback appeared, installer transfer showed live bytes/22% progress, Cancel promptly returned to Available, and retry reached **Ready to install**. Closing the result and reopening through About → View update retained Ready. The downloaded MSI is 103,027,608 bytes with SHA-256 `45c4d007b172a0bd6b6e6dd6d9b7764087df63e707ef3d829cdf853274434b96`, matching the independently verified public artifact; no partial installer remained. Debug stderr was empty. Computer Use selected only the isolated JVM window for these interactions.
+
+This proves the correction's native check/download/cancel/retry/result path on this machine. It does not prove cancellation on a disconnected route, completion-alert priority, other scaling/keyboard cases or interactive installation/UAC. Those checks, the installed-copy upgrade and section 24.5 remain pending. Earlier statements about no local native launch describe pre-publication verification, before this newly authorized follow-up. The real running profile was not modified or stopped during diagnosis.
+
 The owner supplied v0.3.3 screenshots showing v0.3.4 stuck at 0%, then a generic connection failure. Network-only diagnostics reproduced a timeout to the first release-assets address while the other resolved addresses connected. These observations establish the failure, not a native acceptance pass for the fix. Use v0.3.5; install its MSI manually once if the old updater cannot download it, after explicitly choosing Exit and backing up the profile.
 
 | Scenario | Manual action | Expected result |
