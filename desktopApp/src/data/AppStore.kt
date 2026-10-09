@@ -1,6 +1,7 @@
 package com.pomodoro.data
 
 import com.pomodoro.domain.Completion
+import com.pomodoro.domain.AlarmSound
 import com.pomodoro.domain.FocusDay
 import com.pomodoro.domain.FocusHistory
 import com.pomodoro.domain.FocusTask
@@ -35,6 +36,8 @@ class AppStore(private val file: Path) : SnapshotStore {
                 clickSoundEnabled = if (version == "1") true else values.boolean("clickSoundEnabled"),
                 aggressiveAlertsEnabled = if (version == "3") values.boolean("aggressiveAlertsEnabled") else true,
                 reduceMotion = if (values.containsKey("reduceMotion")) values.boolean("reduceMotion") else false,
+                focusAlarm = AlarmSound.fromId(values.getProperty("focusAlarm")),
+                breakAlarm = AlarmSound.fromId(values.getProperty("breakAlarm")),
             )
             require(settings.isValid())
             val phase = enumValueOf<Phase>(values.required("phase"))
@@ -101,6 +104,8 @@ class AppStore(private val file: Path) : SnapshotStore {
             setProperty("clickSoundEnabled", state.settings.clickSoundEnabled.toString())
             setProperty("aggressiveAlertsEnabled", state.settings.aggressiveAlertsEnabled.toString())
             setProperty("reduceMotion", state.settings.reduceMotion.toString())
+            setProperty("focusAlarm", state.settings.focusAlarm.id)
+            setProperty("breakAlarm", state.settings.breakAlarm.id)
             setProperty("taskIds", snapshot.board.tasks.joinToString(",") { it.id.toString() })
             setProperty("selectedTaskId", snapshot.board.selectedId?.toString() ?: "")
             setProperty("nextTaskId", snapshot.board.nextId.toString())

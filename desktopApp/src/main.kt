@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.dp
 import com.pomodoro.data.AppStore
 import com.pomodoro.domain.SessionCommand
 import com.pomodoro.domain.Phase
+import com.pomodoro.domain.AlarmSound
 import com.pomodoro.platform.DesktopAlert
 import com.pomodoro.platform.DesktopTray
 import com.pomodoro.platform.AppVersion
@@ -130,12 +131,13 @@ fun main() {
                 SwingUtilities.invokeLater { audioWarning = warning }
             }) }
             activeAlert = alert
-            fun playAlarm(phase: Phase, preview: Boolean = false) {
+            fun playAlarm(phase: Phase, selection: AlarmSound = controller?.state?.settings?.alarmFor(phase)
+                ?: saved.session.settings.alarmFor(phase), preview: Boolean = false) {
                 previewing = preview
                 completionPlayback?.cancel()
                 completionPlayback = scope.launch(Dispatchers.IO) {
                     ensureActive()
-                    alert.playCompletion(phase) { isActive }
+                    alert.playCompletion(phase, selection) { isActive }
                 }
             }
             fun stopAlarm() {
@@ -231,13 +233,15 @@ fun main() {
                         }
                     }
                 },
-                onPreviewAlarm = { phase -> if (!closing) playAlarm(phase, preview = true) },
+                onPreviewAlarm = { phase, selection -> if (!closing) playAlarm(phase, selection, preview = true) },
                 onStopPreview = ::stopPreview,
                 onSessionCommand = { command ->
                     if (!closing) {
                         if (command == SessionCommand.Acknowledge || command is SessionCommand.AcknowledgeCompletion ||
                             command is SessionCommand.ChangeSettings &&
-                            (!command.settings.soundEnabled || !command.settings.aggressiveAlertsEnabled)) stopAlarm()
+                            (!command.settings.soundEnabled || !command.settings.aggressiveAlertsEnabled ||
+                                command.settings.focusAlarm != session.state.settings.focusAlarm ||
+                                command.settings.breakAlarm != session.state.settings.breakAlarm)) stopAlarm()
                         session.dispatchSession(command)
                         if (!session.state.settings.clickSoundEnabled) stopClick() else playClick()
                     }

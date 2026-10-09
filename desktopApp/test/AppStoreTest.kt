@@ -9,6 +9,7 @@ import com.pomodoro.domain.ProductEngine
 import com.pomodoro.domain.TaskCommand
 import com.pomodoro.domain.TimeMark
 import com.pomodoro.domain.TimerSettings
+import com.pomodoro.domain.AlarmSound
 import com.pomodoro.domain.newSession
 import java.nio.file.Files
 import java.nio.file.Path
@@ -18,6 +19,31 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class AppStoreTest {
+    @Test fun alarmChoicesRoundTripAndUnknownIdsPreserveOtherData() = withStore { store, file ->
+        var snapshot = ProductState(session = newSession(TimerSettings(focusMinutes = 1,
+            focusAlarm = AlarmSound.FUNNY, breakAlarm = AlarmSound.HAPPY_BELLS)))
+        snapshot = ProductEngine.reduce(snapshot, ProductCommand.Task(TaskCommand.Add("Retain me", 2)), TimeMark(0, 0), date)
+        snapshot = ProductEngine.reduce(snapshot, ProductCommand.Session(SessionCommand.Start), TimeMark(0, 0), date)
+        snapshot = ProductEngine.reduce(snapshot, ProductCommand.Session(SessionCommand.Pause), TimeMark(15_000, 15_000), date)
+        store.save(snapshot)
+        assertEquals(snapshot, store.load())
+        editProperties(file) { setProperty("focusAlarm", "removed-cue") }
+        val restored = store.load()
+        assertEquals(snapshot.copy(session = snapshot.session.copy(settings = snapshot.session.settings.copy(
+            focusAlarm = AlarmSound.ORIGINAL))), restored)
+        assertEquals(AlarmSound.HAPPY_BELLS, restored.session.settings.breakAlarm)
+        for (version in listOf("1", "2", "3")) {
+            store.save(snapshot)
+            editProperties(file) { setProperty("version", version); remove("focusAlarm"); remove("breakAlarm") }
+            val legacy = store.load()
+            assertEquals(AlarmSound.ORIGINAL, legacy.session.settings.focusAlarm)
+            assertEquals(AlarmSound.ORIGINAL, legacy.session.settings.breakAlarm)
+            assertEquals(snapshot.session.remainingMs, legacy.session.remainingMs)
+            assertEquals(null, legacy.session.message)
+            if (version != "1") assertEquals(snapshot.board, legacy.board)
+        }
+    }
+
     @Test fun firstRunAndPausedSessionRoundTrip() {
         val directory = Files.createTempDirectory("pomodoro-store-test")
         try {

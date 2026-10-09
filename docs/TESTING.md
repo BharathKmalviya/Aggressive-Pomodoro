@@ -43,6 +43,24 @@ Run the updated source with `.\kotlin.bat run -m desktopApp`. These changes are 
 
 Local verification (2026-10-09): final Kotlin build, all 106 existing automated regressions (39 shared, 67 desktop; zero failures/errors/skips), executable JAR packaging, strict OpenSpec and Git diff checks passed. The packaged JAR contains the new close dialog, desktop tray adapter and icon. Both workflows passed actionlint, and all seven release PowerShell blocks passed syntax parsing. These checks do not prove native window/tray/notification/keyboard behavior or execute the updated upgrade harness; the scenarios above remain pending. No installer/version publication is included.
 
+## Selectable alarm checks — 2026-10-09
+
+Run the updated source with `.\kotlin.bat run -m desktopApp`. The published v0.3.1 installer does not include selectable sounds. These native Windows scenarios remain pending; automated PCM/resource/routing/cancellation/storage checks do not prove audible quality.
+
+| Scenario | Steps | Expected result |
+| --- | --- | --- |
+| Nine sounds and original | Settings → Focus completion sound; select and TEST each of the nine cues, then Original; repeat the break selector | All choices are reachable and distinct. Each supplied preview lasts no more than eight seconds; Original preserves focus/break motifs. No timer/task/report changes. |
+| Unsaved preview / Cancel | Choose Funny for focus and Happy bells for break, preview, Cancel, reopen Settings | Previews use unsaved choices; playback stops on Cancel and saved choices remain unchanged. Selecting another cue stops a prior preview. |
+| Save and restart | Choose different focus/break sounds, Save Rules, reopen Settings, Exit and relaunch | Both choices remain selected, with timer progress, tasks, totals and other preferences preserved. |
+| All completion paths | Save distinct sounds, set one-minute durations, finish focus/short/long breaks; background to tray, leave events pending for a reminder, exit/reopen with one pending event | Playback uses the completed event's saved sound, including restored events and reminders; both break types use the break choice. No overlapping alarms or duplicate credit. |
+| Muted preview / acknowledgement | Mute completion sound, preview selected cue, then finish a phase; enable sound again and acknowledge while its cue plays | Preview works without enabling saved sound; muted completion stays silent; acknowledgement/mute stops playback and cancels late opens. |
+| Rapid previews / priority | Rapidly alternate previews, change choice, save/cancel; open Settings just before completion and preview | At most one cue plays. No stale sound after dismissal; completion preempts preview using saved choices, even if an unsaved selection differs. |
+| Keyboard / small window | At 560×620 and Windows 150%/200% scaling, Tab to selectors, Enter/Space, arrows through menu, Escape, preview and Save Rules | Current choice, all options and controls remain readable/reachable; dropdown and dialog dismiss appropriately and focus is visible. |
+| Old/unknown preference | In a disposable profile exit, back up snapshot, remove sound keys or set one to an unknown ID; relaunch | Only missing/unknown choice returns to Original. Other choice and valid timer/task/report state survive. |
+| Audio quality / failure | Listen to all cues at comfortable volume; disable output during preview, reconnect and preview again | Cues have no abrupt endpoints or clipping; output failure is visible and recovery clears it. Timer continues. |
+
+Local verification (2026-10-09): final build, all 111 tests (40 shared, 71 desktop; zero failures/errors/skips), executable JAR packaging, strict OpenSpec and diff checks passed. New checks cover requested/completed-phase routing, real resources, cache/fallback/recovery, decode cancellation, and tolerant persisted choices. A frame-alignment decode stall was corrected before final validation. Independent original/prepared hash, PCM, duration, peak and endpoint checks passed for all nine cues; packaged WAVs and credits match source. Native scenarios above are pending; no new installer is published.
+
 ## Saved rules and reset regression checks
 
 Saving durations refreshes unstarted blocks immediately. Running/paused blocks keep their progress until reset or completion; use Reset Block after saving all durations as 1 minute if a block is already active. Keep a backup of existing data before persistence experiments.

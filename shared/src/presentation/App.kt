@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pomodoro.domain.FocusHistory
 import com.pomodoro.domain.Phase
+import com.pomodoro.domain.AlarmSound
 import com.pomodoro.domain.ProductState
 import com.pomodoro.domain.SessionCommand
 import com.pomodoro.domain.SessionStatus
@@ -48,7 +49,7 @@ fun App(
     version: String,
     persistenceWarning: String?,
     audioWarning: String?,
-    onPreviewAlarm: (Phase) -> Unit,
+    onPreviewAlarm: (Phase, AlarmSound) -> Unit,
     onStopPreview: () -> Unit,
     updateState: UpdateUiState,
     onCheckUpdates: () -> Unit,
@@ -189,7 +190,7 @@ fun App(
         }
         if (!pending && !closeRequested && dialogsVisible && settingsOpen) {
             DisposableEffect(Unit) { onDispose { onStopPreview() } }
-            SettingsDialog(session.settings, audioWarning, onPreviewAlarm, onSave = {
+            SettingsDialog(session.settings, audioWarning, onPreviewAlarm, onStopPreview, onSave = {
                 onStopPreview()
                 onSessionCommand(SessionCommand.ChangeSettings(it)); settingsOpen = false
             }, onDismiss = { onStopPreview(); onUiClick(); settingsOpen = false })

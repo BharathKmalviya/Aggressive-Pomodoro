@@ -3,6 +3,7 @@ package com.pomodoro.platform
 import java.awt.Taskbar
 import java.awt.Window
 import com.pomodoro.domain.Phase
+import com.pomodoro.domain.AlarmSound
 import java.util.concurrent.ForkJoinPool
 import javax.sound.sampled.AudioFormat
 import javax.sound.sampled.AudioSystem
@@ -31,7 +32,8 @@ class DesktopAlert(
     }
 
     // Audio opening and playback calls belong on the desktop IO dispatcher.
-    fun playCompletion(phase: Phase = Phase.FOCUS, shouldPlay: () -> Boolean = { true }) = audio.playCompletion(phase, shouldPlay)
+    fun playCompletion(phase: Phase = Phase.FOCUS, selection: AlarmSound = AlarmSound.ORIGINAL,
+        shouldPlay: () -> Boolean = { true }) = audio.playCompletion(phase, selection, shouldPlay)
     fun playClick(shouldPlay: () -> Boolean = { true }) = audio.playClick(shouldPlay)
     fun stopCompletion() = audio.stopCompletion()
     fun stopClick() = audio.stopClick()
@@ -39,6 +41,22 @@ class DesktopAlert(
 }
 
 internal data class PcmSound(val bytes: ByteArray, val sampleRate: Int = 44_100)
+
+internal const val MAX_ALARM_BYTES = 44_100 * 8 * 2
+
+internal fun bundledAlarmSound(selection: AlarmSound): PcmSound {
+    require(selection != AlarmSound.ORIGINAL)
+    val resource = checkNotNull(DesktopAlert::class.java.getResource("/sounds/alarms/${selection.id}.wav"))
+    return AudioSystem.getAudioInputStream(resource).use { input ->
+        val format = input.format
+        require(format.sampleRate == 44_100f && format.sampleSizeInBits == 16 &&
+            format.channels == 1 && !format.isBigEndian && format.encoding == AudioFormat.Encoding.PCM_SIGNED)
+        // AudioInputStream reads whole frames; an odd final request can return zero forever.
+        val bytes = input.readNBytes(MAX_ALARM_BYTES + 2)
+        require(bytes.isNotEmpty() && bytes.size <= MAX_ALARM_BYTES && bytes.size % 2 == 0)
+        PcmSound(bytes)
+    }
+}
 
 /** Three chord pulses, with separate completion/return motifs and click-free amplitude ramps. */
 internal fun completionSound(phase: Phase = Phase.FOCUS): PcmSound {
@@ -113,6 +131,7 @@ internal class AlertAudio(
     private val openClip: (PcmSound) -> AudioClip = ::openJavaSoundClip,
     private val nanoTime: () -> Long = System::nanoTime,
     private val onPlaybackResult: (String?) -> Unit = {},
+    private val loadAlarm: (AlarmSound) -> PcmSound = ::bundledAlarmSound,
 ) : AutoCloseable {
     private class OwnedClip(private val delegate: AudioClip) : AudioClip {
         private var closed = false
@@ -136,11 +155,13 @@ internal class AlertAudio(
     private val focusAlarm by lazy { completionSound(Phase.FOCUS) }
     private val breakAlarm by lazy { completionSound(Phase.SHORT_BREAK) }
     private val button by lazy { runCatching(::bundledClickSound).getOrElse { clickSound() } }
+    private val alarmCache = mutableMapOf<AlarmSound, PcmSound>()
 
-    fun playCompletion(phase: Phase = Phase.FOCUS, shouldPlay: () -> Boolean = { true }) =
-        synchronized(playbackLock) { playCompletionSerial(phase, shouldPlay) }
+    fun playCompletion(phase: Phase = Phase.FOCUS, selection: AlarmSound = AlarmSound.ORIGINAL,
+        shouldPlay: () -> Boolean = { true }) =
+        synchronized(playbackLock) { playCompletionSerial(phase, selection, shouldPlay) }
 
-    private fun playCompletionSerial(phase: Phase, shouldPlay: () -> Boolean) {
+    private fun playCompletionSerial(phase: Phase, selection: AlarmSound, shouldPlay: () -> Boolean) {
         val generation: Long
         val previous: List<AudioClip?>
         synchronized(lock) {
@@ -155,7 +176,23 @@ internal class AlertAudio(
         previous.forEach(::release)
         var opened: AudioClip? = null
         try {
-            val clip = OwnedClip(openClip(if (phase == Phase.FOCUS) focusAlarm else breakAlarm))
+            var playbackWarning: String? = null
+            val original = { if (phase == Phase.FOCUS) focusAlarm else breakAlarm }
+            val sound = if (selection == AlarmSound.ORIGINAL) original() else try {
+                alarmCache.getOrPut(selection) { loadAlarm(selection) }
+            } catch (error: Exception) {
+                System.err.println("Selected alarm unavailable: ${error.message}")
+                playbackWarning = "Selected alarm is unavailable. Played the original phase alarm; choose another sound in Settings."
+                original()
+            }
+            // Mute/close may arrive while the resource is being decoded.
+            synchronized(lock) {
+                if (closed || generation != completionGeneration || !shouldPlay()) {
+                    if (generation == completionGeneration) completionRequested = false
+                    return
+                }
+            }
+            val clip = OwnedClip(openClip(sound))
             opened = clip
             val accepted = synchronized(lock) {
                 if (closed || generation != completionGeneration || !shouldPlay()) {
@@ -164,7 +201,7 @@ internal class AlertAudio(
                 } else {
                     completion = clip
                     clip.start { finishCompletion(generation, clip) }
-                    report(null)
+                    report(playbackWarning)
                     true
                 }
             }

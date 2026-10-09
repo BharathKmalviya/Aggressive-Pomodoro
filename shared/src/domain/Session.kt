@@ -15,6 +15,8 @@ data class TimerSettings(
     val clickSoundEnabled: Boolean = true,
     val aggressiveAlertsEnabled: Boolean = true,
     val reduceMotion: Boolean = false,
+    val focusAlarm: AlarmSound = AlarmSound.ORIGINAL,
+    val breakAlarm: AlarmSound = AlarmSound.ORIGINAL,
 ) {
     fun isValid(): Boolean = focusMinutes in 1..180 && shortBreakMinutes in 1..60 &&
         longBreakMinutes in 1..60 && longBreakEvery in 2..12
@@ -24,6 +26,8 @@ data class TimerSettings(
         Phase.SHORT_BREAK -> shortBreakMinutes.toLong() * 60_000
         Phase.LONG_BREAK -> longBreakMinutes.toLong() * 60_000
     }
+
+    fun alarmFor(phase: Phase): AlarmSound = if (phase == Phase.FOCUS) focusAlarm else breakAlarm
 }
 
 data class TimeMark(val monotonicMs: Long, val wallMs: Long)

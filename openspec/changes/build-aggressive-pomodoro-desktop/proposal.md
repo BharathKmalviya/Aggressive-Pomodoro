@@ -20,6 +20,7 @@ The repository began as a Compose desktop starter. A first Windows release needs
 - Add a user-triggered About update flow: check this repository's latest stable release, download the Windows installer with progress/cancel/retry, verify its checksum, save and back up local state, and open the installer only after explicit confirmation. Link the public GitHub repository from About.
 - Show the latest stable release notes inside the update dialog, including for current versions, with bounded selectable text and no browser navigation.
 - Ask on every window-close request whether to run in the background, exit, or cancel. Keep the timer and persistence alive in the notification area, provide Show/Exit tray actions, and minimize to the taskbar when the tray is unavailable.
+- Bundle the nine owner-supplied sounds as bounded offline alarm cues, with separate saved focus/break selections and previews of unsaved choices in Settings. Retain original phase alarms as defaults and recover from missing or unknown selections without losing user data.
 - Establish open-source project documentation: setup, architecture, manual verification, release process, contribution guidance, code of conduct, security reporting, and the MIT License.
 
 ## Capabilities

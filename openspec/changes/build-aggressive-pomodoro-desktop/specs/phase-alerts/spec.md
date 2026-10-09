@@ -6,6 +6,21 @@ Defines how phase completion gets the user's attention and how the next phase st
 
 ## ADDED Requirements
 
+### Requirement: Saved alarm selection and unsaved preview
+Settings SHALL offer the original phase alarm and all nine owner-supplied offline cues for separate focus-complete and break-complete choices. Both break types SHALL use the break choice. Preview SHALL play the current unsaved selection without changing saved settings or timer state, including when sound is muted. Save SHALL persist selections across restart; Cancel SHALL discard edits and stop preview. Missing/unknown stored choices SHALL fall back independently without losing other data. Immediate, restored and reminder playback SHALL select by completed event phase. Changing saved choices SHALL invalidate stale playback. Bundled cues SHALL be bounded to eight seconds, loaded off the UI thread and recover from decode failure with the original alarm and visible feedback.
+
+#### Scenario: Choose and preview before saving
+- **WHEN** the user selects a supplied focus or break cue and previews it before Save Rules
+- **THEN** that choice plays once, while saved selections and timer progress remain unchanged until Save Rules
+
+#### Scenario: Save and restart
+- **WHEN** separate focus and break cues are saved and the app restarts
+- **THEN** the same choices are selected and the completed event uses its phase's saved cue, including both break types and background reminders
+
+#### Scenario: Unknown selection or broken resource
+- **WHEN** a sound ID is missing/unknown or its bundled resource cannot be decoded
+- **THEN** the original phase alarm is used, valid timer/tasks/history are preserved, and resource failures display an explanation
+
 ### Requirement: Distinct offline sounds and bounded lifetime
 The app SHALL use bundled licensed button feedback and distinct focus-complete and break-complete sounds selected from the completed event. Settings SHALL preview both without changing timer or sound preferences. Preview SHALL stop when Settings closes or a completion takes priority. Mute, acknowledgement, disabled click feedback, and shutdown SHALL invalidate corresponding queued/opening playback. Stale callbacks SHALL NOT clear newer playback. Cleanup SHALL be idempotent and safe on audio callback threads.
 

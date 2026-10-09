@@ -85,6 +85,14 @@ Only explicit Exit freezes commands, waits for the final save, closes audio, rem
 
 ## Risks / Trade-offs
 
+### Selectable bundled alarms (2026-10-09)
+
+Represent sound choices as a fixed pure-domain catalog with stable storage IDs and user-friendly labels. Add separate focus-complete and break-complete settings; both break types share one selection. Keep original generated phase sounds as defaults for old/new profiles. Persist optional sound IDs in snapshot format 3; absent/unknown IDs fall back independently to the original alarm, preserving valid timer/tasks/history instead of triggering whole-snapshot recovery.
+
+Settings edits remain local until Save Rules. Each keyboard-accessible selector offers the original plus nine supplied cues and previews its current unsaved selection, even if completion sound is muted. Cancel/save/background/completion preemption stops preview through existing playback ownership. Actual immediate/restored/reminder alarms resolve the saved choice by completed phase, never the current successor. Selecting a new saved sound invalidates existing playback so a stale choice cannot finish opening later.
+
+Convert supplied MP3/WAV inputs to checked-in mono 44.1 kHz signed 16-bit PCM cues, capped at eight seconds with bounded gain and endpoint fades. Keep originals intact and local; record source names, hashes, attribution/license links, conversion parameters and reproduction command. The app bundles adapted cues and credits; it has no runtime codec, file-import flow or audio download. Decode/cache only selected cues on IO with a strict byte bound; missing/bad resources play the original alarm with visible feedback. Preserve serialized non-overlapping playback, ten-second reminders, mute, cancellation and click priority. Deterministic tests verify every resource, requested sound routing, fallback/cache/cancellation, snapshot migration and saved-setting acceptance; native sound quality and picker keyboard behavior remain manual.
+
 ### Sound and motion refinement (2026-10-01)
 
 Bundle Kenney Interface Sounds `click_003` converted from CC0 Ogg to mono 44.1 kHz 16-bit PCM WAV, with original license and source recorded. Load locally on IO with a generated fallback; no runtime download or codec dependency. Tune generated multi-pulse completion audio into an ascending focus-complete chord and a sharper return-to-focus break alarm. Preview each independently. Route the completed event's phase (including restored events and reminders), never infer sound from the current successor.

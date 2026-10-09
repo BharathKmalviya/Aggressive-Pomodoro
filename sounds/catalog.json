@@ -1,0 +1,99 @@
+{
+  "format": "mono 44100 Hz signed 16-bit PCM WAV",
+  "maximumSeconds": 8,
+  "peakLimit": 0.85,
+  "fadeInMs": 10,
+  "fadeOutMs": 50,
+  "sounds": [
+    {
+      "id": "funny",
+      "source": "3dabrar-funny-alarm-317531.mp3",
+      "creator": "3DAbrar",
+      "url": "https://pixabay.com/sound-effects/funny-alarm-317531/",
+      "license": "Pixabay Content License",
+      "sourceSha256": "be0bb21c2470b6383137ce286ea6621cd4d8fc9b61d0cd9915103be82d953a19",
+      "preparedSha256": "589c06f0e8272cc6546447ab642ec73736fd25d2d0e249026c48db36e161826b",
+      "preparedFrames": 352800
+    },
+    {
+      "id": "classic-clock",
+      "source": "freesound_community-alarm-clock-90867.mp3",
+      "creator": "ecfike (Freesound) / freesound_community",
+      "url": "https://pixabay.com/sound-effects/technology-alarm-clock-90867/",
+      "license": "Pixabay Content License",
+      "sourceSha256": "4b70555c5e30b4e2c6ad6ce582ddf9c1ae7c253b9c19f6e30c4df91701bbb77b",
+      "preparedSha256": "020d87d073203f121175b33f485e9b1b5537fb18a03c2cfb54f9f74cad100a8d",
+      "preparedFrames": 269892
+    },
+    {
+      "id": "kitchen-timer",
+      "source": "freesound_community-kitchen-timer-33043.mp3",
+      "creator": "nigelcoop (Freesound) / freesound_community",
+      "url": "https://pixabay.com/sound-effects/household-kitchen-timer-33043/",
+      "license": "Pixabay Content License",
+      "sourceSha256": "d2fb0e4dde8a6ea683aae02d87a499bd70ba3657301c0b2d38c2ebf65239e8dc",
+      "preparedSha256": "6c635933d53c1ddc10b6fcf93a619387360b0dfb9a33cae959ea9af71d48c9a8",
+      "preparedFrames": 352800
+    },
+    {
+      "id": "lofi",
+      "source": "lesiakower-lo-fi-alarm-clock-243766.mp3",
+      "creator": "Lesiakower",
+      "url": "https://pixabay.com/sound-effects/musical-lo-fi-alarm-clock-243766/",
+      "license": "Pixabay Content License",
+      "sourceSha256": "b0e84f5af73c9ed86531df5e1fe01e3fe597cf0d0e37612d16f505b53291a9a6",
+      "preparedSha256": "764dee34012b1de7553a3d378b7fe96bd3f291b537c63084c94ddde9b1691c19",
+      "preparedFrames": 352800
+    },
+    {
+      "id": "happy-bells",
+      "source": "mixkit-happy-bells-notification-937.wav",
+      "creator": "Mixkit",
+      "url": "https://mixkit.co/free-sound-effects/notification/",
+      "license": "Mixkit Sound Effects Free License",
+      "sourceSha256": "c2be68e9eb59f744e7153678fc3e3c3c03692461a16cf41e7153b7e0478df248",
+      "preparedSha256": "52a25d13e056c57b77a9f268d781737ece6a6812b36792c549f677e2b2721b37",
+      "preparedFrames": 133392
+    },
+    {
+      "id": "urgent-tone",
+      "source": "mixkit-urgent-simple-tone-loop-2976.wav",
+      "creator": "Mixkit",
+      "url": "https://mixkit.co/free-sound-effects/notification/",
+      "license": "Mixkit Sound Effects Free License",
+      "sourceSha256": "e3f780ecdbfe7b463908909549095039de5b1c8a0efee5898f85bb0352a6bdfc",
+      "preparedSha256": "e8d57bda20cb32ba76a5315a631a8bf4e478ac0f9aaa8ed5d894e2573fb44e85",
+      "preparedFrames": 352800
+    },
+    {
+      "id": "simple-alarm",
+      "source": "u_inx5oo5fv3-alarm-327234.mp3",
+      "creator": "u_inx5oo5fv3",
+      "url": "https://pixabay.com/sound-effects/film-special-effects-alarm-327234/",
+      "license": "Pixabay Content License",
+      "sourceSha256": "d44e0b683a54e2f04a41cb581bd5fe4c6c6cc459bf534025d0efde683bcbbe93",
+      "preparedSha256": "bb5e1cc1be979e2ccde005309eb51fafaabb8dd9d6afe1658a0c8475cab868df",
+      "preparedFrames": 312228
+    },
+    {
+      "id": "digital-clock",
+      "source": "universfield-digital-alarm-clock-151920.mp3",
+      "creator": "Universfield",
+      "url": "https://pixabay.com/sound-effects/film-special-effects-digital-alarm-clock-151920/",
+      "license": "Pixabay Content License",
+      "sourceSha256": "6bb8f89f2ee21fa4174458b90b8cd728bdf32dad88d26e1c598abebd9268277c",
+      "preparedSha256": "bb2941a380a9692d954777439238b4a6360d9b84225889fa20170f654d4f76de",
+      "preparedFrames": 352800
+    },
+    {
+      "id": "digital-clock-alt",
+      "source": "universfield-digital-alarm-clock-151927.mp3",
+      "creator": "Universfield",
+      "url": "https://pixabay.com/sound-effects/digital-alarm-clock-151927/",
+      "license": "Pixabay Content License",
+      "sourceSha256": "a517956e857ab0f30a2d1304d5ec8ef1ec4a5197653ac32480b0c136cee6eb4c",
+      "preparedSha256": "a56ebd77fc71f6075c1311cb93081ecb5792b64d203fe8d4c01ee763e4f41030",
+      "preparedFrames": 335232
+    }
+  ]
+}

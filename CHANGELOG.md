@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Added all nine supplied alarm sounds to Settings, with separate focus/break choices and previews. Pick your preferred wake-up call; Save Rules remembers it.
+- Kept alarms offline and bounded to eight seconds, with safe playback cancellation, original-sound fallback, and legacy-setting recovery. The timer still refuses to double-book the speaker.
 - Close now asks whether to keep your timer working in the background, exit, or cancel. Your timer refuses to clock out without asking.
 - Reopen from the tray icon; background alarms and saving continue. No tray available? Minimize keeps the timer on the taskbar.
 

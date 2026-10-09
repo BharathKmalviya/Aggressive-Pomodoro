@@ -11,6 +11,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -29,12 +32,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pomodoro.domain.TimerSettings
 import com.pomodoro.domain.Phase
+import com.pomodoro.domain.AlarmSound
 
 @Composable
 internal fun SettingsDialog(
     settings: TimerSettings,
     audioWarning: String?,
-    onPreviewAlarm: (Phase) -> Unit,
+    onPreviewAlarm: (Phase, AlarmSound) -> Unit,
+    onStopPreview: () -> Unit,
     onSave: (TimerSettings) -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -47,6 +52,8 @@ internal fun SettingsDialog(
     var clicks by remember(settings) { mutableStateOf(settings.clickSoundEnabled) }
     var reminders by remember(settings) { mutableStateOf(settings.aggressiveAlertsEnabled) }
     var reduceMotion by remember(settings) { mutableStateOf(settings.reduceMotion) }
+    var focusAlarm by remember(settings) { mutableStateOf(settings.focusAlarm) }
+    var breakAlarm by remember(settings) { mutableStateOf(settings.breakAlarm) }
     var previewRequested by remember { mutableStateOf(false) }
     val candidate = settings.copy(
         focusMinutes = focus.toIntOrNull() ?: 0,
@@ -58,6 +65,8 @@ internal fun SettingsDialog(
         clickSoundEnabled = clicks,
         aggressiveAlertsEnabled = reminders,
         reduceMotion = reduceMotion,
+        focusAlarm = focusAlarm,
+        breakAlarm = breakAlarm,
     )
 
     AlertDialog(
@@ -79,17 +88,21 @@ internal fun SettingsDialog(
                 Text("Demand attention every 10 seconds until the completion alert is acknowledged. Works independently of sound.",
                     color = UiColor.muted, fontSize = 12.sp)
                 SettingToggle("Play completion alarm", sound, { sound = it })
+                AlarmChoice("Focus completion sound", "TEST FOCUS ALARM", focusAlarm, {
+                    onStopPreview(); previewRequested = false; focusAlarm = it
+                }, {
+                    previewRequested = true; onPreviewAlarm(Phase.FOCUS, focusAlarm)
+                })
+                AlarmChoice("Break completion sound", "TEST BREAK ALARM", breakAlarm, {
+                    onStopPreview(); previewRequested = false; breakAlarm = it
+                }, {
+                    previewRequested = true; onPreviewAlarm(Phase.SHORT_BREAK, breakAlarm)
+                })
+                Text("Both breaks use the break sound. Previews play your unsaved choice for up to 8 seconds, even when sound is off. SAVE RULES keeps your selections.",
+                    color = UiColor.muted, fontSize = 12.sp)
                 SettingToggle("Play button click sounds", clicks, { clicks = it })
                 SettingToggle("Reduce motion", reduceMotion, { reduceMotion = it })
                 Text("Keep timer transitions and emphasis still. Countdown and alerts work as usual.",
-                    color = UiColor.muted, fontSize = 12.sp)
-                for ((phase, label) in listOf(Phase.FOCUS to "TEST FOCUS ALARM", Phase.SHORT_BREAK to "TEST BREAK ALARM")) {
-                    OutlinedButton(onClick = { previewRequested = true; onPreviewAlarm(phase) }, modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.small) {
-                        Text(label, fontWeight = FontWeight.Bold)
-                    }
-                }
-                Text("Plays once even if completion sound is off. Your sound preference is unchanged.",
                     color = UiColor.muted, fontSize = 12.sp)
                 if (audioWarning != null) Text(audioWarning, color = UiColor.focus)
                 else if (previewRequested) Text("Test requested. If you hear nothing, check your Windows output device and volume.",
@@ -102,6 +115,28 @@ internal fun SettingsDialog(
             onClick = { onSave(candidate) }) { Text("SAVE RULES") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("CANCEL") } },
     )
+}
+
+@Composable
+private fun AlarmChoice(label: String, previewLabel: String, selected: AlarmSound, onSelect: (AlarmSound) -> Unit, onPreview: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(label, fontWeight = FontWeight.Bold)
+        Box {
+            OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
+                Text("${selected.label} ▾")
+            }
+            DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                AlarmSound.entries.forEach { choice ->
+                    DropdownMenuItem(text = { Text(if (choice == selected) "✓ ${choice.label}" else choice.label) },
+                        onClick = { onSelect(choice); expanded = false })
+                }
+            }
+        }
+        TextButton(onClick = onPreview, modifier = Modifier.fillMaxWidth()) {
+            Text(previewLabel, fontWeight = FontWeight.Bold)
+        }
+    }
 }
 
 @Composable

@@ -1,6 +1,7 @@
 package com.pomodoro.platform
 
 import com.pomodoro.domain.Phase
+import com.pomodoro.domain.AlarmSound
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -15,6 +16,74 @@ import kotlin.test.assertTrue
 import kotlin.test.assertFalse
 
 class DesktopAlertTest {
+    @Test fun allSuppliedAlarmsAreDistinctBoundedOfflinePcm() {
+        val sounds = AlarmSound.entries.filter { it != AlarmSound.ORIGINAL }.map(::bundledAlarmSound)
+        assertEquals(9, sounds.size)
+        sounds.forEach { sound ->
+            assertEquals(44_100, sound.sampleRate)
+            assertTrue(sound.bytes.size in 2..MAX_ALARM_BYTES && sound.bytes.size % 2 == 0)
+            assertTrue(sound.bytes.any { it != 0.toByte() })
+            assertEquals(0, sound.bytes[0].toInt())
+            assertEquals(0, sound.bytes[1].toInt())
+            assertEquals(0, sound.bytes[sound.bytes.lastIndex].toInt())
+            assertEquals(0, sound.bytes[sound.bytes.lastIndex - 1].toInt())
+        }
+        assertEquals(9, sounds.map { it.bytes.contentHashCode() }.distinct().size)
+    }
+
+    @Test fun selectionIsCachedAndDecodeFailureFallsBackThenRecovers() {
+        val sounds = mutableListOf<PcmSound>()
+        val reports = mutableListOf<String?>()
+        val loaded = mutableListOf<AlarmSound>()
+        var failing = true
+        val custom = PcmSound(byteArrayOf(1, 2, 3, 4))
+        val audio = AlertAudio(openClip = { sounds += it; FakeClip() }, onPlaybackResult = reports::add,
+            loadAlarm = { choice ->
+                loaded += choice
+                if (choice == AlarmSound.FUNNY && failing) error("Missing resource")
+                custom
+            })
+        try {
+            audio.playCompletion(Phase.FOCUS, AlarmSound.HAPPY_BELLS)
+            audio.playCompletion(Phase.SHORT_BREAK, AlarmSound.HAPPY_BELLS)
+            audio.playCompletion(Phase.LONG_BREAK, AlarmSound.HAPPY_BELLS)
+            assertEquals(listOf(AlarmSound.HAPPY_BELLS), loaded)
+            assertTrue(sounds.take(3).all { it.bytes.contentEquals(custom.bytes) })
+            audio.playCompletion(Phase.SHORT_BREAK, AlarmSound.FUNNY)
+            assertTrue(sounds.last().bytes.contentEquals(completionSound(Phase.SHORT_BREAK).bytes))
+            assertTrue(reports.last()?.contains("original phase alarm") == true)
+            failing = false
+            audio.playCompletion(Phase.FOCUS, AlarmSound.FUNNY)
+            assertTrue(sounds.last().bytes.contentEquals(custom.bytes))
+            assertNull(reports.last())
+            assertEquals(listOf(AlarmSound.HAPPY_BELLS, AlarmSound.FUNNY, AlarmSound.FUNNY), loaded)
+        } finally { audio.close() }
+    }
+
+    @Test fun muteDuringResourceDecodeNeverOpensAnAudioDevice() {
+        val decoding = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val opened = AtomicInteger()
+        val audio = AlertAudio(openClip = { opened.incrementAndGet(); FakeClip() }, loadAlarm = {
+            decoding.countDown()
+            check(release.await(2, TimeUnit.SECONDS))
+            PcmSound(byteArrayOf(1, 2))
+        })
+        val executor = Executors.newSingleThreadExecutor()
+        try {
+            val playback = executor.submit { audio.playCompletion(Phase.FOCUS, AlarmSound.LOFI) }
+            assertTrue(decoding.await(2, TimeUnit.SECONDS))
+            audio.stopCompletion()
+            release.countDown()
+            playback.get(2, TimeUnit.SECONDS)
+            assertEquals(0, opened.get())
+        } finally {
+            release.countDown()
+            audio.close()
+            executor.shutdownNow()
+        }
+    }
+
     private class FakeClip : AudioClip {
         var starts = 0
         var closes = 0

@@ -11,6 +11,8 @@ The release destination is `https://github.com/BharathKmalviya/Aggressive-Pomodo
 
 ## Reproduce the package
 
+The unreleased selectable-alarm change adds two optional sound IDs to snapshot format 3; back up the profile before rollback, because older builds ignore and can drop those choices on save. Nine adapted WAVs and sound credits must be present in the executable JAR; original source recordings remain local in `sounds/`, with hashes/provenance in its tracked manifest. Regeneration needs Python/FFmpeg, but normal CI/package builds use checked-in cues and need neither. Keep third-party recording licenses distinct from the MIT code license. Complete the selectable-alarm Windows scenarios in [TESTING.md](TESTING.md#selectable-alarm-checks--2026-10-09) before publishing; this source update does not bump the version or publish an installer.
+
 The unreleased close-choice change keeps the app running until explicit Exit. For the upgraded build, the release upgrade harness requests a normal window close, locates the `Close Aggressive Pomodoro` dialog belonging to its tracked process/descendants, verifies foreground ownership, and uses the documented E shortcut to save and exit. The immutable v0.1.0 baseline still uses its original direct-close path. Forced termination is cleanup only and cannot pass the gate. Run the pending tray/keyboard/scaling/notification checks in [TESTING.md](TESTING.md#close-choice-and-background-checks--2026-10-09) before publishing this behavior; no installer/version bump is part of this source change.
 
 Install JDK 21 and WiX 3.14.1 build tools on Windows. Add `candle.exe` and `light.exe` to `PATH`. Then run:

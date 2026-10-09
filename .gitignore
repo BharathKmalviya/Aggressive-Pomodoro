@@ -2,6 +2,10 @@
 .idea/
 .kotlin
 build/
+
+# Owner-supplied original stock audio; adapted app cues and credits are tracked.
+/sounds/*.mp3
+/sounds/*.wav
 .DS_Store
 captures
 **/module.xcodeproj/*
