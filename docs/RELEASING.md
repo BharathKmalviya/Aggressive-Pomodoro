@@ -122,3 +122,15 @@ The [immutable v0.3.2 release](https://github.com/BharathKmalviya/Aggressive-Pom
 - `LICENSE`: 1,072 bytes; SHA-256 `cc9829233de2b0ba9f107178cf4da58612848a70f07b2344eab1f1ec6df1f3fc`.
 
 Read-only Windows Installer database/cabinet inspection of the public MSI confirmed ProductVersion 0.3.2 and the pinned UpgradeCode. Its embedded executable JAR contains version 0.3.2 and all nine WAVs matching the tracked prepared hashes, PCM formats and eight-second limits. Bundled sound-credit content matches source after Git line-ending normalization. The MSI and app were not executed on the development machine. Native audio quality, tray notifications, keyboard/scaling, sleep and interactive updater/UAC checks remain pending in [TESTING.md](TESTING.md). Snapshot format stays at 3 and the active OpenSpec change remains open.
+
+## v0.3.3 published verification
+
+On 2026-10-09, [Windows CI](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/37935932956) and the [release workflow](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/37935932971) passed for `7b5b5ef95a2bda642e3b74e5930ec22f6ec016f2`. Release logs record all 121 tests passing (40 shared, 81 desktop), zero failures. Runtime packaging, clean MSI installation/launch, v0.1.0 baseline upgrade, old-product removal, paused timer/task/history preservation, MSI checksum and pinned MIT License gates passed before publication.
+
+The [immutable stable v0.3.3 release](https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases/tag/v0.3.3) was published at `2026-10-09T13:22:17Z` (18:52:17 IST). Fresh API/latest-release and tag readback confirmed the release and exact validated commit. Independent downloads verified all three GitHub asset sizes/digests, the MSI's `SHA256SUMS.txt` entry and the pinned MIT License:
+
+- `AggressivePomodoro-0.3.3.msi`: 101,659,544 bytes; SHA-256 `10ffdcf45944af902c70856ee07ff41f16118bf31513f2722673e9a112f9d02f`.
+- `SHA256SUMS.txt`: 96 bytes; SHA-256 `31d171608ec3f33d554432fe2a0f2f62ea4fb724b517525110ad104d9a7cf52f`.
+- `LICENSE`: 1,072 bytes; SHA-256 `cc9829233de2b0ba9f107178cf4da58612848a70f07b2344eab1f1ec6df1f3fc`.
+
+Read-only inspection of the downloaded MSI confirms ProductName AggressivePomodoro, ProductVersion 0.3.3 and UpgradeCode `{8B4BB341-127A-3A18-945B-B92F5C0CD1FD}`. The installer and native app were not executed on the development machine. Manual saved close-choice/tray/tooltip/keyboard/scaling/audio/sleep/updater/UAC acceptance remains pending in [TESTING.md](TESTING.md). Snapshot format stays at 3, installer signing status is unchanged, and the active OpenSpec change remains open.
