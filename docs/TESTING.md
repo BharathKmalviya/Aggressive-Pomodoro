@@ -1,5 +1,11 @@
 # Windows acceptance checks
 
+## v0.3.4 published verification — 2026-10-09
+
+[Windows CI](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/37940027472) and the [release workflow](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/37940027327) passed for `ebd50725c0b52d085d5fdf46842ab647be92e54d`: all 131 tests (40 shared, 91 desktop; zero failures), runtime packaging, clean MSI installation/launch and baseline upgrade/data preservation. The installed app acknowledged a second launcher and stayed alive while that new process exited successfully. Fresh API/latest/tag readback confirmed immutable stable v0.3.4; independent asset downloads passed digests, MSI checksum and MIT License. Read-only MSI metadata confirms version 0.3.4 and the pinned UpgradeCode. Hashes and exact evidence are in [Releasing](RELEASING.md#v034-published-verification).
+
+Packaged acknowledgement proves activation delivery, not Windows foreground focus. No native app or installer was run on the development machine. The correction checks below and earlier manual gates remain pending; OpenSpec stays active.
+
 ## Tray usability correction checks — 2026-10-09
 
 The owner supplied a v0.3.3 screenshot showing nearly all tray actions greyed out. Source inspection confirms the close chooser, save error and actual shutdown shared one blanket disable flag, and summaries were always disabled. That is issue evidence, not a recorded pass for this correction. Use v0.3.4 or `.\kotlin.bat run -m desktopApp`; the following native checks remain pending.
@@ -16,7 +22,7 @@ The owner supplied a v0.3.3 screenshot showing nearly all tray actions greyed ou
 | Failed exit and continue | In a disposable profile deny saving, choose Exit, then tray Resolve save error or Review save error; use Keep app open, restore access, edit and retry Exit | Error remains reachable; conflicting mutations stay restricted until continuing. Keep app open restores normal controls and usable saving; Retry waits for the latest save. Exit Anyway retains its data-loss warning. |
 | Genuine shutdown/update | Inspect tray while final saving or Install & Exit is preparing an update | Label identifies saving/installation; conflicting actions cannot interrupt it. Open can restore the same window without cancelling the save. Successful shutdown removes the icon. |
 
-Local verification (2026-10-09): final Kotlin build, all 131 tests (40 shared, 91 desktop; zero failures/errors/skips), executable JAR packaging, strict OpenSpec and Git diff checks passed. Ten new tests cover real AWT menu resources/queued event guards/checkbox rollback on the event thread, close-choice availability/genuine restrictions, and real temporary-profile activation/ownership/startup/concurrency/malformed input/failure/cleanup. Read-only JAR inspection verifies version 0.3.4 and the menu/activation/mode classes. Both workflow actionlint checks and all seven release PowerShell blocks passed; the new packaged second-launch acknowledgement gate will execute in release CI. Native popup appearance, focus, keyboard and scale checks above require user observations; no native app or installer was launched on the development machine.
+Local verification (2026-10-09): final Kotlin build, all 131 tests (40 shared, 91 desktop; zero failures/errors/skips), executable JAR packaging, strict OpenSpec and Git diff checks passed. Ten new tests cover real AWT menu resources/queued event guards/checkbox rollback on the event thread, close-choice availability/genuine restrictions, and real temporary-profile activation/ownership/startup/concurrency/malformed input/failure/cleanup. Read-only JAR inspection verifies version 0.3.4 and the menu/activation/mode classes. Both workflow actionlint checks and all seven release PowerShell blocks passed. Release CI also passed the new packaged second-launch acknowledgement gate: the new process exited successfully and the existing owner stayed alive. Native popup appearance, focus, keyboard and scale checks above require user observations; no native app or installer was launched on the development machine.
 
 ## v0.3.3 published verification — 2026-10-09
 

@@ -138,3 +138,15 @@ The [immutable stable v0.3.3 release](https://github.com/BharathKmalviya/Aggress
 - `LICENSE`: 1,072 bytes; SHA-256 `cc9829233de2b0ba9f107178cf4da58612848a70f07b2344eab1f1ec6df1f3fc`.
 
 Read-only inspection of the downloaded MSI confirms ProductName AggressivePomodoro, ProductVersion 0.3.3 and UpgradeCode `{8B4BB341-127A-3A18-945B-B92F5C0CD1FD}`. The installer and native app were not executed on the development machine. Manual saved close-choice/tray/tooltip/keyboard/scaling/audio/sleep/updater/UAC acceptance remains pending in [TESTING.md](TESTING.md). Snapshot format stays at 3, installer signing status is unchanged, and the active OpenSpec change remains open.
+
+## v0.3.4 published verification
+
+On 2026-10-09, [Windows CI](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/37940027472) and the [release workflow](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/37940027327) passed for `ebd50725c0b52d085d5fdf46842ab647be92e54d`. Release logs record all 131 tests passing (40 shared, 91 desktop), zero failures. Runtime packaging, clean MSI installation/launch, v0.1.0 baseline upgrade/old-product removal/paused timer/task/history preservation, checksum and pinned MIT License gates passed. The clean-install smoke launched a second packaged process: it exited successfully, the owner acknowledged the activation token and remained alive. This proves packaged activation delivery, not Windows foreground focus or native popup appearance.
+
+The [immutable stable v0.3.4 release](https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases/tag/v0.3.4) was published at `2026-10-09T13:56:57Z` (19:26:57 IST). Fresh API/latest-release and tag readback confirmed the release and exact validated commit. Independent downloads verified all three GitHub asset sizes/digests, the MSI's `SHA256SUMS.txt` entry and pinned MIT License:
+
+- `AggressivePomodoro-0.3.4.msi`: 101,704,600 bytes; SHA-256 `2fd09c445b3bef0261e235287d7aa6ceebe414c991daf3c2cedb367cd76d0fcd`.
+- `SHA256SUMS.txt`: 96 bytes; SHA-256 `254699bd584d4db9f0b543f8497399d129ad67b2f0bd9c9962885277874789d2`.
+- `LICENSE`: 1,072 bytes; SHA-256 `cc9829233de2b0ba9f107178cf4da58612848a70f07b2344eab1f1ec6df1f3fc`.
+
+Read-only Windows Installer metadata confirms ProductName AggressivePomodoro, ProductVersion 0.3.4 and the unchanged UpgradeCode `{8B4BB341-127A-3A18-945B-B92F5C0CD1FD}`. Local executable JAR SHA-256 is `dcf5bbaf4fcc6e50d599973fd92a70cd7d62d12f0bd6b43caa8cd0dbabb85ae9`; inspection confirmed version 0.3.4 and the menu/activation/tray-mode classes. No native app or installer was executed on the development machine. Launcher focus, tray popup/keyboard/scaling, close-choice cancellation and save recovery remain manual acceptance in [TESTING.md](TESTING.md#tray-usability-correction-checks--2026-10-09); earlier manual gates also remain open. Snapshot format stays at 3 and the active OpenSpec change remains open.

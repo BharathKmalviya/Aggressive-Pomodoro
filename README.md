@@ -2,9 +2,9 @@
 
 Aggressive Pomodoro is a Windows desktop focus timer built with Kotlin and Compose Multiplatform. Commit to one outcome, finish the block, and take the break. An assertive timer, a multi-pulse alarm, and persistent completion reminders keep phase changes hard to miss.
 
-**Downloads:** [v0.3.3 release](https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases/tag/v0.3.3) includes the Windows installer, checksum, and license. Windows is the only packaged target at present.
+**Downloads:** [v0.3.4 release](https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases/tag/v0.3.4) includes the Windows installer, checksum, and license. Windows is the only packaged target at present.
 
-Version 0.3.3 passed automated Windows build, all 121 tests, packaging, clean installation/launch and upgrade preservation checks. The public MSI/checksum/license assets were independently downloaded and verified. Manual audio, saved close choices, tray/notification, keyboard/scaling, sleep and updater/UAC acceptance remains pending in [Testing](docs/TESTING.md).
+Version 0.3.4 passed automated Windows build, all 131 tests, packaging, clean installation/launch, second-launch activation acknowledgement and upgrade preservation checks. The public MSI/checksum/license assets were independently downloaded and verified. Manual launcher focus, audio, saved close choices, tray/notification, keyboard/scaling, sleep and updater/UAC acceptance remains pending in [Testing](docs/TESTING.md).
 
 ## Screenshots
 
@@ -43,7 +43,7 @@ A manual check against GitHub confirms the installed release is current:
 - **About → Check for updates** finds newer stable Windows releases. Download with progress/cancel, then confirm **Install & Exit** to verify the installer, save and back up your session, and open Windows Installer. About also links directly to the GitHub repository.
 - After checking, **View release notes** shows the latest stable release's notes inside the update dialog, even when you're up to date. Notes are selectable and scrollable; viewing them does not open GitHub. Added in v0.3.1.
 
-Version 0.3.2 makes the window's **Close** button (or Alt+F4) offer **Run in background**, **Exit**, and **Cancel**, in every timer state. Background mode keeps the timer, alarms, and saving active; reopen using the tray icon's **Show Aggressive Pomodoro** action. Its **Exit…** action brings back the same choice. If the tray is unavailable, **Minimize** keeps the app reachable from the taskbar. A background completion attempts a tray notification and retains its alert for when you reopen.
+By default, the window's **Close** button (or Alt+F4) offers **Run in background**, **Exit**, and **Cancel**, in every timer state. Background mode keeps the timer, alarms, and saving active; reopen using the launcher or the tray icon's **Open Aggressive Pomodoro** action. Its **Exit...** action brings back the same choice. If the tray is unavailable, **Minimize** keeps the app reachable from the taskbar. A background completion attempts a tray notification and retains its alert for when you reopen.
 
 Version 0.3.3 expands the tray menu with live phase/time/status, today's completed blocks and minutes, **Start/Pause/Resume**, confirmed **Reset current block... / Skip current phase...**, saved **Alarm sound / Repeat completion reminders** checkboxes, and **Reports / Settings / About / Check for updates** shortcuts. Hover the icon for timer status. Pending completions offer **Review completed phase...**; Reset/Skip restores the timer's confirmation, and secondary shortcuts open the same app window. An existing update shows **View update...** without restarting its check/download or installing anything. Native labels use ordinary dots, including **Exit...**, to avoid the missing glyph shown by some Windows tray fonts. See [tray acceptance checks](docs/TESTING.md#expanded-tray-menu-checks--2026-10-09) for manual verification.
 

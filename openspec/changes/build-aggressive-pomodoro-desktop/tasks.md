@@ -193,5 +193,7 @@ Section 22 local verification (2026-10-09): final Kotlin build, all 131 tests (4
 ## 23. Version 0.3.4 correction publication
 
 - [x] 23.1 Prepare patch metadata/notes and complete source build/tests/JAR/OpenSpec/diff checks, keeping native acceptance pending.
-- [ ] 23.2 Commit and push the correction; require the exact commit's Windows CI and release package/install/upgrade/checksum/license gates to pass.
-- [ ] 23.3 Independently verify the immutable release tag/latest release/public asset hashes and MSI metadata, and record publication evidence without closing manual gates.
+- [x] 23.2 Commit and push the correction; require the exact commit's Windows CI and release package/install/upgrade/checksum/license gates to pass.
+- [x] 23.3 Independently verify the immutable release tag/latest release/public asset hashes and MSI metadata, and record publication evidence without closing manual gates.
+
+Section 23 publication verification (2026-10-09): immutable stable v0.3.4 was published at `2026-10-09T13:56:57Z` from `ebd50725c0b52d085d5fdf46842ab647be92e54d` after Windows CI `37940027472` and release workflow `37940027327` passed all 131 tests, runtime packaging, clean MSI install/launch, packaged second-launch acknowledgement with retained owner, baseline upgrade/data preservation, checksum and license gates. Fresh API/latest/tag readback verified the exact commit; independent downloads passed every asset size/digest, MSI checksum and pinned MIT License. MSI SHA-256: `2fd09c445b3bef0261e235287d7aa6ceebe414c991daf3c2cedb367cd76d0fcd`. Read-only MSI metadata confirms version 0.3.4 and unchanged UpgradeCode. Packaged activation delivery does not prove foreground focus or native popup behavior. Full evidence is in `docs/RELEASING.md`; native app/installer was not run locally, updated and earlier manual gates remain open, and the change stays active.
