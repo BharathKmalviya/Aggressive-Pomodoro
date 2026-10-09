@@ -28,6 +28,32 @@ import kotlin.test.assertTrue
 import java.util.concurrent.atomic.AtomicBoolean
 
 class DesktopSessionControllerTest {
+    @Test fun directTrayExitPreservesClosePreferenceTasksHistoryAndPendingCompletion() = runBlocking {
+        val directory = Files.createTempDirectory("pomodoro-direct-tray-exit-test")
+        try {
+            for (behavior in CloseBehavior.entries) {
+                val store = AppStore(directory.resolve("session.properties"))
+                val fixture = Fixture(settings = TimerSettings(focusMinutes = 1, closeBehavior = behavior), store = store)
+                val controller = fixture.controller
+                try {
+                    controller.dispatchTask(TaskCommand.Add("Preserve work through tray exit", 2))
+                    controller.dispatchSession(SessionCommand.Start)
+                    fixture.tick(60_000)
+                    val before = controller.product
+                    assertTrue(before.session.pending.isNotEmpty())
+                    assertEquals(DesktopCloseAction.EXIT,
+                        windowCloseAction(behavior, trayAvailable = true, explicitTrayExit = true))
+                    controller.close()
+                    assertEquals(before.copy(session = before.session.copy(deadlineMonotonicMs = null, lastMark = null)), store.load())
+                    assertEquals(behavior, store.load().session.settings.closeBehavior)
+                } finally { controller.close() }
+            }
+        } finally {
+            check(directory.toAbsolutePath().normalize().startsWith(java.nio.file.Path.of(System.getProperty("java.io.tmpdir")).toAbsolutePath().normalize()))
+            directory.toFile().deleteRecursively()
+        }
+    }
+
     @Test fun rememberedCloseChoiceIsInFinalSaveAndCanReturnToAskAfterRelaunch() = runBlocking {
         val directory = Files.createTempDirectory("pomodoro-close-choice-test")
         try {

@@ -127,6 +127,34 @@ fun App(
                     onSettings = { onUiClick(); settingsOpen = true },
                     onAbout = { onUiClick(); aboutOpen = true },
                 )
+                if (updateState.status in setOf(UpdateStatus.AVAILABLE, UpdateStatus.DOWNLOADING, UpdateStatus.READY) ||
+                    updateState.status == UpdateStatus.ERROR && updateState.totalBytes > 0) {
+                    Row(Modifier.fillMaxWidth().border(1.dp, UiColor.breakTime).padding(12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(when (updateState.status) {
+                                UpdateStatus.READY -> "UPDATE READY · ${updateState.latestVersion}"
+                                UpdateStatus.DOWNLOADING -> "DOWNLOADING UPDATE · ${updateState.latestVersion}"
+                                UpdateStatus.ERROR -> "UPDATE NEEDS ATTENTION"
+                                else -> "UPDATE AVAILABLE · ${updateState.latestVersion}"
+                            }, color = UiColor.breakTime, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text(when (updateState.status) {
+                                UpdateStatus.READY -> "Install when you're ready to close the app."
+                                UpdateStatus.DOWNLOADING -> "Keep focusing. Your download continues."
+                                UpdateStatus.ERROR -> "Open the update to retry."
+                                else -> "Download now and choose when to install."
+                            }, color = UiColor.muted, fontSize = 12.sp)
+                        }
+                        TextButton(enabled = dialogsVisible && !pending && !closeRequested, onClick = {
+                            onUiClick()
+                            settingsOpen = false
+                            reportsOpen = false
+                            aboutOpen = false
+                            timerRequest = null
+                            updatesOpen = true
+                        }) { Text("VIEW UPDATE", color = UiColor.breakTime) }
+                    }
+                }
                 Row(Modifier.fillMaxWidth().border(1.dp, UiColor.border).padding(12.dp),
                     horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("TODAY / ${today.sessions} BLOCKS / ${today.focusedMs / 60_000} MIN",

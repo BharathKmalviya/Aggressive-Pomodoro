@@ -95,6 +95,13 @@ fun main() {
         var requestSequence by remember { mutableStateOf(0L) }
         val updates = remember { DesktopUpdateController(AppVersion.value, directory.resolve("updates"),
             GitHubUpdateService(), scope) }
+        LaunchedEffect(updates) {
+            while (isActive) {
+                if (!closing && !exitError) updates.checkAutomatically()?.join()
+                // Check on startup and every six hours; quietly retry an offline check in 15 minutes.
+                delay(if (updates.state.status == UpdateStatus.IDLE) 15 * 60_000L else 6 * 60 * 60_000L)
+            }
+        }
         fun openLink(url: String) {
             scope.launch {
                 try {
@@ -271,8 +278,7 @@ fun main() {
                 if (image != null) {
                     window.iconImage = image
                     tray = DesktopTray.create(image, initialState = trayState, onShow = ::openExistingWindow, onExit = {
-                        showWindow()
-                        if (!closing && !exitError) requestClose(explicitTrayExit = true)
+                        if (exitError) showWindow() else requestClose(explicitTrayExit = true)
                     }, onTimerCommand = { command ->
                         if (continueUsingApp()) dispatchSession(command)
                     }, onOpen = ::openFromTray, onSoundChanged = { enabled ->

@@ -30,7 +30,7 @@ class DesktopTrayMenuTest {
             listOf("Cancel close and open app", state.statusText, "${state.todayText}...", "Pause focus",
                 "Timer options", "Reset current block...", "Skip current phase...", "Alerts", "Alarm sound",
                 "Repeat completion reminders", "Reports...", "Settings...", "Check for updates...",
-                "About...", "Run in background", "Exit...").forEach { assertTrue(item(it).isEnabled, it) }
+                "About...", "Run in background", "Exit").forEach { assertTrue(item(it).isEnabled, it) }
             assertIs<Menu>(item("Timer options"))
             assertIs<Menu>(item("Alerts"))
             click(state.statusText)
@@ -38,10 +38,12 @@ class DesktopTrayMenuTest {
             click("Pause focus")
             click("Reset current block...")
             click("Run in background")
+            click("Exit")
             assertEquals(1, shows)
             assertEquals(listOf(AppDestination.REPORTS to null, AppDestination.RESET to state.phaseId), opens)
             assertEquals(listOf<SessionCommand>(SessionCommand.PausePhase(state.phaseId)), commands)
             assertEquals(1, backgrounds)
+            assertEquals(1, exits)
             menu.close()
         }
     }
@@ -57,7 +59,7 @@ class DesktopTrayMenuTest {
             assertFalse(item("Alerts").isEnabled)
             click("Pause focus") // A previously queued native event must also be guarded.
             click("Reset current block...")
-            click("Exit...")
+            click("Exit")
             assertTrue(commands.isEmpty())
             assertTrue(opens.isEmpty())
             assertEquals(0, exits)

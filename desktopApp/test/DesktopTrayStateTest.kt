@@ -89,7 +89,7 @@ class DesktopTrayStateTest {
         assertTrue(recovered.timerActionsEnabled)
         assertTrue(recovered.navigationEnabled)
         assertEquals("Open Aggressive Pomodoro", recovered.showLabel)
-        assertEquals("Exit...", recovered.exitLabel)
+        assertEquals("Exit", recovered.exitLabel)
     }
 
     @Test fun activeUpdatesAreViewedAndSavedCheckboxesReflectCurrentPreferences() {

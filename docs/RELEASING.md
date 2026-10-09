@@ -20,12 +20,16 @@ Install JDK 21 and WiX 3.14.1 build tools on Windows. Add `candle.exe` and `ligh
 ```powershell
 .\scripts\package-windows.ps1 -Msi
 Get-Content .\build\distribution\artifacts\SHA256SUMS.txt
-Get-FileHash .\build\distribution\artifacts\AggressivePomodoro-0.3.5.msi -Algorithm SHA256
+Get-FileHash .\build\distribution\artifacts\AggressivePomodoro-0.3.6.msi -Algorithm SHA256
 ```
 
-The script uses the checked-in Kotlin Toolchain wrapper, runs build and tests, builds the executable JAR, creates a runtime-bundled app image and MSI with `jpackage`, smoke-checks the app-image process, and writes a SHA-256 checksum for the exact MSI. It places the MIT License alongside the artifacts and passes it to the MSI packager. The versioned filename follows `desktopApp/resources/version.properties`; replace `0.3.5` in the example after a version change.
+The script uses the checked-in Kotlin Toolchain wrapper, runs build and tests, builds the executable JAR, creates a runtime-bundled app image and MSI with `jpackage`, smoke-checks the app-image process, and writes a SHA-256 checksum for the exact MSI. It places the MIT License alongside the artifacts and passes it to the MSI packager. The versioned filename follows `desktopApp/resources/version.properties`; replace `0.3.6` in the example after a version change.
 
 CI and releases also run `./scripts/verify-update-download.ps1` after packaging. This network-only gate compiles `UpdateDownloadProbe.java` against the executable JAR's bundled libraries, checks GitHub and downloads/reverifies the latest published stable MSI through the production updater service. Its isolated files stay under `build/updater-verification`; it opens no app/installer and touches no user profile. The gate needs JDK 21 and reachable GitHub/CDN servers. It is not proof of native dialog, UAC or installed-runtime interaction.
+
+## v0.3.6 release scope
+
+On 2026-10-09 the owner requested v0.3.6 publication with direct tray Exit and automatic visible update discovery alongside the recurrence safeguards. Include automatic startup/six-hour metadata checks, quiet 15-minute discovery retries and a main-window Update available/View Update banner; downloads and installation remain explicit. Include bounded transient launcher-write recovery, the stalled-first-connection regression and existing v0.3.5 download recovery. All 144 tests must pass. Publish only after the exact release commit passes automated Windows build/tests/runtime packaging, clean MSI installation/launch, second-launch acknowledgement, baseline upgrade/data preservation, full packaged download/reverification, checksum and MIT License gates. Independently read back the immutable tag/latest release and freshly verify all public asset hashes, MSI ProductVersion and pinned UpgradeCode. Keep snapshot format 3, release naming and the installed user's profile intact. This request authorizes publication with the earlier manual acceptance gaps still recorded; it does not mark them passed or archive the active OpenSpec change.
 
 ## v0.3.5 updater correction scope
 

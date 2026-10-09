@@ -12,7 +12,7 @@ class DesktopCloseActionTest {
             assertEquals(if (trayAvailable) DesktopCloseAction.BACKGROUND else DesktopCloseAction.MINIMIZE,
                 windowCloseAction(CloseBehavior.BACKGROUND, trayAvailable))
             CloseBehavior.entries.forEach { behavior ->
-                assertEquals(DesktopCloseAction.ASK, windowCloseAction(behavior, trayAvailable, explicitTrayExit = true))
+                assertEquals(DesktopCloseAction.EXIT, windowCloseAction(behavior, trayAvailable, explicitTrayExit = true))
             }
         }
     }

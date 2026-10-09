@@ -18,6 +18,63 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class DesktopUpdateControllerTest {
+    @Test fun automaticDiscoveryOffersUpdateWithoutDownloadingOrInstalling() = runBlocking {
+        val service = FakeService()
+        val controller = DesktopUpdateController("0.2.0", Path.of("updates"), service, this, windows = true)
+        controller.checkAutomatically()!!.join()
+        assertEquals(UpdateStatus.AVAILABLE, controller.state.status)
+        assertEquals(release.version, controller.state.latestVersion)
+        assertEquals(service.notes, controller.state.releaseNotes)
+        assertEquals(1, service.checked)
+        assertEquals(0, service.downloaded)
+        assertEquals(0, service.verified)
+    }
+
+    @Test fun automaticOfflineFailureIsQuietAndDiscoveryCanRecover() = runBlocking {
+        val service = FakeService().apply { failure = "You are offline." }
+        val controller = DesktopUpdateController("0.2.0", Path.of("updates"), service, this, windows = true)
+        controller.checkAutomatically()!!.join()
+        assertEquals(UpdateStatus.IDLE, controller.state.status)
+        assertNull(controller.state.message)
+        assertNull(controller.state.latestVersion)
+        service.failure = null
+        controller.checkAutomatically()!!.join()
+        assertEquals(UpdateStatus.AVAILABLE, controller.state.status)
+        assertEquals(2, service.checked)
+    }
+
+    @Test fun automaticChecksPreserveOffersActiveDownloadsErrorsAndReadyInstallers() = runBlocking {
+        val service = object : FakeService() {
+            override fun download(release: AppRelease, targetDirectory: Path,
+                onProgress: (Long, Long) -> Unit, isCancelled: () -> Boolean): Path {
+                failure?.let { throw IOException(it) }
+                return super.download(release, targetDirectory, onProgress, isCancelled)
+            }
+        }
+        val controller = DesktopUpdateController("0.2.0", Path.of("updates"), service, this, windows = true)
+        val first = controller.checkAutomatically()!!
+        assertNull(controller.check(), "Manual and automatic checks must not overlap")
+        first.join()
+        val offered = controller.state
+        assertNull(controller.checkAutomatically())
+        assertEquals(offered, controller.state)
+        service.failure = "Connection interrupted."
+        val downloading = controller.download()!!
+        assertNull(controller.checkAutomatically())
+        downloading.join()
+        val failed = controller.state
+        assertEquals(UpdateStatus.ERROR, failed.status)
+        assertNull(controller.checkAutomatically())
+        assertEquals(failed, controller.state)
+        service.failure = null
+        controller.download()!!.join()
+        val ready = controller.state
+        assertEquals(UpdateStatus.READY, ready.status)
+        assertNull(controller.checkAutomatically())
+        assertEquals(ready, controller.state)
+        assertEquals(1, service.checked)
+    }
+
     private val release = AppRelease("0.3.0", "https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases/tag/v0.3.0",
         "AggressivePomodoro-0.3.0.msi", "https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases/download/v0.3.0/AggressivePomodoro-0.3.0.msi",
         100, "https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases/download/v0.3.0/SHA256SUMS.txt")
@@ -162,6 +219,8 @@ class DesktopUpdateControllerTest {
     @Test fun nonWindowsDoesNotRequestAnInstaller() = runBlocking {
         val service = FakeService()
         val controller = DesktopUpdateController("0.2.0", Path.of("updates"), service, this, windows = false)
+        assertNull(controller.checkAutomatically())
+        assertEquals(UpdateStatus.IDLE, controller.state.status)
         assertNull(controller.check())
         assertEquals(0, service.checked)
         assertEquals(UpdateStatus.ERROR, controller.state.status)

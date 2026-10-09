@@ -18,6 +18,27 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class InstanceLockTest {
+    @Test fun transientMailboxWriteFailureIsRetriedWithinTheActivationDeadline() = runBlocking {
+        profile { directory ->
+            assertNotNull(InstanceLock.acquire(directory)).use { owner ->
+                val conflict = Files.createDirectory(directory.resolve("activation.request"))
+                val blocker = Files.writeString(conflict.resolve("temporary-conflict"), "disposable fixture")
+                val launcher = async(Dispatchers.IO) { InstanceLock.activateExisting(directory, 2_000) }
+                try {
+                    delay(100)
+                    assertFalse(launcher.isCompleted, "A temporary mailbox write failure must remain retryable")
+                } finally {
+                    Files.delete(blocker)
+                    Files.delete(conflict)
+                }
+                val token = awaitRequest(owner)
+                owner.acknowledgeActivation(token)
+                assertTrue(launcher.await())
+                assertNull(InstanceLock.acquire(directory))
+            }
+        }
+    }
+
     @Test fun oneOwnerAcceptsLauncherActivationWithoutTouchingTheSnapshot() = runBlocking {
         profile { directory ->
             val snapshot = directory.resolve("session.properties")

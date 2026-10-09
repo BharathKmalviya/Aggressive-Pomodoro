@@ -92,7 +92,7 @@ fun desktopTrayState(
         updateLabel = if (updateStatus in setOf(UpdateStatus.CHECKING, UpdateStatus.AVAILABLE,
                 UpdateStatus.DOWNLOADING, UpdateStatus.READY, UpdateStatus.INSTALLING)) "View update..."
             else "Check for updates...",
-        exitLabel = if (mode == DesktopTrayMode.SAVE_ERROR) "Review save error..." else "Exit...",
+        exitLabel = if (mode == DesktopTrayMode.SAVE_ERROR) "Review save error..." else "Exit",
         exitEnabled = mode != DesktopTrayMode.SAVING && mode != DesktopTrayMode.INSTALLING,
     )
 }

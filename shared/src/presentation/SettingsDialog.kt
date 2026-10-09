@@ -113,7 +113,7 @@ internal fun SettingsDialog(
                     CloseBehavior.ASK -> "X and Alt+F4 offer Background, Exit and Cancel each time."
                     CloseBehavior.BACKGROUND -> "X and Alt+F4 keep the timer running in the tray, or minimize when the tray is unavailable."
                     CloseBehavior.EXIT -> "X and Alt+F4 save and exit immediately. Timer and alarms stop after exit."
-                } + " Tray Exit always asks. SAVE RULES keeps this choice.", color = UiColor.muted, fontSize = 12.sp)
+                } + " Tray Exit saves and closes directly. SAVE RULES keeps this choice.", color = UiColor.muted, fontSize = 12.sp)
                 if (audioWarning != null) Text(audioWarning, color = UiColor.focus)
                 else if (previewRequested) Text("Test requested. If you hear nothing, check your Windows output device and volume.",
                     color = UiColor.breakTime, fontSize = 12.sp)

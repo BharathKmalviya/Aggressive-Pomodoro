@@ -22,7 +22,7 @@ The manual update check SHALL expose the latest stable release's version and not
 - **THEN** the checked release notes remain available, while a fresh check clears stale metadata and a failed fresh check does not show old notes
 
 ### Requirement: User-controlled updates and repository access
-About SHALL show the installed version and a link to the public GitHub repository. The app SHALL check for updates only on user request, compare numeric semantic versions, and offer only a newer stable Windows release from this repository. Offline, rate-limited, malformed, and missing-asset responses SHALL show a recoverable explanation without affecting the timer.
+About SHALL show the installed version and a link to the public GitHub repository. The app SHALL discover updates automatically at startup and every six hours while running, with a quiet 15-minute retry after discovery fails, and retain manual checks through About. It SHALL compare numeric semantic versions and offer only a newer stable Windows release from this repository. A nonmodal main-window Update available notice SHALL open the existing update dialog without visiting Settings. Automatic discovery SHALL NOT download, install, open a dialog, change timer data or discard an existing offer, active download, verified installer or recoverable download error. Completion and close flows SHALL retain priority. Manual offline, rate-limited, malformed, and missing-asset responses SHALL show a recoverable explanation; automatic failures SHALL remain quiet.
 
 #### Scenario: Check an installed current version
 - **WHEN** the latest stable version is no newer than the running app
@@ -31,6 +31,18 @@ About SHALL show the installed version and a link to the public GitHub repositor
 #### Scenario: Open repository
 - **WHEN** the user activates the repository link in About
 - **THEN** the fixed public project URL opens in the default browser or a visible browser error is shown
+
+#### Scenario: Automatic update offer
+- **WHEN** startup or periodic discovery finds a newer stable Windows release
+- **THEN** the main window shows Update available and View Update, without opening a modal or downloading; activating the notice opens the existing update dialog when completion/close priority permits
+
+#### Scenario: Quiet discovery recovery
+- **WHEN** automatic discovery fails while offline
+- **THEN** the timer remains usable without an error modal and discovery retries after 15 minutes; manual checks retain recoverable error feedback
+
+#### Scenario: Preserve an existing update operation
+- **WHEN** an offer, active download, recoverable download error or verified installer already exists at a discovery interval
+- **THEN** automatic discovery does not restart checking or discard that state, and installation remains explicit
 
 ### Requirement: Verified download and deliberate installation
 The update flow SHALL show download progress, support cancellation and retry, validate the exact versioned MSI against its SHA-256 checksum, and reject unexpected download locations or malformed release metadata. Installation SHALL require explicit user confirmation. Before opening the interactive Windows installer, the app SHALL reverify the file, save and back up local state, and keep persistence usable if preparation or launch fails. Windows packages SHALL preserve the published product UpgradeCode.

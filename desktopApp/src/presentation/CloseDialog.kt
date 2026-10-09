@@ -63,7 +63,7 @@ fun CloseDialog(trayAvailable: Boolean, onBackground: (Boolean) -> Unit, onExit:
                         Checkbox(rememberChoice, onCheckedChange = null)
                         Text("Remember my choice")
                     }
-                    Text("Use this choice for X and Alt+F4. Change it in Settings. Tray Exit always asks.",
+                    Text("Use this choice for X and Alt+F4. Change it in Settings. Tray Exit saves and closes directly.",
                         style = MaterialTheme.typography.bodySmall)
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(onClick = { onBackground(rememberChoice) }) { Text(if (trayAvailable) "BACKGROUND (B)" else "MINIMIZE (B)") }

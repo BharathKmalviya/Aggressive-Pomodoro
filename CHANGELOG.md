@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.3.6
+
+- Find updates automatically at startup and every six hours while the app runs, with a quiet 15-minute retry after discovery fails. The main window shows **Update available → View Update**, without visiting Settings. Downloads and **Install & Exit** remain under your control.
+- Tray **Exit** now saves and closes directly without another Background/Exit/Cancel dialog. X/Alt+F4 still follows your saved close choice; tray Exit never saves an uncommitted Remember selection. Failed saves retain visible retry/recovery.
+- Retry temporary launcher mailbox write failures within the existing bounded activation deadline, retaining one profile owner and the same activation token.
+- Strengthened updater regression protection: a stalled first server connection must allow a reachable alternate address to complete the request without waiting for that first attempt. Retains v0.3.5's alternate-address recovery, staged feedback, blocked-request cancellation and **Download Again** recovery.
+- All 144 automated tests, Windows runtime packaging, clean installer launch, second-launch acknowledgement, upgrade/data preservation and complete packaged-updater download/checksum verification must pass before publication.
+- Timer, tasks, saved preferences, snapshot format 3 and installer upgrade identity are preserved. Native update-notice/tray/keyboard/scaling, audio, sleep and interactive updater/UAC acceptance stays pending; the installer remains unsigned.
+
 ## 0.3.5
 
 - Fixed update downloads that stalled at 0% when GitHub's first download-server address was unreachable. The updater now tries alternate addresses with normal HTTPS verification.

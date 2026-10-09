@@ -15,7 +15,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** UI-thread owner of the manual update flow; network and file work stay on IO. */
+/** UI-thread update owner; automatic discovery never downloads or installs. IO stays off the UI. */
 class DesktopUpdateController(
     private val version: String,
     private val directory: Path,
@@ -31,7 +31,15 @@ class DesktopUpdateController(
     private var operation = 0L
     private val busy get() = state.status in setOf(UpdateStatus.CHECKING, UpdateStatus.DOWNLOADING, UpdateStatus.INSTALLING)
 
-    fun check(): Job? {
+    fun check(): Job? = check(automatic = false)
+
+    /** Quiet discovery preserves a checked offer, download, installer or recoverable download error. */
+    fun checkAutomatically(): Job? {
+        if (!windows || busy || release != null || installer != null) return null
+        return check(automatic = true)
+    }
+
+    private fun check(automatic: Boolean): Job? {
         if (busy) return null
         if (!windows) {
             state = UpdateUiState(status = UpdateStatus.ERROR,
@@ -54,7 +62,11 @@ class DesktopUpdateController(
                     releaseNotes = latest.releaseNotes,
                 )
             } catch (error: Exception) {
-                if (operation == request) fail(error, "Could not check for updates. Try again when you are online.")
+                if (error is CancellationException) throw error
+                if (operation == request) {
+                    if (automatic) state = UpdateUiState()
+                    else fail(error, "Could not check for updates. Try again when you are online.")
+                }
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.pomodoro.platform
 
+import java.io.IOException
 import java.nio.channels.FileChannel
 import java.nio.channels.FileLock
 import java.nio.channels.OverlappingFileLockException
@@ -84,8 +85,13 @@ class InstanceLock private constructor(
                     val elapsed = (System.nanoTime() - started) / 1_000_000
                     // Retry the same token through an owner-startup cleanup or competing launches.
                     if (lastSent == Long.MIN_VALUE || elapsed - lastSent >= 500) {
-                        writeToken(directory.resolve(REQUEST), token)
-                        lastSent = elapsed
+                        try {
+                            writeToken(directory.resolve(REQUEST), token)
+                            lastSent = elapsed
+                        } catch (_: IOException) {
+                            // A competing write or temporary Windows sharing conflict is retryable.
+                            // Keep the same token and original bounded deadline; never bypass ownership.
+                        }
                     }
                     if (readToken(directory.resolve(RESPONSE)) == token) return true
                     Thread.sleep(25)
