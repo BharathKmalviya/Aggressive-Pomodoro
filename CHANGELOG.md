@@ -2,10 +2,14 @@
 
 ## Unreleased
 
+## 0.3.2
+
 - Added all nine supplied alarm sounds to Settings, with separate focus/break choices and previews. Pick your preferred wake-up call; Save Rules remembers it.
 - Kept alarms offline and bounded to eight seconds, with safe playback cancellation, original-sound fallback, and legacy-setting recovery. The timer still refuses to double-book the speaker.
 - Close now asks whether to keep your timer working in the background, exit, or cancel. Your timer refuses to clock out without asking.
 - Reopen from the tray icon; background alarms and saving continue. No tray available? Minimize keeps the timer on the taskbar.
+- Snapshot format stays at 3. Back up your profile before upgrading or rolling back; older versions can drop the new sound choices when saving. Supplied recordings retain their Pixabay/Mixkit licenses and bundled credits.
+- Publication is owner-requested through automated Windows build, test, packaging, clean-install, upgrade/data-preservation, checksum, and license gates. Manual audio, tray/notification, keyboard, sleep, and updater/UAC acceptance remain pending. The installer remains unsigned.
 
 ## 0.3.1
 

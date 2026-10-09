@@ -11,19 +11,25 @@ The release destination is `https://github.com/BharathKmalviya/Aggressive-Pomodo
 
 ## Reproduce the package
 
-The unreleased selectable-alarm change adds two optional sound IDs to snapshot format 3; back up the profile before rollback, because older builds ignore and can drop those choices on save. Nine adapted WAVs and sound credits must be present in the executable JAR; original source recordings remain local in `sounds/`, with hashes/provenance in its tracked manifest. Regeneration needs Python/FFmpeg, but normal CI/package builds use checked-in cues and need neither. Keep third-party recording licenses distinct from the MIT code license. Complete the selectable-alarm Windows scenarios in [TESTING.md](TESTING.md#selectable-alarm-checks--2026-10-09) before publishing; this source update does not bump the version or publish an installer.
+Version 0.3.2 adds two optional sound IDs to snapshot format 3; back up the profile before rollback, because older builds ignore and can drop those choices on save. Nine adapted WAVs and sound credits must be present in the executable JAR; original source recordings remain local in `sounds/`, with hashes/provenance in its tracked manifest. Regeneration needs Python/FFmpeg, but normal CI/package builds use checked-in cues and need neither. Keep third-party recording licenses distinct from the MIT code license. Selectable-alarm Windows scenarios remain pending in [TESTING.md](TESTING.md#selectable-alarm-checks--2026-10-09), under the owner-authorized release scope below.
 
-The unreleased close-choice change keeps the app running until explicit Exit. For the upgraded build, the release upgrade harness requests a normal window close, locates the `Close Aggressive Pomodoro` dialog belonging to its tracked process/descendants, verifies foreground ownership, and uses the documented E shortcut to save and exit. The immutable v0.1.0 baseline still uses its original direct-close path. Forced termination is cleanup only and cannot pass the gate. Run the pending tray/keyboard/scaling/notification checks in [TESTING.md](TESTING.md#close-choice-and-background-checks--2026-10-09) before publishing this behavior; no installer/version bump is part of this source change.
+Version 0.3.2 keeps the app running until explicit Exit. For the upgraded build, the release upgrade harness requests a normal window close, locates the `Close Aggressive Pomodoro` dialog belonging to its tracked process/descendants, verifies foreground ownership, and uses the documented E shortcut to save and exit. The immutable v0.1.0 baseline still uses its original direct-close path. Forced termination is cleanup only and cannot pass the gate. Tray/keyboard/scaling/notification checks remain pending in [TESTING.md](TESTING.md#close-choice-and-background-checks--2026-10-09), under the release scope below.
 
 Install JDK 21 and WiX 3.14.1 build tools on Windows. Add `candle.exe` and `light.exe` to `PATH`. Then run:
 
 ```powershell
 .\scripts\package-windows.ps1 -Msi
 Get-Content .\build\distribution\artifacts\SHA256SUMS.txt
-Get-FileHash .\build\distribution\artifacts\AggressivePomodoro-0.3.1.msi -Algorithm SHA256
+Get-FileHash .\build\distribution\artifacts\AggressivePomodoro-0.3.2.msi -Algorithm SHA256
 ```
 
-The script uses the checked-in Kotlin Toolchain wrapper, runs build and tests, builds the executable JAR, creates a runtime-bundled app image and MSI with `jpackage`, smoke-checks the app-image process, and writes a SHA-256 checksum for the exact MSI. It places the MIT License alongside the artifacts and passes it to the MSI packager. The versioned filename follows `desktopApp/resources/version.properties`; replace `0.3.1` in the example after a version change.
+The script uses the checked-in Kotlin Toolchain wrapper, runs build and tests, builds the executable JAR, creates a runtime-bundled app image and MSI with `jpackage`, smoke-checks the app-image process, and writes a SHA-256 checksum for the exact MSI. It places the MIT License alongside the artifacts and passes it to the MSI packager. The versioned filename follows `desktopApp/resources/version.properties`; replace `0.3.2` in the example after a version change.
+
+## v0.3.2 release scope
+
+On 2026-10-09 the owner requested release of the close/background choice and selectable supplied sounds after source build, all 111 tests, executable JAR packaging, strict OpenSpec validation and Windows CI passed, with native manual acceptance disclosed as pending. This authorizes publication through the existing automated gates and is an exception for this release to manual acceptance timing, not a manual pass. Automated Windows build/tests, runtime packaging, clean MSI installation/launch, baseline upgrade/data preservation, checksum, and MIT License gates remain mandatory. Publication evidence will be recorded after those gates and fresh release readback succeed.
+
+Version 0.3.2 includes every-state close choices, retained-window tray background operation with a taskbar fallback, nine offline sound choices, separate saved focus/break alarms, unsaved previews, bounded resource decoding and original-alarm fallback. All third-party sound credits travel inside the application. Snapshot format remains 3; v0.3.1 can read timer/tasks/history but ignores and may drop new sound choices on save. Close the app using explicit Exit and back up `%APPDATA%\AggressivePomodoro\session.properties` before upgrading or rolling back. The installer remains unsigned; audio quality, tray notifications, keyboard/scaling, sleep and interactive updater/UAC acceptance stay pending. The active OpenSpec change remains open.
 
 ## v0.3.1 release scope
 

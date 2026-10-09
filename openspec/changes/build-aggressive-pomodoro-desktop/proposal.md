@@ -44,3 +44,4 @@ None; the repository has no existing OpenSpec capability specs.
 - The starter greeting and tests will be replaced with product behavior and focused unit/integration coverage.
 - Packaging will build on the existing Kotlin Toolchain project; native Windows packaging needs an explicitly verified pipeline because the current `jvm/app` package command produces an executable JAR.
 - Release automation and open-source project documentation are included. A push to `main` publishes only when `version.properties` names an unpublished version and Windows validation succeeds. GitHub About metadata points visitors to the Windows releases. The first supported downloadable platform is Windows; macOS and Linux remain future work.
+- Owner-requested v0.3.2 publication includes close/background behavior and selectable supplied alarms through existing automated release gates, with native manual acceptance still pending and the change kept active.

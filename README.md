@@ -4,6 +4,8 @@ Aggressive Pomodoro is a Windows desktop focus timer built with Kotlin and Compo
 
 **Downloads:** [v0.3.1 release](https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases/tag/v0.3.1) includes the Windows installer, checksum, and license. Windows is the only packaged target at present.
 
+Version 0.3.2 is prepared for publication through the Windows release pipeline. Its close/background choice and sound selectors are described below; manual Windows acceptance remains pending in [Testing](docs/TESTING.md).
+
 ## Screenshots
 
 The Windows app in v0.2.0, captured from the running app with sample tasks and history in an isolated demo profile. Dialog screenshots are cropped for readability. Version 0.3.0 adds separate focus/break alarm previews and Reduce motion in Settings; the images below retain the previous release's version and Settings layout.
@@ -34,14 +36,14 @@ A manual check against GitHub confirms the installed release is current:
 - Local tasks with estimated focus blocks. A completed focus block is credited to the task selected when that block began; skipped blocks receive no credit.
 - The timer distinguishes the task earning the current block from the task selected for the next one. Deleting the captured task preserves the timer and other saved work; marking it done still credits its completed block.
 - Today's completed blocks and focused minutes, plus a report covering the current day and previous six calendar days. Reports use planned focus duration and the local date at completion.
-- Original three-pulse completion sounds: an ascending chord when focus finishes and a sharper return-to-work cue when either break finishes. In the updated source, **Settings → Focus completion sound / Break completion sound** also offers all nine supplied sounds, with separate saved choices and **TEST FOCUS ALARM / TEST BREAK ALARM** previews. Previews use your unsaved choice even when sound is muted; **Save Rules** keeps it across restarts, while Cancel discards edits and stops playback. Both break types share the break sound. This selection feature is unreleased.
+- Original three-pulse completion sounds: an ascending chord when focus finishes and a sharper return-to-work cue when either break finishes. Version 0.3.2 adds all nine supplied sounds to **Settings → Focus completion sound / Break completion sound**, with separate saved choices and **TEST FOCUS ALARM / TEST BREAK ALARM** previews. Previews use your unsaved choice even when sound is muted; **Save Rules** keeps it across restarts, while Cancel discards edits and stops playback. Both break types share the break sound.
 - Independent completion and button-click sounds, including a bundled [Kenney CC0 interface click](https://kenney.nl/assets/interface-sounds) that works offline. Alarm playback does not overlap, rapid click cues are throttled, and unavailable audio shows a visible explanation while the timer keeps working. Asset provenance is recorded in [sound credits](desktopApp/resources/sounds/README.md).
 - Supplied alarm cues play for up to eight seconds per attempt, including reminders, and work offline. The original phase alarms remain the default. Source-input provenance and optional regeneration commands are in [sounds/README.md](sounds/README.md); normal builds need no audio conversion tools.
 - Short phase-color transitions, status/instruction entrances, smooth elapsed progress, and a single final-minute emphasis. Countdown numbers and control positions stay immediate; **Settings → Reduce motion** disables custom motion and is saved across restarts.
 - **About → Check for updates** finds newer stable Windows releases. Download with progress/cancel, then confirm **Install & Exit** to verify the installer, save and back up your session, and open Windows Installer. About also links directly to the GitHub repository.
 - After checking, **View release notes** shows the latest stable release's notes inside the update dialog, even when you're up to date. Notes are selectable and scrollable; viewing them does not open GitHub. Added in v0.3.1.
 
-In the source build, clicking the window's **Close** button (or Alt+F4) offers **Run in background**, **Exit**, and **Cancel**, in every timer state. Background mode keeps the timer, alarms, and saving active; reopen using the tray icon's **Show Aggressive Pomodoro** action. Its **Exit…** action brings back the same choice. If the tray is unavailable, **Minimize** keeps the app reachable from the taskbar. A background completion attempts a tray notification and retains its alert for when you reopen. This change is unreleased; the v0.3.1 installer retains its earlier close behavior.
+Version 0.3.2 makes the window's **Close** button (or Alt+F4) offer **Run in background**, **Exit**, and **Cancel**, in every timer state. Background mode keeps the timer, alarms, and saving active; reopen using the tray icon's **Show Aggressive Pomodoro** action. Its **Exit…** action brings back the same choice. If the tray is unavailable, **Minimize** keeps the app reachable from the taskbar. A background completion attempts a tray notification and retains its alert for when you reopen.
 
 The timer continues while the window is minimized or running in the tray. Explicit **Exit** saves and stops the application; it cannot alert after exiting, and it does not block other applications.
 
@@ -80,6 +82,8 @@ On Windows, the application stores its timer state, settings, tasks, and daily t
 Version 0.2.0 migrates older snapshots to format 3. Close the app and back up the saved file before upgrading if you may downgrade: v0.1.0 cannot read the new format, so restore the pre-upgrade backup before launching it again.
 
 Version 0.3.0 keeps snapshot format 3 and adds an optional saved Reduce motion preference. v0.2.0 can read the same session/tasks/history and ignores that extra preference. Back up the saved file before either upgrading or rolling back.
+
+Version 0.3.2 keeps format 3 and adds optional focus/break sound choices. Earlier format-3 builds can read timer/tasks/history but may drop those choices when saving. Choose explicit **Exit** from the close prompt before backing up or upgrading.
 
 Only one instance can use the saved state at a time. The application has no account, telemetry, or cloud sync.
 

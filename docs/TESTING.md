@@ -1,5 +1,9 @@
 # Windows acceptance checks
 
+## v0.3.2 release preparation — 2026-10-09
+
+The owner requested publication with the close/background and selectable-alarm manual scenarios below still pending. Local release-version build, all 111 tests (40 shared, 71 desktop; zero failures/errors/skips), executable JAR packaging, strict OpenSpec and diff checks passed. Independent JAR inspection verified version 0.3.2, all nine adapted WAV hashes, PCM format/duration/peak/fade bounds and bundled credits. This is automated source/package evidence; native audio, tray/notification, keyboard/scaling, sleep and interactive updater/UAC acceptance remain unverified. Windows CI and release installer/upgrade evidence will be added after publication.
+
 Run `./kotlin.bat build`, `./kotlin.bat test`, and `./kotlin.bat run -m desktopApp` from the repository root. Automated tests cover reducer transitions, task credit, recovery, and snapshot validation; these scenarios check actual desktop behavior. Use Settings to set focus and both breaks to 1 minute while testing, then restore preferred values.
 
 | Scenario | Steps | Expected result |

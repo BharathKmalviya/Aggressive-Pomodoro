@@ -119,3 +119,5 @@ The install action asks for confirmation, re-verifies the cached installer, pers
 ## Migration Plan
 
 Replace the starter UI and example-only tests in place while preserving the existing module split. Add the controller and desktop adapters, then documentation and release automation. Run deterministic timer tests and Windows manual checks before raising the version on `main`. Publish only after the MIT license and all release gates are complete. If a packaged release fails after publication, withdraw the affected download and publish a corrected version; retain the tag and incident note for traceability.
+
+On 2026-10-09 the owner requested v0.3.2 publication after the close/background and selectable-alarm source changes passed automated checks, with native Windows acceptance disclosed as pending. This release follows the existing Windows build/test/runtime-package/clean-install/baseline-upgrade/checksum/license gates. The request permits publication before manual acceptance for this release; it does not mark those scenarios passed. Keep the change active and record immutable tag/asset readback plus independent checksum verification after publication.
