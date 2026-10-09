@@ -82,14 +82,30 @@ The application SHALL default to asking on window-close requests whether to run 
 - **THEN** the countdown and deadline alerts remain active
 
 ### Requirement: Single session owner
-The application SHALL prevent two simultaneously running processes from independently advancing and alerting for the same saved session.
+The application SHALL prevent two simultaneously running processes from independently advancing and alerting for the same saved session. A second launcher or shortcut launch SHALL request activation of the existing window without an ordinary Already running modal and SHALL NOT load or change its snapshot. Activation SHALL restore a hidden/minimized window, cancel an uncommitted close chooser without saving its proposed preference, and retain pending completion/save-error priority. Requests during owner startup SHALL remain available until the UI can handle them. Failed activation SHALL retain ownership protection and provide actionable fallback feedback.
 
 #### Scenario: Second launch
 - **WHEN** the user opens a second instance while one is already running
-- **THEN** the second instance does not start another timer and the user receives a clear indication that the app is already open
+- **THEN** the second instance requests the first window to restore and activate, then exits without another timer or an Already running modal
+
+#### Scenario: Launcher activation during startup or interrupted use
+- **WHEN** activation is requested before the owner's UI is ready, while it is hidden/minimized, or while a close choice or alert is open
+- **THEN** the request is retained through startup, the same window is restored, an uncommitted close choice is cancelled without saving, and a completion or save-error dialog remains the action needing attention
+
+#### Scenario: Existing owner cannot accept activation
+- **WHEN** activation cannot be delivered or acknowledged within a bounded wait
+- **THEN** the new process does not create a second timer or bypass ownership and offers a clear tray/taskbar/restart fallback
 
 ### Requirement: Useful state-driven tray menu
-The installed tray SHALL show current phase, rounded-up countdown, timer status and today's completed blocks/minutes, and refresh its tooltip. It SHALL expose state-appropriate phase-bound Start/Pause/Resume, confirmed Reset/Skip, saved alarm and repeat-reminder toggles, and shortcuts to the existing Reports, Settings, About and update dialogs. Native labels SHALL use supported ASCII punctuation. Pending completions SHALL offer Review instead of timer mutation; close/save-error/installation SHALL disable conflicting actions. Secondary shortcuts SHALL restore the same window and yield to completion alerts. Updates SHALL preserve an existing check/download/result, and SHALL NOT download or install through a tray click.
+The installed tray SHALL show current phase, rounded-up countdown, timer status and today's completed blocks/minutes, and refresh its tooltip. Timer status SHALL open the same window and daily totals SHALL open Reports when permitted, rather than presenting ordinary summaries as disabled controls. It SHALL expose state-appropriate phase-bound Start/Pause/Resume, confirmed Reset/Skip grouped under Timer options, saved alarm and repeat-reminder toggles grouped under Alerts, direct Run in background, and shortcuts to the existing Reports, Settings, About and update dialogs. Native labels SHALL use supported ASCII punctuation. An uncommitted close chooser SHALL leave tray actions available; selecting Show, timer, preferences, navigation or background SHALL cancel the chooser without saving its proposed remembered choice. Explicit tray Exit SHALL still ask. Pending completions SHALL offer Review instead of timer mutation; final saving, save errors and installation SHALL restrict conflicting actions with a clear reason and reachable window/recovery action. Secondary shortcuts SHALL restore the same window and yield to completion alerts. Updates SHALL preserve an existing check/download/result, and SHALL NOT download or install through a tray click.
+
+#### Scenario: Tray remains usable during a close choice
+- **WHEN** the close chooser is open, including with Remember my choice checked, and the user selects a tray timer, preference, navigation, Show or background action
+- **THEN** that action cancels the uncommitted chooser without saving its proposed preference, executes through the normal controller, and preserves phase-bound command and completion priority
+
+#### Scenario: Genuine shutdown restriction and save recovery
+- **WHEN** a final save or installation is in progress, or saving has failed
+- **THEN** the tray explains the state, prevents conflicting mutations, and retains access to the same window; a save error offers explicit Keep app open, retry or warned forced exit and normal availability returns after continuing
 
 #### Scenario: Control a hidden timer
 - **WHEN** the user starts, pauses or resumes a phase from the tray

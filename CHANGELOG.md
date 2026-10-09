@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.3.4
+
+- Opening the launcher or desktop/Start-menu shortcut again now brings the existing app forward instead of showing Already running. Hidden/minimized windows restore, startup requests are retained, and one timer owns the profile. Unresponsive or older running versions retain a bounded recovery fallback.
+- Fixed the tray appearing disabled while the close-choice dialog was open. Tray actions now cancel that uncommitted choice and continue; they never save a proposed Remember my choice setting.
+- Made live timer status open the app and today's totals open Reports. Grouped Reset/Skip under Timer options and sound/reminder checkboxes under Alerts, and added direct Run in background.
+- Added clear saving/update/save-error labels and an explicit Keep app open button after a failed exit save. Actual shutdown and pending-alert protections still apply; tray Exit always asks.
+- Preserved timer/task/history data, close preferences, stale-command protection and existing update progress. Snapshot format and installer identity are unchanged.
+- This correction follows the requested tray improvements and release. Automated Windows build/test/package/install/upgrade/checksum/license gates remain required; native menu, keyboard/scaling and recovery acceptance remains pending.
+
 ## 0.3.3
 
 - Expanded the tray with live phase/countdown/status, today's blocks/minutes, and a timer tooltip. Start, pause or resume without reopening the window.

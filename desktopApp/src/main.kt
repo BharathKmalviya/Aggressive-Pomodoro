@@ -4,6 +4,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.Row
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -35,6 +36,7 @@ import com.pomodoro.presentation.App
 import com.pomodoro.presentation.AppDestination
 import com.pomodoro.presentation.AppRequest
 import com.pomodoro.presentation.desktopTrayState
+import com.pomodoro.presentation.DesktopTrayMode
 import com.pomodoro.presentation.CloseDialog
 import com.pomodoro.presentation.DesktopCloseAction
 import com.pomodoro.presentation.windowCloseAction
@@ -47,6 +49,7 @@ import javax.swing.JOptionPane
 import javax.swing.SwingUtilities
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
@@ -57,11 +60,19 @@ import kotlin.time.Duration.Companion.milliseconds
 
 fun main() {
     val directory = applicationDirectory()
-    val ownership = InstanceLock.acquire(directory)
+    var ownership = InstanceLock.acquire(directory)
     if (ownership == null) {
-        JOptionPane.showMessageDialog(null, "Aggressive Pomodoro is already running. Open it from the tray icon or taskbar.", "Already running", JOptionPane.INFORMATION_MESSAGE)
-        return
+        if (InstanceLock.activateExisting(directory)) return
+        // The owner may have finished exiting while activation was waiting.
+        ownership = InstanceLock.acquire(directory)
+        if (ownership == null) {
+            JOptionPane.showMessageDialog(null,
+                "The running app did not respond to the open request. Open it from the tray or taskbar. If it is still unavailable, exit it before launching again.",
+                "Could not reopen Aggressive Pomodoro", JOptionPane.WARNING_MESSAGE)
+            return
+        }
     }
+    val instance = ownership
     val store = AppStore(directory.resolve("session.properties"))
     val saved = store.load()
     application {
@@ -104,7 +115,7 @@ fun main() {
                     clickPlayback?.cancel()
                     withContext(Dispatchers.IO) { activeAlert?.close() }
                     tray?.close()
-                    ownership.close()
+                    withContext(Dispatchers.IO) { instance.close() }
                     exitApplication()
                 } catch (_: Exception) {
                     closing = false
@@ -135,10 +146,14 @@ fun main() {
             visible = windowVisible,
         ) {
             fun showWindow() {
-                if (closing) return
                 windowVisible = true
                 windowState.isMinimized = false
-                SwingUtilities.invokeLater { window.toFront(); window.requestFocus() }
+                SwingUtilities.invokeLater {
+                    window.toFront()
+                    val target = window.ownedWindows.lastOrNull { it.isVisible } ?: window
+                    target.toFront()
+                    target.requestFocus()
+                }
             }
             val alert = remember(window) { DesktopAlert(window, onPlaybackResult = { warning ->
                 SwingUtilities.invokeLater { audioWarning = warning }
@@ -203,8 +218,32 @@ fun main() {
                     CloseBehavior.ASK -> Unit
                 }
             }
+            fun continueUsingApp(): Boolean {
+                if (closing || exitError) { showWindow(); return false }
+                if (confirmExit) { confirmExit = false; showWindow() }
+                return true
+            }
+            fun openExistingWindow() {
+                if (!closing && !exitError) confirmExit = false
+                showWindow()
+            }
+            LaunchedEffect(instance) {
+                while (true) {
+                    val request = withContext(Dispatchers.IO) { instance.activationRequest() }
+                    if (request != null) {
+                        openExistingWindow()
+                        try {
+                            withContext(Dispatchers.IO) { instance.acknowledgeActivation(request) }
+                        } catch (error: Exception) {
+                            if (error is CancellationException) throw error
+                            System.err.println("Launcher activation acknowledgement failed: ${error.message}")
+                        }
+                    }
+                    delay(250.milliseconds)
+                }
+            }
             fun openFromTray(destination: AppDestination, phaseId: Long?) {
-                if (closing || confirmExit || exitError) return
+                if (!continueUsingApp()) return
                 session.tick()
                 showWindow()
                 if (session.state.pending.isNotEmpty() || phaseId != null && phaseId != session.state.phaseId) return
@@ -214,7 +253,13 @@ fun main() {
             val remainingMs = session.state.remainingAt(session.now)
             val todayDate = LocalDate.now().toString()
             val trayState = desktopTrayState(session.product, remainingMs, todayDate, updates.state.status,
-                blocked = closing || confirmExit || exitError)
+                mode = when {
+                    updates.state.status == UpdateStatus.INSTALLING -> DesktopTrayMode.INSTALLING
+                    closing -> DesktopTrayMode.SAVING
+                    exitError -> DesktopTrayMode.SAVE_ERROR
+                    confirmExit -> DesktopTrayMode.CLOSE_CHOICE
+                    else -> DesktopTrayMode.NORMAL
+                })
             LaunchedEffect(session.state.pending.map { it.phaseId }) {
                 if (session.state.pending.isNotEmpty()) confirmExit = false
             }
@@ -225,19 +270,20 @@ fun main() {
                 }
                 if (image != null) {
                     window.iconImage = image
-                    tray = DesktopTray.create(image, initialState = trayState, onShow = ::showWindow, onExit = {
-                        if (!closing && !exitError) { showWindow(); requestClose(explicitTrayExit = true) }
+                    tray = DesktopTray.create(image, initialState = trayState, onShow = ::openExistingWindow, onExit = {
+                        showWindow()
+                        if (!closing && !exitError) requestClose(explicitTrayExit = true)
                     }, onTimerCommand = { command ->
-                        if (!closing && !confirmExit && !exitError) dispatchSession(command)
+                        if (continueUsingApp()) dispatchSession(command)
                     }, onOpen = ::openFromTray, onSoundChanged = { enabled ->
-                        if (!closing && !confirmExit && !exitError) {
+                        if (continueUsingApp()) {
                             dispatchSession(SessionCommand.ChangeSettings(session.state.settings.copy(soundEnabled = enabled)))
                         }
                     }, onRemindersChanged = { enabled ->
-                        if (!closing && !confirmExit && !exitError) {
+                        if (continueUsingApp()) {
                             dispatchSession(SessionCommand.ChangeSettings(session.state.settings.copy(aggressiveAlertsEnabled = enabled)))
                         }
-                    }, onUnavailable = {
+                    }, onBackground = { if (continueUsingApp()) background() }, onUnavailable = {
                         trayAvailable = false
                         if (!windowVisible) showWindow()
                     })
@@ -282,7 +328,7 @@ fun main() {
                                     clickPlayback?.cancel()
                                     withContext(Dispatchers.IO) { alert.close() }
                                     tray?.close()
-                                    runCatching { ownership.close() }
+                                    runCatching { withContext(Dispatchers.IO) { instance.close() } }
                                     exitApplication()
                                 }
                             } finally {
@@ -314,17 +360,20 @@ fun main() {
                 title = { Text("Could not save changes") },
                 text = { Text("The latest session could not be saved. Check storage access, then retry. Exiting now may lose recent changes.") },
                 confirmButton = { Button(onClick = { exitError = false; exit() }) { Text("RETRY SAVE") } },
-                dismissButton = { TextButton(onClick = {
-                    closing = true
-                    scope.launch {
-                        completionPlayback?.cancel()
-                        clickPlayback?.cancel()
-                        withContext(Dispatchers.IO) { alert.close() }
-                        tray?.close()
-                        ownership.close()
-                        exitApplication()
-                    }
-                }) { Text("EXIT ANYWAY") } },
+                dismissButton = { Row {
+                    TextButton(onClick = { exitError = false }) { Text("KEEP APP OPEN") }
+                    TextButton(onClick = {
+                        closing = true
+                        scope.launch {
+                            completionPlayback?.cancel()
+                            clickPlayback?.cancel()
+                            withContext(Dispatchers.IO) { alert.close() }
+                            tray?.close()
+                            withContext(Dispatchers.IO) { instance.close() }
+                            exitApplication()
+                        }
+                    }) { Text("EXIT ANYWAY") }
+                } },
             )
         }
     }

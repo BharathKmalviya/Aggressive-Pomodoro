@@ -47,10 +47,49 @@ class DesktopTrayStateTest {
         assertTrue(pending.actionsEnabled)
         assertFalse(pending.timerActionsEnabled)
         assertFalse(pending.navigationEnabled)
-        val blocked = desktopTrayState(product, 60_000, date, UpdateStatus.IDLE, blocked = true)
+        val blocked = desktopTrayState(product, 60_000, date, UpdateStatus.IDLE, mode = DesktopTrayMode.SAVING)
         assertFalse(blocked.actionsEnabled)
         assertFalse(blocked.timerActionsEnabled)
         assertFalse(blocked.navigationEnabled)
+    }
+
+    @Test fun uncommittedCloseChoiceKeepsNormalActionsAvailableInEveryTimerState() {
+        SessionStatus.entries.forEach { status ->
+            val product = ProductState().let { it.copy(session = it.session.copy(status = status)) }
+            val normal = desktopTrayState(product, 60_000, date, UpdateStatus.IDLE)
+            val choosing = desktopTrayState(product, 60_000, date, UpdateStatus.IDLE, DesktopTrayMode.CLOSE_CHOICE)
+            assertTrue(choosing.actionsEnabled)
+            assertTrue(choosing.exitEnabled)
+            assertEquals(normal.timerActionsEnabled, choosing.timerActionsEnabled)
+            assertEquals(normal.navigationEnabled, choosing.navigationEnabled)
+            assertEquals(normal.primaryCommand, choosing.primaryCommand)
+            assertEquals("Cancel close and open app", choosing.showLabel)
+            assertTrue(choosing.tooltip.contains("cancel the open close choice"))
+        }
+    }
+
+    @Test fun actualSavingInstallingAndSaveErrorExplainRestrictionsAndRecovery() {
+        val product = ProductState()
+        for (mode in listOf(DesktopTrayMode.SAVING, DesktopTrayMode.INSTALLING, DesktopTrayMode.SAVE_ERROR)) {
+            val restricted = desktopTrayState(product, 60_000, date, UpdateStatus.IDLE, mode)
+            assertFalse(restricted.actionsEnabled)
+            assertFalse(restricted.timerActionsEnabled)
+            assertFalse(restricted.navigationEnabled)
+            assertTrue(restricted.showLabel.all { it.code < 128 })
+            assertTrue(restricted.tooltip.lines().size >= 3)
+            assertEquals(mode == DesktopTrayMode.SAVE_ERROR, restricted.exitEnabled)
+            if (mode == DesktopTrayMode.SAVE_ERROR) {
+                assertEquals("Resolve save error...", restricted.showLabel)
+                assertEquals("Review save error...", restricted.exitLabel)
+                assertTrue(restricted.tooltip.contains("retry or keep it open"))
+            }
+        }
+        val recovered = desktopTrayState(product, 60_000, date, UpdateStatus.IDLE)
+        assertTrue(recovered.actionsEnabled)
+        assertTrue(recovered.timerActionsEnabled)
+        assertTrue(recovered.navigationEnabled)
+        assertEquals("Open Aggressive Pomodoro", recovered.showLabel)
+        assertEquals("Exit...", recovered.exitLabel)
     }
 
     @Test fun activeUpdatesAreViewedAndSavedCheckboxesReflectCurrentPreferences() {

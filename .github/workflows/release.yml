@@ -101,11 +101,25 @@ jobs:
             $exe = Join-Path $env:ProgramFiles 'AggressivePomodoro/AggressivePomodoro.exe'
             if (-not (Test-Path $exe)) { throw "Installed app missing: $exe" }
             $app = Start-Process -FilePath $exe -WindowStyle Hidden -PassThru
+            $secondLaunch = $null
             try {
               Start-Sleep -Seconds 5
               $app.Refresh()
               if ($app.HasExited) { throw "Installed app exited early: $($app.ExitCode)" }
+              $secondLaunch = Start-Process -FilePath $exe -WindowStyle Hidden -PassThru
+              if (-not $secondLaunch.WaitForExit(15000)) { throw 'Second launcher did not exit after requesting activation' }
+              if ($secondLaunch.ExitCode -ne 0) { throw "Second launcher failed: $($secondLaunch.ExitCode)" }
+              $app.Refresh()
+              if ($app.HasExited) { throw 'Activation stopped the existing owner' }
+              $profileDirectory = Join-Path $env:APPDATA 'AggressivePomodoro'
+              $activationRequest = (Get-Content -LiteralPath (Join-Path $profileDirectory 'activation.request') -Raw).Trim()
+              $activationResponse = (Get-Content -LiteralPath (Join-Path $profileDirectory 'activation.response') -Raw).Trim()
+              $activationId = [guid]::Empty
+              if (-not [guid]::TryParseExact($activationRequest, 'D', [ref]$activationId) -or
+                  $activationRequest -ne $activationResponse) { throw 'Existing owner did not acknowledge the second launcher' }
+              Write-Host 'Packaged second-launch activation acknowledged; existing owner stayed alive. Foreground focus remains manual acceptance.'
             } finally {
+              if ($secondLaunch -and -not $secondLaunch.HasExited) { Stop-Process -Id $secondLaunch.Id -Force }
               if (-not $app.HasExited) { Stop-Process -Id $app.Id -Force }
             }
           } finally {

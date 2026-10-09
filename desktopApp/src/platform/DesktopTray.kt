@@ -4,10 +4,7 @@ import com.pomodoro.domain.Phase
 import com.pomodoro.domain.SessionCommand
 import com.pomodoro.presentation.AppDestination
 import com.pomodoro.presentation.DesktopTrayState
-import java.awt.CheckboxMenuItem
 import java.awt.Image
-import java.awt.MenuItem
-import java.awt.PopupMenu
 import java.awt.SystemTray
 import java.awt.TrayIcon
 import java.beans.PropertyChangeListener
@@ -22,44 +19,14 @@ class DesktopTray private constructor(
     onShow: () -> Unit,
     onExit: () -> Unit,
     onTimerCommand: (SessionCommand) -> Unit,
-    private val onOpen: (AppDestination, Long?) -> Unit,
+    onOpen: (AppDestination, Long?) -> Unit,
     onSoundChanged: (Boolean) -> Unit,
     onRemindersChanged: (Boolean) -> Unit,
+    onBackground: () -> Unit,
 ) : AutoCloseable {
     private var closed = false
-    private var state = initialState
-    private val statusItem = MenuItem().apply { isEnabled = false }
-    private val todayItem = MenuItem().apply { isEnabled = false }
-    private val primaryItem = MenuItem().apply {
-        addActionListener {
-            if (!closed && state.actionsEnabled) {
-                state.primaryCommand?.let(onTimerCommand) ?: onShow()
-            }
-        }
-    }
-    private fun shortcut(label: String, destination: AppDestination, timer: Boolean = false) =
-        MenuItem(label).apply {
-            addActionListener {
-                if (!closed && if (timer) state.timerActionsEnabled else state.navigationEnabled) {
-                    onOpen(destination, if (timer) state.phaseId else null)
-                }
-            }
-        }
-    private val resetItem = shortcut("Reset current block...", AppDestination.RESET, timer = true)
-    private val skipItem = shortcut("Skip current phase...", AppDestination.SKIP, timer = true)
-    private val soundItem = CheckboxMenuItem("Alarm sound").apply {
-        addItemListener { if (!closed && this@DesktopTray.state.actionsEnabled) onSoundChanged(state) }
-    }
-    private val remindersItem = CheckboxMenuItem("Repeat completion reminders").apply {
-        addItemListener { if (!closed && this@DesktopTray.state.actionsEnabled) onRemindersChanged(state) }
-    }
-    private val reportsItem = shortcut("Reports...", AppDestination.REPORTS)
-    private val settingsItem = shortcut("Settings...", AppDestination.SETTINGS)
-    private val updateItem = shortcut("Check for updates...", AppDestination.UPDATES)
-    private val aboutItem = shortcut("About...", AppDestination.ABOUT)
-    private val exitItem = MenuItem("Exit...").apply {
-        addActionListener { if (!closed && state.actionsEnabled) onExit() }
-    }
+    private val menu = DesktopTrayMenu(initialState, onShow, onExit, onTimerCommand, onOpen,
+        onSoundChanged, onRemindersChanged, onBackground)
     private val removed = PropertyChangeListener {
         SwingUtilities.invokeLater {
             if (!closed && icon !in tray.trayIcons) onUnavailable()
@@ -67,26 +34,7 @@ class DesktopTray private constructor(
     }
 
     init {
-        icon.popupMenu = PopupMenu().apply {
-            add(MenuItem("Show Aggressive Pomodoro").apply { addActionListener { if (!closed) onShow() } })
-            addSeparator()
-            add(statusItem)
-            add(todayItem)
-            addSeparator()
-            add(primaryItem)
-            add(resetItem)
-            add(skipItem)
-            addSeparator()
-            add(soundItem)
-            add(remindersItem)
-            addSeparator()
-            add(reportsItem)
-            add(settingsItem)
-            add(updateItem)
-            add(aboutItem)
-            addSeparator()
-            add(exitItem)
-        }
+        icon.popupMenu = menu.popup
         icon.addActionListener { if (!closed) onShow() }
         update(initialState)
     }
@@ -94,18 +42,7 @@ class DesktopTray private constructor(
     /** Called on the event thread; avoid redundant native writes on the 250ms timer tick. */
     fun update(next: DesktopTrayState) {
         if (closed) return
-        state = next
-        statusItem.setLabelIfChanged(next.statusText)
-        todayItem.setLabelIfChanged(next.todayText)
-        primaryItem.setLabelIfChanged(next.primaryLabel)
-        updateItem.setLabelIfChanged(next.updateLabel)
-        primaryItem.setEnabledIfChanged(next.actionsEnabled)
-        resetItem.setEnabledIfChanged(next.timerActionsEnabled)
-        skipItem.setEnabledIfChanged(next.timerActionsEnabled)
-        listOf(reportsItem, settingsItem, updateItem, aboutItem).forEach { it.setEnabledIfChanged(next.navigationEnabled) }
-        listOf(soundItem, remindersItem, exitItem).forEach { it.setEnabledIfChanged(next.actionsEnabled) }
-        if (soundItem.state != next.soundEnabled) soundItem.state = next.soundEnabled
-        if (remindersItem.state != next.remindersEnabled) remindersItem.state = next.remindersEnabled
+        menu.update(next)
         if (icon.toolTip != next.tooltip) icon.toolTip = next.tooltip
     }
 
@@ -125,6 +62,7 @@ class DesktopTray private constructor(
     override fun close() {
         if (closed) return
         closed = true
+        menu.close()
         tray.removePropertyChangeListener("trayIcons", removed)
         tray.remove(icon)
     }
@@ -140,6 +78,7 @@ class DesktopTray private constructor(
             onOpen: (AppDestination, Long?) -> Unit,
             onSoundChanged: (Boolean) -> Unit,
             onRemindersChanged: (Boolean) -> Unit,
+            onBackground: () -> Unit,
             onUnavailable: () -> Unit,
         ): DesktopTray? {
             if (!SystemTray.isSupported()) return null
@@ -151,7 +90,7 @@ class DesktopTray private constructor(
                     isImageAutoSize = true
                 }
                 val adapter = DesktopTray(tray, icon, onUnavailable, initialState, onShow, onExit,
-                    onTimerCommand, onOpen, onSoundChanged, onRemindersChanged)
+                    onTimerCommand, onOpen, onSoundChanged, onRemindersChanged, onBackground)
                 tray.add(icon)
                 tray.addPropertyChangeListener("trayIcons", adapter.removed)
                 adapter
@@ -163,6 +102,3 @@ class DesktopTray private constructor(
         }
     }
 }
-
-private fun MenuItem.setLabelIfChanged(value: String) { if (label != value) label = value }
-private fun MenuItem.setEnabledIfChanged(value: Boolean) { if (isEnabled != value) isEnabled = value }

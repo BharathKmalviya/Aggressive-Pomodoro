@@ -20,10 +20,14 @@ Install JDK 21 and WiX 3.14.1 build tools on Windows. Add `candle.exe` and `ligh
 ```powershell
 .\scripts\package-windows.ps1 -Msi
 Get-Content .\build\distribution\artifacts\SHA256SUMS.txt
-Get-FileHash .\build\distribution\artifacts\AggressivePomodoro-0.3.2.msi -Algorithm SHA256
+Get-FileHash .\build\distribution\artifacts\AggressivePomodoro-0.3.4.msi -Algorithm SHA256
 ```
 
-The script uses the checked-in Kotlin Toolchain wrapper, runs build and tests, builds the executable JAR, creates a runtime-bundled app image and MSI with `jpackage`, smoke-checks the app-image process, and writes a SHA-256 checksum for the exact MSI. It places the MIT License alongside the artifacts and passes it to the MSI packager. The versioned filename follows `desktopApp/resources/version.properties`; replace `0.3.2` in the example after a version change.
+The script uses the checked-in Kotlin Toolchain wrapper, runs build and tests, builds the executable JAR, creates a runtime-bundled app image and MSI with `jpackage`, smoke-checks the app-image process, and writes a SHA-256 checksum for the exact MSI. It places the MIT License alongside the artifacts and passes it to the MSI packager. The versioned filename follows `desktopApp/resources/version.properties`; replace `0.3.4` in the example after a version change.
+
+## v0.3.4 correction scope
+
+This patch continues the owner's requested tray improvement and release after saved close options. Following v0.3.3, the owner reported that nearly every menu option appeared disabled and the menu did not feel ready for use, then requested intuitive launcher reopening in place of the Already running message. Correct blanket close-choice blocking, make summaries actionable, group timer/alert commands, add direct background operation, explicit save-error continuation and bounded local activation of the existing owner from subsequent launches. Keep snapshot format 3, installer UpgradeCode, phase-bound commands, completion priority and explicit tray Exit intact. Publish only after the exact commit's automated Windows build/tests/runtime packaging/clean MSI install and launch/baseline upgrade/data-preservation/checksum/license gates pass, then independently read back and verify the immutable tag and assets. The clean-install smoke also launches a second packaged process, requires it to exit successfully with a matching activation acknowledgement, and requires the existing owner to stay alive; it does not prove foreground focus. The reported screenshots establish the usability issues; updated launcher focus/native behavior, keyboard/scaling and recovery scenarios remain manual acceptance in `TESTING.md`, not automated proof. Keep OpenSpec active.
 
 ## v0.3.3 release scope
 
