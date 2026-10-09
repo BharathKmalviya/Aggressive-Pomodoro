@@ -27,7 +27,7 @@ The script uses the checked-in Kotlin Toolchain wrapper, runs build and tests, b
 
 ## v0.3.2 release scope
 
-On 2026-10-09 the owner requested release of the close/background choice and selectable supplied sounds after source build, all 111 tests, executable JAR packaging, strict OpenSpec validation and Windows CI passed, with native manual acceptance disclosed as pending. This authorizes publication through the existing automated gates and is an exception for this release to manual acceptance timing, not a manual pass. Automated Windows build/tests, runtime packaging, clean MSI installation/launch, baseline upgrade/data preservation, checksum, and MIT License gates remain mandatory. Publication evidence will be recorded after those gates and fresh release readback succeed.
+On 2026-10-09 the owner requested release of the close/background choice and selectable supplied sounds after source build, all 111 tests, executable JAR packaging, strict OpenSpec validation and Windows CI passed, with native manual acceptance disclosed as pending. This authorizes publication through the existing automated gates and is an exception for this release to manual acceptance timing, not a manual pass. Automated Windows build/tests, runtime packaging, clean MSI installation/launch, baseline upgrade/data preservation, checksum, and MIT License gates remain mandatory. Publication evidence is recorded below.
 
 Version 0.3.2 includes every-state close choices, retained-window tray background operation with a taskbar fallback, nine offline sound choices, separate saved focus/break alarms, unsaved previews, bounded resource decoding and original-alarm fallback. All third-party sound credits travel inside the application. Snapshot format remains 3; v0.3.1 can read timer/tasks/history but ignores and may drop new sound choices on save. Close the app using explicit Exit and back up `%APPDATA%\AggressivePomodoro\session.properties` before upgrading or rolling back. The installer remains unsigned; audio quality, tray notifications, keyboard/scaling, sleep and interactive updater/UAC acceptance stay pending. The active OpenSpec change remains open.
 
@@ -104,3 +104,15 @@ The [immutable v0.3.1 release](https://github.com/BharathKmalviya/Aggressive-Pom
 - `LICENSE`: 1,072 bytes; SHA-256 `cc9829233de2b0ba9f107178cf4da58612848a70f07b2344eab1f1ec6df1f3fc`.
 
 No installer was executed on the development machine. The saved-rules and embedded-note Windows manual checks and earlier native acceptance remain pending in [TESTING.md](TESTING.md). Snapshot format stays at 3 and the active OpenSpec change remains open.
+
+## v0.3.2 published verification
+
+On 2026-10-09, [Windows CI](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/37928822524) and the [release workflow](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/37928822448) passed for `c17d48023fc087cf2588145025afd544ed417561`. Release logs record all 111 tests passing (40 shared, 71 desktop), zero failures. Runtime packaging, clean MSI installation/launch, v0.1.0 baseline upgrade, old-product removal, paused timer/task/history preservation, checksum and MIT License gates passed before publication. The upgraded app's new close-choice dialog was located, focused and exited normally during the upgrade gate.
+
+The [immutable v0.3.2 release](https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases/tag/v0.3.2) was published at `2026-10-09T12:19:21Z` (17:49:21 IST). Fresh API/latest-release and remote-tag readback confirmed stable, published, immutable status and the exact validated tag commit. Independent downloads matched all three asset sizes and GitHub SHA-256 digests; the MSI also matched `SHA256SUMS.txt`, and the MIT License matched its pinned hash:
+
+- `AggressivePomodoro-0.3.2.msi`: 101,585,816 bytes; SHA-256 `0e47b0ff415e6fc9df5d62110bec147e9461e7e9c2e64053c89bc44aa9df7625`.
+- `SHA256SUMS.txt`: 96 bytes; SHA-256 `25ec986448082a8e76eb997fdee42832ee1303799d2b5438fa736d9b83c57af4`.
+- `LICENSE`: 1,072 bytes; SHA-256 `cc9829233de2b0ba9f107178cf4da58612848a70f07b2344eab1f1ec6df1f3fc`.
+
+Read-only Windows Installer database/cabinet inspection of the public MSI confirmed ProductVersion 0.3.2 and the pinned UpgradeCode. Its embedded executable JAR contains version 0.3.2 and all nine WAVs matching the tracked prepared hashes, PCM formats and eight-second limits. Bundled sound-credit content matches source after Git line-ending normalization. The MSI and app were not executed on the development machine. Native audio quality, tray notifications, keyboard/scaling, sleep and interactive updater/UAC checks remain pending in [TESTING.md](TESTING.md). Snapshot format stays at 3 and the active OpenSpec change remains open.
