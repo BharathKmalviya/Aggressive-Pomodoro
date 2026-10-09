@@ -57,6 +57,8 @@ fun App(
     onInstallUpdate: () -> Unit,
     onOpenRepository: () -> Unit,
     browserWarning: String?,
+    closeRequested: Boolean = false,
+    dialogsVisible: Boolean = true,
     onSessionCommand: (SessionCommand) -> Unit,
     onTaskCommand: (TaskCommand) -> Unit,
     onUiClick: () -> Unit,
@@ -69,8 +71,8 @@ fun App(
     val today = product.history.on(todayDate)
     val pending = session.pending.isNotEmpty()
     val activeTask = product.board.tasks.firstOrNull { it.id == product.activeTaskId }
-    LaunchedEffect(pending) {
-        if (pending) {
+    LaunchedEffect(pending, closeRequested) {
+        if (pending || closeRequested) {
             settingsOpen = false
             reportsOpen = false
             aboutOpen = false
@@ -118,7 +120,7 @@ fun App(
                             modifier = Modifier.weight(1.15f).fillMaxHeight(), scrollable = true,
                             onCommand = onSessionCommand, onUiClick = onUiClick)
                         TaskPanel(product.board, Modifier.weight(0.85f).fillMaxHeight(),
-                            activeTaskId = product.activeTaskId, suppressDialogs = pending,
+                            activeTaskId = product.activeTaskId, suppressDialogs = pending || closeRequested,
                             onTaskCommand = onTaskCommand, onUiClick = onUiClick)
                     }
                 } else {
@@ -127,14 +129,14 @@ fun App(
                         TimerPanel(session, remainingMs, activeTask, product.board.selected,
                             modifier = Modifier.fillMaxWidth(), onCommand = onSessionCommand, onUiClick = onUiClick)
                         TaskPanel(product.board, Modifier.fillMaxWidth().height(560.dp),
-                            activeTaskId = product.activeTaskId, suppressDialogs = pending,
+                            activeTaskId = product.activeTaskId, suppressDialogs = pending || closeRequested,
                             onTaskCommand = onTaskCommand, onUiClick = onUiClick)
                     }
                 }
             }
         }
 
-        session.pending.firstOrNull()?.let { event ->
+        session.pending.firstOrNull()?.takeIf { dialogsVisible && !closeRequested }?.let { event ->
             val accent = if (session.phase == Phase.FOCUS) UiColor.focus else UiColor.breakTime
             val action = when {
                 session.pending.size > 1 -> "REVIEW NEXT ALERT"
@@ -185,16 +187,16 @@ fun App(
                 },
             )
         }
-        if (!pending && settingsOpen) {
+        if (!pending && !closeRequested && dialogsVisible && settingsOpen) {
             DisposableEffect(Unit) { onDispose { onStopPreview() } }
             SettingsDialog(session.settings, audioWarning, onPreviewAlarm, onSave = {
                 onStopPreview()
                 onSessionCommand(SessionCommand.ChangeSettings(it)); settingsOpen = false
             }, onDismiss = { onStopPreview(); onUiClick(); settingsOpen = false })
         }
-        if (!pending && reportsOpen) ReportsDialog(product.history, todayDate,
+        if (!pending && !closeRequested && dialogsVisible && reportsOpen) ReportsDialog(product.history, todayDate,
             onClose = { onUiClick(); reportsOpen = false })
-        if (!pending && aboutOpen) AlertDialog(
+        if (!pending && !closeRequested && dialogsVisible && aboutOpen) AlertDialog(
             onDismissRequest = { aboutOpen = false },
             title = { Text("AGGRESSIVE POMODORO", fontWeight = FontWeight.Black) },
             text = {
@@ -232,7 +234,7 @@ fun App(
             },
             dismissButton = { TextButton(onClick = { onUiClick(); aboutOpen = false }) { Text("CLOSE") } },
         )
-        if (!pending && updatesOpen) UpdateDialog(
+        if (!pending && !closeRequested && dialogsVisible && updatesOpen) UpdateDialog(
             state = updateState, currentVersion = version,
             onCheck = onCheckUpdates, onDownload = onDownloadUpdate, onCancel = onCancelUpdate,
             onInstall = onInstallUpdate,

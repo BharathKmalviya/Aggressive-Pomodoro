@@ -162,7 +162,11 @@ jobs:
               private static extern int GetWindowText(IntPtr handle, StringBuilder text, int count);
               [DllImport("user32.dll", SetLastError = true)]
               private static extern bool PostMessage(IntPtr handle, uint message, IntPtr wParam, IntPtr lParam);
-              public static IntPtr Find(uint[] processIds) {
+              [DllImport("user32.dll")]
+              private static extern bool SetForegroundWindow(IntPtr handle);
+              [DllImport("user32.dll")]
+              private static extern IntPtr GetForegroundWindow();
+              public static IntPtr Find(uint[] processIds, string expectedTitle = "Aggressive Pomodoro") {
                   IntPtr result = IntPtr.Zero;
                   EnumWindows((handle, data) => {
                       uint owner;
@@ -170,7 +174,7 @@ jobs:
                       if (Array.IndexOf(processIds, owner) < 0) return true;
                       var title = new StringBuilder(256);
                       GetWindowText(handle, title, title.Capacity);
-                      if (title.ToString() != "Aggressive Pomodoro") return true;
+                      if (title.ToString() != expectedTitle) return true;
                       result = handle;
                       return false;
                   }, IntPtr.Zero);
@@ -179,9 +183,14 @@ jobs:
               public static bool Close(IntPtr handle) {
                   return PostMessage(handle, 0x0010, IntPtr.Zero, IntPtr.Zero);
               }
+              public static bool Activate(IntPtr handle) {
+                  SetForegroundWindow(handle);
+                  return GetForegroundWindow() == handle;
+              }
           }
           '@
-          function Start-AppAndClose([string]$exe) {
+          Add-Type -AssemblyName System.Windows.Forms
+          function Start-AppAndClose([string]$exe, [bool]$confirmClose = $false) {
             $exe = (Resolve-Path -LiteralPath $exe).Path
             $app = Start-Process -FilePath $exe -WindowStyle Hidden -PassThru
             $processIds = [System.Collections.Generic.HashSet[uint32]]::new()
@@ -210,6 +219,21 @@ jobs:
               # Give Compose time to attach the controller before requesting its save-and-close path.
               Start-Sleep -Seconds 2
               if (-not [UpgradeSmokeWindow]::Close($window)) { throw 'Could not request a normal app close during upgrade verification' }
+              if ($confirmClose) {
+                $dialogDeadline = [DateTime]::UtcNow.AddSeconds(10)
+                $closeDialog = [IntPtr]::Zero
+                do {
+                  $closeDialog = [UpgradeSmokeWindow]::Find([uint32[]]@($processIds), 'Close Aggressive Pomodoro')
+                  if ($closeDialog -ne [IntPtr]::Zero) { break }
+                  Start-Sleep -Milliseconds 100
+                } while ([DateTime]::UtcNow -lt $dialogDeadline)
+                if ($closeDialog -eq [IntPtr]::Zero) { throw 'The upgraded app did not offer the close choice' }
+                # Send the documented Exit shortcut only to a verified foreground
+                # dialog belonging to this isolated launch, never an unrelated app.
+                Start-Sleep -Milliseconds 500
+                if (-not [UpgradeSmokeWindow]::Activate($closeDialog)) { throw 'Could not focus the owned close choice' }
+                [System.Windows.Forms.SendKeys]::SendWait('e')
+              }
               if (-not $app.WaitForExit(15000)) { throw 'App did not save and close during upgrade verification' }
               if ($app.ExitCode -ne 0) { throw "App close failed: $($app.ExitCode)" }
             } finally {
@@ -261,7 +285,7 @@ jobs:
             Invoke-Msi '/i' $newMsi
             if ($installer.ProductState($baselineProductCode) -ne -1) { throw 'The old version remains installed beside the upgrade' }
             if ($installer.ProductState($newProductCode) -ne 5) { throw 'The new MSI product is not installed' }
-            Start-AppAndClose $exe
+            Start-AppAndClose $exe $true
             $saved = @{}
             foreach ($line in Get-Content -LiteralPath $snapshot) {
               if ($line -match '^[^#!][^=]*=') { $parts = $line -split '=', 2; $saved[$parts[0]] = $parts[1] }

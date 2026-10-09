@@ -47,11 +47,19 @@ The application SHALL detect a material disagreement between elapsed monotonic t
 - **THEN** the timer stops advancing and the user is prompted to resume or reset the phase
 
 ### Requirement: Explicit exit behavior
-The application SHALL explain that an active timer cannot alert after the application exits. Closing the window during a running phase SHALL require confirmation; minimizing SHALL keep the timer running.
+The application SHALL ask on every window-close request whether to run in the background, exit, or cancel, including idle, paused and waiting states. It SHALL explain that alerts stop after Exit. Background mode SHALL retain the existing timer, persistence and single-instance ownership, hide the window only with an installed tray restore path, and offer taskbar minimization when the tray is unavailable. Only explicit Exit SHALL save and shut down. Tray Show SHALL restore the same window; tray Exit SHALL restore and ask for confirmation. Native tray removal SHALL restore a hidden window. Successful exit, forced exit and update installation SHALL remove tray resources. Saving failures SHALL keep the app usable and visible.
 
 #### Scenario: Close running app
-- **WHEN** the user requests to close the window during a running focus or break phase
-- **THEN** the application asks for confirmation before exiting
+- **WHEN** the user requests to close the window in any timer state
+- **THEN** the application offers background/minimize, Exit and Cancel; dismissing or cancelling preserves the window and session
+
+#### Scenario: Background and restore
+- **WHEN** the user chooses Run in background and later activates tray Show
+- **THEN** the same window returns with elapsed timer progress, pending alerts, tasks and report credit preserved, without another session controller
+
+#### Scenario: Unavailable or removed tray
+- **WHEN** the tray cannot be installed or an installed tray icon is removed while the window is hidden
+- **THEN** the window remains reachable through taskbar minimization or immediate restoration
 
 #### Scenario: Minimize running app
 - **WHEN** the user minimizes the window during a running phase

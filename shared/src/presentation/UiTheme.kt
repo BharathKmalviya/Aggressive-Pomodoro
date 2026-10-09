@@ -20,7 +20,7 @@ internal object UiColor {
 }
 
 @Composable
-internal fun ProductTheme(content: @Composable () -> Unit) {
+fun ProductTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = darkColorScheme(
             primary = UiColor.focus,

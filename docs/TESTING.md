@@ -24,6 +24,25 @@ Run `./kotlin.bat build`, `./kotlin.bat test`, and `./kotlin.bat run -m desktopA
 
 Do not treat a passing build or app-image process smoke check as proof of these visual, audio, install, or sleep scenarios. Record the Windows version, app version, outcome, and any screenshot or log when performing release acceptance.
 
+## Close choice and background checks — 2026-10-09
+
+Run the updated source with `.\kotlin.bat run -m desktopApp`. These changes are not in the published v0.3.1 installer. Save 1-minute durations and use Reset Block if a phase is already active. These are pending manual acceptance scenarios, not recorded passes.
+
+| Scenario | Steps | Expected result |
+| --- | --- | --- |
+| Every-state close | Click X while idle, running focus/both breaks, paused, and waiting with pending alerts; repeat Alt+F4 | One chooser offers Background (or Minimize), Exit, Cancel. No direct exit or lost pending alert. |
+| Cancel and keyboard | Open the chooser, use Cancel, Escape, and its X; reopen and Tab/Space through actions; use B and then E on another attempt | Cancel/dismiss keeps the session untouched; B backgrounds/minimizes, E explicitly saves and exits. Controls fit at Windows 100%, 150%, and 200% scaling. |
+| Background and restore | Start focus, X → Background, wait 15 seconds; double-click tray icon or right-click → Show | Main window hides and same countdown returns with elapsed time accounted for; no reset, extra controller or duplicate credit. |
+| Completion while hidden | Background a 1-minute focus with sound enabled; wait for focus then break to end without review; Show | Notification/sound attempts follow preferences; dialogs stay hidden until Show. Both events and one focus/task/report credit remain; progression waits after the second event. Reminders remain bounded. |
+| Muted background | Mute completion sound and/or disable reminders, then background through completion | Preferences remain respected; retained visual alert and tray notification do not require sound. Windows may suppress notifications. |
+| Tray exit and second launch | Background, start another instance, dismiss its message, then tray → Exit… → Cancel; repeat → Exit | Second launch directs you to tray/taskbar and owns no new timer. Tray Exit restores and prompts; cancel continues, explicit Exit saves/removes tray, relaunch recovers. |
+| Tray unavailable/lost | On a desktop without tray support check X; on Windows hide to tray then restart Explorer through Task Manager | Unsupported tray offers Minimize and restores through taskbar; a removed tray icon restores the hidden app. No unreachable process. |
+| Dialog priority | Open Settings/update notes then request close; separately open close choice just before completion | Secondary dialog yields; a new completion dismisses the choice and preserves its alert. Acknowledgement and background/exit never discard another event. |
+| Failed exit and retry | In a disposable profile make saves fail, choose Exit (including tray Exit), dismiss error, continue editing; restore access and retry | App is visible and usable after failure; latest state saves on retry, tray removes only on actual shutdown. |
+| Update/forced exit cleanup | In a disposable profile follow verified Install & Exit; separately exercise Exit Anyway after a save failure | Successful shutdown removes tray and releases ownership; failed update preparation retains working app/tray. Exit Anyway retains its existing explicit data-loss warning. |
+
+Local verification (2026-10-09): final Kotlin build, all 106 existing automated regressions (39 shared, 67 desktop; zero failures/errors/skips), executable JAR packaging, strict OpenSpec and Git diff checks passed. The packaged JAR contains the new close dialog, desktop tray adapter and icon. Both workflows passed actionlint, and all seven release PowerShell blocks passed syntax parsing. These checks do not prove native window/tray/notification/keyboard behavior or execute the updated upgrade harness; the scenarios above remain pending. No installer/version publication is included.
+
 ## Saved rules and reset regression checks
 
 Saving durations refreshes unstarted blocks immediately. Running/paused blocks keep their progress until reset or completion; use Reset Block after saving all durations as 1 minute if a block is already active. Keep a backup of existing data before persistence experiments.

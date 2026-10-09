@@ -40,7 +40,9 @@ A manual check against GitHub confirms the installed release is current:
 - **About → Check for updates** finds newer stable Windows releases. Download with progress/cancel, then confirm **Install & Exit** to verify the installer, save and back up your session, and open Windows Installer. About also links directly to the GitHub repository.
 - After checking, **View release notes** shows the latest stable release's notes inside the update dialog, even when you're up to date. Notes are selectable and scrollable; viewing them does not open GitHub. Added in v0.3.1.
 
-The timer continues while the window is minimized. It cannot alert after the application exits, and it does not block other applications.
+In the source build, clicking the window's **Close** button (or Alt+F4) offers **Run in background**, **Exit**, and **Cancel**, in every timer state. Background mode keeps the timer, alarms, and saving active; reopen using the tray icon's **Show Aggressive Pomodoro** action. Its **Exit…** action brings back the same choice. If the tray is unavailable, **Minimize** keeps the app reachable from the taskbar. A background completion attempts a tray notification and retains its alert for when you reopen. This change is unreleased; the v0.3.1 installer retains its earlier close behavior.
+
+The timer continues while the window is minimized or running in the tray. Explicit **Exit** saves and stops the application; it cannot alert after exiting, and it does not block other applications.
 
 ## Run from source
 

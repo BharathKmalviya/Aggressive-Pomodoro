@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Close now asks whether to keep your timer working in the background, exit, or cancel. Your timer refuses to clock out without asking.
+- Reopen from the tray icon; background alarms and saving continue. No tray available? Minimize keeps the timer on the taskbar.
+
 ## 0.3.1
 
 - Fixed **Reset Block** retaining an old duration after **Save rules**. Idle/waiting blocks now refresh on save, and older unstarted snapshots refresh on recovery. Running/paused progress and completed-block credit stay intact; other saved preferences apply immediately.

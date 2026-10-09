@@ -11,6 +11,8 @@ The release destination is `https://github.com/BharathKmalviya/Aggressive-Pomodo
 
 ## Reproduce the package
 
+The unreleased close-choice change keeps the app running until explicit Exit. For the upgraded build, the release upgrade harness requests a normal window close, locates the `Close Aggressive Pomodoro` dialog belonging to its tracked process/descendants, verifies foreground ownership, and uses the documented E shortcut to save and exit. The immutable v0.1.0 baseline still uses its original direct-close path. Forced termination is cleanup only and cannot pass the gate. Run the pending tray/keyboard/scaling/notification checks in [TESTING.md](TESTING.md#close-choice-and-background-checks--2026-10-09) before publishing this behavior; no installer/version bump is part of this source change.
+
 Install JDK 21 and WiX 3.14.1 build tools on Windows. Add `candle.exe` and `light.exe` to `PATH`. Then run:
 
 ```powershell

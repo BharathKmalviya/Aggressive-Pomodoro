@@ -40,8 +40,8 @@ The application SHALL default to aggressive reminders that repeat attention and 
 The application SHALL show a clearly labeled completion dialog for every focus or break phase that ends while the application is running. It SHALL play an audible cue when sound is enabled and request desktop attention when the window is hidden or unfocused. The dialog SHALL remain discoverable until acknowledged, even when system notification or sound delivery is unavailable.
 
 #### Scenario: Focus ends in background
-- **WHEN** a focus phase ends while the window is minimized
-- **THEN** the application requests desktop attention, attempts the enabled sound, and presents a focus-complete dialog when the window is viewed
+- **WHEN** a focus phase ends while the window is minimized or hidden in the notification area
+- **THEN** the application requests desktop attention or a tray notification, attempts the enabled sound, and presents its retained focus-complete dialog when the same window is viewed, without forcing foreground focus
 
 #### Scenario: Sound unavailable
 - **WHEN** sound is disabled or the audio device cannot play the cue

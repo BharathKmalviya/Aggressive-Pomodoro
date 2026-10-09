@@ -7,7 +7,7 @@
 - `shared/src/presentation/` renders state and emits commands. Compose does not calculate timer transitions or write files.
 - `desktopApp/src/presentation/DesktopSessionController.kt` supplies the current clocks and local date, schedules snapshots, and routes completion effects.
 - `desktopApp/src/data/AppStore.kt` validates and atomically replaces a versioned local snapshot. Version 1 timer-only and version 2 task snapshots migrate to version 3 on the next save, enabling aggressive reminders by default while preserving existing sound preferences.
-- `desktopApp/src/platform/` owns monotonic and wall clocks, single-instance locking, taskbar attention, and generated completion/click audio.
+- `desktopApp/src/platform/` owns monotonic and wall clocks, single-instance locking, taskbar attention, native tray resources, and generated completion/click audio.
 
 ## Timer rules
 
@@ -48,6 +48,12 @@ A material wall/monotonic disagreement is 120 seconds. A positive disagreement a
 Writes are serialized on an IO coroutine with a conflated pending snapshot. Important transitions are queued immediately; running ticks checkpoint at roughly 15-second intervals. App shutdown waits for the latest state to be written. A save error is shown in the UI. Snapshot replacement first writes a temporary file and then moves it over the prior version, using an atomic move where the filesystem supports one.
 
 Closing freezes commands/ticks while the final save is pending. A failed save leaves the writer usable and returns to the app's retry flow; successful shutdown closes audio and releases single-instance ownership. Actual Windows sound, focus navigation, and attention delivery are acceptance checks, not claims derived from unit tests.
+
+Every window-close request opens the desktop `CloseDialog`, independent of timer status. Background is the primary action; Exit is explicit and Cancel/Escape keeps the window open. The dialog also supports B for background/minimize and E for Exit. Secondary settings/report/about/update/task-delete dialogs yield to this choice; a new completion dismisses the choice and shows its completion alert. Closing with an already pending event can still deliberately background or exit without acknowledging or losing it.
+
+Background mode sets the existing Compose `Window` invisible, keeping its composition, controller, tick coroutine, writer, audio and lock alive. In-app completion dialogs are suppressed while hidden, minimized, or while the close chooser is shown; their events stay in the product state. `DesktopTray` owns an AWT icon and Show/Exit menu; icon loading uses IO and tray/window operations use the desktop event thread. Show restores this window, never creates another timer. Hidden completions attempt native tray notifications and configured sound without forcing foreground focus. If the tray cannot be installed, the choice minimizes to the taskbar instead; tray-icon removal restores a hidden window. Tray Exit restores and prompts. Background is not a stored preference and does not install a Windows service or run after explicit exit.
+
+Normal exit, Exit Anyway, and successful update installation remove the tray icon. Save failure restores visibility before showing retry/continue feedback and leaves the writer usable. The shared product theme is available to the desktop close dialog so app-owned windows use the same colors. Native tray delivery, restoration, keyboard behavior, and display scaling remain manual Windows checks.
 
 ## Manual app updates
 

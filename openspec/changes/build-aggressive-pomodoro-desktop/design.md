@@ -19,7 +19,7 @@ The Kotlin Toolchain packages this app type as an executable JAR, while a no-Jav
 
 - System-wide app blocking, forced foreground focus, telemetry, cloud sync, accounts, or background alerts after the process exits.
 - Native macOS or Linux packages in the first release.
-- Unattended installation, background update polling, or a persistent tray service.
+- Unattended installation, background update polling, or an independently installed background service.
 
 ## Decisions
 
@@ -74,6 +74,14 @@ Use an opt-out `aggressiveAlertsEnabled` preference, independent of sound. The d
 Use near-black panels, high-contrast red focus and green break accents, squared controls, a large responsive clock, concrete phase instructions, an explicit paused state, and final-minute urgency. Completion dialogs identify both the completed and current phase. A mute action is available directly in the completion dialog. Secondary dialogs yield to completion alerts. Reset/skip confirmations bind to a phase ID and close when it changes; paused progress also requires deliberate confirmation. Show the actual captured task separately from the next selected task.
 
 Reconcile elapsed time before user commands so expiration cannot be erased by a late pause/skip/reset. Capture a fresh clock sample on every desktop command. Preserve unassigned active focus across restart, clear a deleted active task reference, credit surviving tasks even when marked done mid-block, and reject impossible waiting/running snapshot combinations. Legacy preferences migrate with aggressive reminders enabled. Pause rather than extend a block when a backward wall-clock change would increase remaining time. Keep the asynchronous writer alive after a failed close save so continuing or retrying remains safe. Regression checks use injected time and temporary storage; audible quality, keyboard focus, and responsive Windows rendering require the documented manual checks.
+
+### 9. Window close and background lifetime
+
+Every title-bar close or Alt+F4 request opens one keyboard-accessible choice: Run in background, Exit, or Cancel, regardless of timer status. Background mode hides the existing Compose window only after a desktop tray icon has been installed; the window composition, session controller, tick coroutine, serialized writer, audio and single-instance lock remain alive. Do not dispose/recreate the window or persist a background preference. Without tray support or after tray installation failure, offer Minimize instead and retain the taskbar restore path.
+
+The desktop AWT tray adapter owns the bundled icon, Show and Exit menu actions, completion notifications, and cleanup. Show restores the same window without changing timer state. Tray Exit first restores the window and asks for the same deliberate exit choice. Background completion attempts a tray notification and enabled sound without stealing foreground focus; its existing completion dialog remains available on restore. Tray removal restores a hidden window so the user cannot lose access. A new completion dismisses the close chooser, preserving alert priority; closing with an already pending alert still permits deliberate background or exit.
+
+Only explicit Exit freezes commands, waits for the final save, closes audio, removes the tray icon and releases ownership. Failed saving restores the window and retains retry/continue behavior. Update installation and Exit Anyway also remove the tray icon. The Windows upgrade smoke harness must request close, target the owned close-choice dialog and activate its Exit keyboard action for the new build; the immutable older baseline retains its existing direct-close flow. Native tray, keyboard and notification acceptance remains manual.
 
 ## Risks / Trade-offs
 

@@ -5,6 +5,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -15,10 +16,10 @@ import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
 import androidx.compose.ui.unit.dp
 import com.pomodoro.data.AppStore
-import com.pomodoro.domain.SessionStatus
 import com.pomodoro.domain.SessionCommand
 import com.pomodoro.domain.Phase
 import com.pomodoro.platform.DesktopAlert
+import com.pomodoro.platform.DesktopTray
 import com.pomodoro.platform.AppVersion
 import com.pomodoro.platform.InstanceLock
 import com.pomodoro.platform.applicationDirectory
@@ -29,6 +30,7 @@ import com.pomodoro.platform.backupBeforeUpdate
 import com.pomodoro.platform.launchWindowsInstaller
 import com.pomodoro.platform.openProjectPage
 import com.pomodoro.presentation.App
+import com.pomodoro.presentation.CloseDialog
 import com.pomodoro.presentation.DesktopSessionController
 import com.pomodoro.presentation.DesktopUpdateController
 import com.pomodoro.presentation.UpdateStatus
@@ -50,7 +52,7 @@ fun main() {
     val directory = applicationDirectory()
     val ownership = InstanceLock.acquire(directory)
     if (ownership == null) {
-        JOptionPane.showMessageDialog(null, "Aggressive Pomodoro is already open.", "Already running", JOptionPane.INFORMATION_MESSAGE)
+        JOptionPane.showMessageDialog(null, "Aggressive Pomodoro is already running. Open it from the tray icon or taskbar.", "Already running", JOptionPane.INFORMATION_MESSAGE)
         return
     }
     val store = AppStore(directory.resolve("session.properties"))
@@ -61,6 +63,10 @@ fun main() {
         var confirmExit by remember { mutableStateOf(false) }
         var exitError by remember { mutableStateOf(false) }
         var closing by remember { mutableStateOf(false) }
+        var windowVisible by remember { mutableStateOf(true) }
+        var tray by remember { mutableStateOf<DesktopTray?>(null) }
+        var trayAvailable by remember { mutableStateOf(false) }
+        val windowState = rememberWindowState(width = 1120.dp, height = 800.dp)
         var audioWarning by remember { mutableStateOf<String?>(null) }
         var activeAlert by remember { mutableStateOf<DesktopAlert?>(null) }
         var completionPlayback by remember { mutableStateOf<Job?>(null) }
@@ -88,23 +94,38 @@ fun main() {
                     completionPlayback?.cancel()
                     clickPlayback?.cancel()
                     withContext(Dispatchers.IO) { activeAlert?.close() }
+                    tray?.close()
                     ownership.close()
                     exitApplication()
                 } catch (_: Exception) {
                     closing = false
+                    windowVisible = true
+                    windowState.isMinimized = false
                     exitError = true
                 }
             }
         }
         Window(
             onCloseRequest = {
-                if (!closing) {
-                    if (controller?.state?.status == SessionStatus.RUNNING) confirmExit = true else exit()
+                if (!closing && !exitError) {
+                    confirmExit = true
                 }
             },
             title = "Aggressive Pomodoro",
-            state = rememberWindowState(width = 1120.dp, height = 800.dp),
+            state = windowState,
+            visible = windowVisible,
         ) {
+            fun showWindow() {
+                if (closing) return
+                windowVisible = true
+                windowState.isMinimized = false
+                SwingUtilities.invokeLater { window.toFront(); window.requestFocus() }
+            }
+            fun background() {
+                if (closing) return
+                confirmExit = false
+                if (trayAvailable) windowVisible = false else windowState.isMinimized = true
+            }
             val alert = remember(window) { DesktopAlert(window, onPlaybackResult = { warning ->
                 SwingUtilities.invokeLater { audioWarning = warning }
             }) }
@@ -141,18 +162,32 @@ fun main() {
                     localDate = { LocalDate.now().toString() },
                     onCompletion = { event, soundEnabled ->
                         stopPreview()
+                        if (!windowVisible) tray?.notifyCompletion(event.phase)
                         alert.requestAttention()
                         if (soundEnabled) playAlarm(event.phase)
                     }, scope = scope)
             }
             controller = session
-            LaunchedEffect(session.state.pending.isNotEmpty()) {
+            LaunchedEffect(session.state.pending.map { it.phaseId }) {
                 if (session.state.pending.isNotEmpty()) confirmExit = false
             }
             LaunchedEffect(window) {
                 window.minimumSize = Dimension(560, 620)
-                javaClass.classLoader.getResourceAsStream("app.png")?.use { window.iconImage = ImageIO.read(it) }
+                val image = withContext(Dispatchers.IO) {
+                    javaClass.classLoader.getResourceAsStream("app.png")?.use { ImageIO.read(it) }
+                }
+                if (image != null) {
+                    window.iconImage = image
+                    tray = DesktopTray.create(image, onShow = ::showWindow, onExit = {
+                        if (!closing && !exitError) { showWindow(); confirmExit = true }
+                    }, onUnavailable = {
+                        trayAvailable = false
+                        if (!windowVisible) showWindow()
+                    })
+                    trayAvailable = tray != null
+                }
             }
+            DisposableEffect(window) { onDispose { tray?.close() } }
             LaunchedEffect(session) {
                 while (true) {
                     if (!closing) session.tick()
@@ -164,6 +199,8 @@ fun main() {
                 audioWarning = audioWarning,
                 updateState = updates.state,
                 browserWarning = browserWarning,
+                closeRequested = confirmExit || exitError,
+                dialogsVisible = windowVisible && !windowState.isMinimized,
                 onCheckUpdates = { if (!closing) updates.check() },
                 onDownloadUpdate = { if (!closing) updates.download() },
                 onCancelUpdate = { if (!closing) updates.cancel() },
@@ -184,6 +221,7 @@ fun main() {
                                     completionPlayback?.cancel()
                                     clickPlayback?.cancel()
                                     withContext(Dispatchers.IO) { alert.close() }
+                                    tray?.close()
                                     runCatching { ownership.close() }
                                     exitApplication()
                                 }
@@ -213,12 +251,11 @@ fun main() {
                 onUiClick = {
                     playClick()
                 })
-            if (confirmExit) AlertDialog(
-                onDismissRequest = { confirmExit = false },
-                title = { Text("Exit active timer?") },
-                text = { Text("The timer cannot alert you after the app exits. Your session will be saved for the next launch.") },
-                confirmButton = { Button(onClick = { confirmExit = false; exit() }) { Text("EXIT") } },
-                dismissButton = { TextButton(onClick = { confirmExit = false }) { Text("KEEP RUNNING") } },
+            if (confirmExit) CloseDialog(
+                trayAvailable = trayAvailable,
+                onBackground = ::background,
+                onExit = { confirmExit = false; exit() },
+                onCancel = { confirmExit = false },
             )
             if (exitError) AlertDialog(
                 onDismissRequest = { exitError = false },
@@ -231,6 +268,7 @@ fun main() {
                         completionPlayback?.cancel()
                         clickPlayback?.cancel()
                         withContext(Dispatchers.IO) { alert.close() }
+                        tray?.close()
                         ownership.close()
                         exitApplication()
                     }
