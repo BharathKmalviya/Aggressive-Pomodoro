@@ -18,6 +18,7 @@ data class TimerSettings(
     val focusAlarm: AlarmSound = AlarmSound.ORIGINAL,
     val breakAlarm: AlarmSound = AlarmSound.ORIGINAL,
     val closeBehavior: CloseBehavior = CloseBehavior.ASK,
+    val pauseWhenLocked: Boolean = true,
 ) {
     fun isValid(): Boolean = focusMinutes in 1..180 && shortBreakMinutes in 1..60 &&
         longBreakMinutes in 1..60 && longBreakEvery in 2..12
@@ -49,6 +50,7 @@ data class SessionState(
     val pending: List<Completion> = emptyList(),
     val settings: TimerSettings = TimerSettings(),
     val message: String? = null,
+    val pausedForLock: Boolean = false,
 ) {
     fun remainingAt(now: TimeMark): Long = if (status == SessionStatus.RUNNING && deadlineMonotonicMs != null)
         max(0L, deadlineMonotonicMs - now.monotonicMs) else remainingMs
@@ -63,6 +65,8 @@ sealed interface SessionCommand {
     data object Start : SessionCommand
     data object Pause : SessionCommand
     data object Resume : SessionCommand
+    data object PauseForLock : SessionCommand
+    data object ResumeAfterLock : SessionCommand
     data object Reset : SessionCommand
     data object Skip : SessionCommand
     data object Tick : SessionCommand
@@ -117,12 +121,18 @@ object SessionEngine {
             start(state, now) else state
         SessionCommand.Resume -> if (state.status == SessionStatus.PAUSED)
             start(state.copy(message = null), now) else state
+        SessionCommand.ResumeAfterLock -> if (state.status == SessionStatus.PAUSED && state.pausedForLock)
+            start(state, now) else state
+        SessionCommand.PauseForLock -> if (state.status == SessionStatus.RUNNING)
+            state.copy(status = SessionStatus.PAUSED, remainingMs = state.remainingAt(now),
+                deadlineMonotonicMs = null, deadlineWallMs = null, lastMark = null, pausedForLock = true) else state
         SessionCommand.Pause -> if (state.status == SessionStatus.RUNNING)
             state.copy(status = SessionStatus.PAUSED, remainingMs = state.remainingAt(now),
-                deadlineMonotonicMs = null, deadlineWallMs = null, lastMark = null) else state
+                deadlineMonotonicMs = null, deadlineWallMs = null, lastMark = null, pausedForLock = false)
+            else if (state.status == SessionStatus.PAUSED) state.copy(pausedForLock = false) else state
         SessionCommand.Reset -> if (state.status != SessionStatus.WAITING)
             refreshUnstartedDuration(state.copy(status = SessionStatus.IDLE,
-                deadlineMonotonicMs = null, deadlineWallMs = null, lastMark = null, message = null)) else state
+                deadlineMonotonicMs = null, deadlineWallMs = null, lastMark = null, message = null, pausedForLock = false)) else state
         SessionCommand.Skip -> if (state.status != SessionStatus.WAITING) advance(state, completed = false)
             else state
         SessionCommand.Tick -> tick(state, now)
@@ -145,6 +155,7 @@ object SessionEngine {
         deadlineMonotonicMs = now.monotonicMs + state.remainingMs,
         deadlineWallMs = now.wallMs + state.remainingMs,
         lastMark = now,
+        pausedForLock = false,
     )
 
     private fun tick(state: SessionState, now: TimeMark): SessionState {
@@ -179,6 +190,7 @@ object SessionEngine {
         status = SessionStatus.PAUSED, remainingMs = remainingMs.coerceIn(0L, state.durationMs),
         deadlineMonotonicMs = null, deadlineWallMs = null, lastMark = null,
         message = "The system clock changed. Review the timer, then resume or reset it.",
+        pausedForLock = false,
     )
 
     private fun advance(state: SessionState, completed: Boolean): SessionState {
@@ -193,7 +205,7 @@ object SessionEngine {
             completedFocus = nextFocusCount,
             focusInCycle = if (nextPhase == Phase.LONG_BREAK) 0 else nextCycleCount,
             status = SessionStatus.IDLE, durationMs = duration, remainingMs = duration,
-            deadlineMonotonicMs = null, deadlineWallMs = null, lastMark = null, message = null)
+            deadlineMonotonicMs = null, deadlineWallMs = null, lastMark = null, message = null, pausedForLock = false)
     }
 
     private fun acknowledge(state: SessionState, now: TimeMark): SessionState {

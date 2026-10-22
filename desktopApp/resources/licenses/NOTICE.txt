@@ -1,4 +1,4 @@
-Aggressive Pomodoro updater dependencies
+Aggressive Pomodoro desktop dependencies
 
 OkHttp 5.5.0 (com.squareup.okhttp3:okhttp-jvm)
 Copyright 2019 Square, Inc.
@@ -15,3 +15,13 @@ https://raw.githubusercontent.com/lysine-dev/okhttp/parent-5.5.0/LICENSE.txt
 https://raw.githubusercontent.com/lysine-dev/okio/parent-3.18.1/LICENSE.txt
 
 The application code retains its separate MIT License.
+
+Java Native Access (JNA) 5.17.0 (net.java.dev.jna:jna)
+Native dispatch copyright (c) 1998 Sun Microsystems, Inc.; 2007-2013 Timothy Wall;
+2007 Wayne Meissner. Other JNA source files retain their respective notices.
+https://github.com/java-native-access/jna/tree/5.17.0
+Distributed under the Apache License, Version 2.0 option of its dual license.
+The unmodified Apache license is bundled alongside this notice as Apache-2.0.txt.
+Upstream license: https://github.com/java-native-access/jna/blob/5.17.0/LICENSE
+JNA's bundled native dispatch library also includes libffi under its MIT license;
+see JNA-LICENSE.txt and JNA-native-LICENSE.txt alongside this notice.

@@ -6,6 +6,25 @@ Defines how phase completion gets the user's attention and how the next phase st
 
 ## ADDED Requirements
 
+### Requirement: Unavailable Windows desktop
+The application SHALL preserve timer progress, pending completions and earned credit while Windows is locked, its input desktop is unavailable, or the app's Remote Desktop session is disconnected. The saved lock pause preference SHALL determine whether a running timer pauses (default) or continues with bounded unattended transitions. It SHALL suspend completion/reminder/preview/click sound, tray completion notifications and taskbar attention during these conditions, invalidating queued/opening playback and stopping active audio when detected. It SHALL sample availability off the UI thread before timer checks and recheck before audio starts. Failed session queries SHALL suspend these effects, retain visual completion state, show an explanation and retry automatically. Windows startup SHALL withhold effects until availability is confirmed.
+
+#### Scenario: Completion while locked or disconnected
+- **WHEN** a phase completes while Windows is locked or its RDP session is disconnected with the lock pause preference disabled
+- **THEN** the event and earned credit are saved, existing transition limits apply, and no sound, attention or tray completion notification is attempted
+
+#### Scenario: Return with pending completions
+- **WHEN** a previously unavailable desktop becomes available with pending completions
+- **THEN** elapsed time is reconciled before effects resume, the same window restores for review, one alert uses the first pending event and saved sound choice, and subsequent enabled reminders wait ten seconds without replaying missed intervals
+
+#### Scenario: Lock during playback or unavailable probe
+- **WHEN** Windows becomes unavailable during an active or opening sound, or a session query fails
+- **THEN** active audio stops when detected, late playback is invalidated, timer progress continues, and query failure feedback clears when probing recovers
+
+#### Scenario: Return without pending completions
+- **WHEN** the desktop returns with no pending completion
+- **THEN** the app does not sound or restore a background window, follows the saved lock pause policy for running/automatically paused phases, and preserves manual pauses
+
 ### Requirement: Saved alarm selection and unsaved preview
 Settings SHALL offer the original phase alarm and all nine owner-supplied offline cues for separate focus-complete and break-complete choices. Both break types SHALL use the break choice. Preview SHALL play the current unsaved selection without changing saved settings or timer state, including when sound is muted. Save SHALL persist selections across restart; Cancel SHALL discard edits and stop preview. Missing/unknown stored choices SHALL fall back independently without losing other data. Immediate, restored and reminder playback SHALL select by completed event phase. Changing saved choices SHALL invalidate stale playback. Bundled cues SHALL be bounded to eight seconds, loaded off the UI thread and recover from decode failure with the original alarm and visible feedback.
 

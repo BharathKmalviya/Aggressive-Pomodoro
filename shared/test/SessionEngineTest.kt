@@ -18,6 +18,54 @@ class SessionEngineTest {
     private fun at(ms: Long) = TimeMark(ms, ms)
     private fun act(state: SessionState, command: SessionCommand, ms: Long) = SessionEngine.reduce(state, command, at(ms))
 
+    @Test fun automaticLockPauseAndResumePreserveEveryPhaseWithoutCountingLockedTime() {
+        assertTrue(TimerSettings().pauseWhenLocked)
+        for (phase in Phase.entries) {
+            val idle = newSession(shortSettings).copy(phase = phase)
+            val running = act(idle, SessionCommand.Start, 0)
+            val paused = act(running, SessionCommand.PauseForLock, 15_000)
+            assertEquals(SessionStatus.PAUSED, paused.status)
+            assertTrue(paused.pausedForLock)
+            assertEquals(45_000L, paused.remainingMs)
+            assertEquals(null, paused.deadlineWallMs)
+            assertEquals(paused, act(paused, SessionCommand.Tick, 600_000))
+            val resumed = act(paused, SessionCommand.ResumeAfterLock, 600_000)
+            assertEquals(SessionStatus.RUNNING, resumed.status)
+            assertFalse(resumed.pausedForLock)
+            assertEquals(645_000L, resumed.deadlineMonotonicMs)
+            assertEquals(running.phaseId, resumed.phaseId)
+            assertEquals(0, resumed.completedFocus)
+            assertTrue(resumed.pending.isEmpty())
+        }
+    }
+
+    @Test fun automaticResumeCannotOverrideManualPauseResetSkipOrClockSafety() {
+        val running = act(newSession(shortSettings), SessionCommand.Start, 0)
+        val automatic = act(running, SessionCommand.PauseForLock, 10_000)
+        val manual = act(automatic, SessionCommand.Pause, 20_000)
+        assertFalse(manual.pausedForLock)
+        assertEquals(manual, act(manual, SessionCommand.ResumeAfterLock, 600_000))
+        for (command in listOf(SessionCommand.Reset, SessionCommand.Skip)) {
+            val replacement = act(automatic, command, 20_000)
+            assertFalse(replacement.pausedForLock)
+            assertEquals(replacement, act(replacement, SessionCommand.ResumeAfterLock, 600_000))
+        }
+        val safety = SessionEngine.reduce(running, SessionCommand.Tick, TimeMark(10_000, 300_000))
+        assertEquals(SessionStatus.PAUSED, safety.status)
+        assertFalse(safety.pausedForLock)
+        assertEquals(safety, act(safety, SessionCommand.ResumeAfterLock, 600_000))
+    }
+
+    @Test fun automaticPauseAtExpiredDeadlineCannotEraseCompletionOrPauseSuccessor() {
+        val running = act(newSession(shortSettings), SessionCommand.Start, 0)
+        val expired = act(running, SessionCommand.PauseForLock, 60_000)
+        assertEquals(1, expired.completedFocus)
+        assertEquals(1, expired.pending.size)
+        assertEquals(Phase.SHORT_BREAK, expired.phase)
+        assertEquals(SessionStatus.RUNNING, expired.status)
+        assertFalse(expired.pausedForLock)
+    }
+
     @Test fun defaultsAndInvalidCommands() {
         val initial = newSession()
         assertEquals(25 * 60_000L, initial.remainingMs)

@@ -160,15 +160,276 @@ class DesktopSessionControllerTest {
         saved: ProductState = ProductState(session = newSession(settings)),
         val store: SnapshotStore = MemoryStore(),
         callback: ((Completion, Boolean) -> Unit)? = null,
+        initialDesktopAvailable: Boolean = true,
     ) {
         var monotonic = 0L
         var wall = 0L
         val alerts = mutableListOf<Pair<Completion, Boolean>>()
         val controller = DesktopSessionController(store, saved, { TimeMark(monotonic, wall) },
             { "2026-09-28" }, { event, sound -> alerts += event to sound; callback?.invoke(event, sound) },
-            CoroutineScope(SupervisorJob() + Dispatchers.Unconfined))
+            CoroutineScope(SupervisorJob() + Dispatchers.Unconfined), initialDesktopAvailable)
         fun at(time: Long) { monotonic = time; wall = time }
         fun tick(time: Long) { at(time); controller.tick() }
+    }
+
+    @Test fun lockedCompletionsKeepBoundedProgressAndCreditThenReturnOnceWithoutReminderBurst() = runBlocking {
+        val fixture = Fixture(settings = TimerSettings(focusMinutes = 1, shortBreakMinutes = 1,
+            pauseWhenLocked = false))
+        val controller = fixture.controller
+        try {
+            controller.dispatchTask(TaskCommand.Add("Locked session", 2))
+            controller.dispatchSession(SessionCommand.Start)
+            fixture.at(59_000)
+            assertEquals(false, controller.updateDesktopAvailability(false))
+            fixture.tick(60_000)
+            fixture.tick(70_000)
+            fixture.tick(120_000)
+            fixture.tick(600_000)
+            assertTrue(fixture.alerts.isEmpty())
+            assertEquals(2, controller.state.pending.size)
+            assertEquals(SessionStatus.WAITING, controller.state.status)
+            assertEquals(1, controller.product.history.on("2026-09-28").sessions)
+            assertEquals(1, controller.product.board.tasks.single().completed)
+            assertTrue(controller.updateDesktopAvailability(true))
+            assertEquals(listOf(controller.state.pending.first()), fixture.alerts.map { it.first })
+            assertEquals(false, controller.updateDesktopAvailability(true))
+            fixture.tick(609_999)
+            assertEquals(1, fixture.alerts.size)
+            fixture.tick(610_000)
+            assertEquals(2, fixture.alerts.size)
+            assertEquals(2, controller.state.pending.size)
+        } finally { controller.close() }
+        assertEquals(2, (fixture.store as MemoryStore).snapshots.last().session.pending.size)
+    }
+
+    @Test fun returnReconcilesSleepingDeadlineWhileSilentAndCreditsOnlyOneExpiredPhase() = runBlocking {
+        val fixture = Fixture(settings = TimerSettings(focusMinutes = 1, shortBreakMinutes = 1,
+            pauseWhenLocked = false))
+        val controller = fixture.controller
+        try {
+            controller.dispatchSession(SessionCommand.Start)
+            controller.updateDesktopAvailability(false)
+            fixture.at(600_000) // no ticks during sleep
+            assertTrue(controller.updateDesktopAvailability(true))
+            assertEquals(1, fixture.alerts.size)
+            assertEquals(1, controller.state.pending.size)
+            assertEquals(Phase.SHORT_BREAK, controller.state.phase)
+            assertEquals(SessionStatus.RUNNING, controller.state.status)
+            assertEquals(660_000L, controller.state.deadlineMonotonicMs)
+            controller.tick()
+            assertEquals(1, fixture.alerts.size)
+        } finally { controller.close() }
+    }
+
+    @Test fun returnRespectsMutedSoundAndDisabledRemindersInConfirmationMode() = runBlocking {
+        val fixture = Fixture(settings = TimerSettings(focusMinutes = 1, soundEnabled = false,
+            aggressiveAlertsEnabled = false, automaticTransitions = false, pauseWhenLocked = false))
+        val controller = fixture.controller
+        try {
+            controller.dispatchSession(SessionCommand.Start)
+            controller.updateDesktopAvailability(false)
+            fixture.tick(60_000)
+            fixture.at(90_000)
+            assertTrue(controller.updateDesktopAvailability(true))
+            assertEquals(listOf(false), fixture.alerts.map { it.second })
+            assertEquals(SessionStatus.WAITING, controller.state.status)
+            fixture.tick(120_000)
+            assertEquals(1, fixture.alerts.size)
+            assertEquals(false, controller.state.settings.soundEnabled)
+            assertEquals(false, controller.state.settings.aggressiveAlertsEnabled)
+        } finally { controller.close() }
+    }
+
+    @Test fun continueModeLockAndReturnWithoutCompletionPreservesRunningAndPausedTime() = runBlocking {
+        for (paused in listOf(false, true)) {
+            val fixture = Fixture(settings = TimerSettings(focusMinutes = 1, pauseWhenLocked = false))
+            val controller = fixture.controller
+            try {
+                controller.dispatchSession(SessionCommand.Start)
+                fixture.at(5_000)
+                if (paused) controller.dispatchSession(SessionCommand.Pause)
+                controller.updateDesktopAvailability(false)
+                fixture.at(20_000)
+                assertEquals(false, controller.updateDesktopAvailability(true))
+                assertEquals(if (paused) 55_000L else 40_000L, controller.state.remainingAt(controller.now))
+                assertEquals(if (paused) SessionStatus.PAUSED else SessionStatus.RUNNING, controller.state.status)
+                assertTrue(fixture.alerts.isEmpty())
+            } finally { controller.close() }
+        }
+    }
+
+    @Test fun defaultLockPauseExcludesLockedTimeAndResumesWithSameCapturedTask() = runBlocking {
+        val fixture = Fixture()
+        val controller = fixture.controller
+        try {
+            assertTrue(controller.state.settings.pauseWhenLocked)
+            controller.dispatchTask(TaskCommand.Add("Original focus", 2))
+            controller.dispatchSession(SessionCommand.Start)
+            val capturedTask = controller.product.activeTaskId
+            fixture.at(20_000)
+            controller.updateDesktopAvailability(false)
+            assertEquals(SessionStatus.PAUSED, controller.state.status)
+            assertTrue(controller.state.pausedForLock)
+            assertEquals(40_000L, controller.state.remainingMs)
+            fixture.tick(600_000)
+            controller.dispatchTask(TaskCommand.Add("Next focus", 1))
+            assertEquals(capturedTask, controller.product.activeTaskId)
+            assertEquals(40_000L, controller.state.remainingMs)
+            assertTrue(fixture.alerts.isEmpty())
+            assertEquals(0, controller.product.history.on("2026-09-28").sessions)
+            assertEquals(false, controller.updateDesktopAvailability(true))
+            assertEquals(SessionStatus.RUNNING, controller.state.status)
+            assertEquals(false, controller.state.pausedForLock)
+            assertEquals(640_000L, controller.state.deadlineMonotonicMs)
+            controller.updateDesktopAvailability(true)
+            fixture.tick(639_999)
+            assertTrue(fixture.alerts.isEmpty())
+            fixture.tick(640_000)
+            assertEquals(1, fixture.alerts.size)
+            assertEquals(1, controller.product.board.tasks.first().completed)
+            assertEquals(0, controller.product.board.tasks.last().completed)
+        } finally { controller.close() }
+    }
+
+    @Test fun unlockDoesNotStartManualPausedIdleWaitingOrClockSafetyPausedTimers() = runBlocking {
+        val manual = newSession(TimerSettings(focusMinutes = 1)).copy(status = SessionStatus.PAUSED,
+            remainingMs = 30_000)
+        val waiting = manual.copy(phase = Phase.SHORT_BREAK, phaseId = 2, status = SessionStatus.WAITING,
+            durationMs = 300_000, remainingMs = 300_000, pending = listOf(Completion(1, Phase.FOCUS)))
+        for (saved in listOf(newSession(), manual, manual.copy(message = "The system clock changed."), waiting)) {
+            val fixture = Fixture(saved = ProductState(session = saved))
+            try {
+                fixture.controller.updateDesktopAvailability(false)
+                fixture.at(600_000)
+                fixture.controller.updateDesktopAvailability(true)
+                assertEquals(saved.status, fixture.controller.state.status)
+                assertEquals(saved.remainingMs, fixture.controller.state.remainingMs)
+                assertEquals(false, fixture.controller.state.pausedForLock)
+            } finally { fixture.controller.close() }
+        }
+    }
+
+    @Test fun lockAtDeadlineCreditsCompletionOnceAndPausesAutomaticSuccessor() = runBlocking {
+        for (automatic in listOf(true, false)) {
+            val fixture = Fixture(settings = TimerSettings(focusMinutes = 1, shortBreakMinutes = 1,
+                automaticTransitions = automatic))
+            val controller = fixture.controller
+            try {
+                controller.dispatchSession(SessionCommand.Start)
+                fixture.at(60_000)
+                controller.updateDesktopAvailability(false)
+                assertEquals(Phase.SHORT_BREAK, controller.state.phase)
+                assertEquals(if (automatic) SessionStatus.PAUSED else SessionStatus.WAITING, controller.state.status)
+                assertEquals(automatic, controller.state.pausedForLock)
+                fixture.tick(600_000)
+                assertEquals(1, controller.state.pending.size)
+                assertTrue(fixture.alerts.isEmpty())
+                assertTrue(controller.updateDesktopAvailability(true))
+                assertEquals(if (automatic) SessionStatus.RUNNING else SessionStatus.WAITING, controller.state.status)
+                assertEquals(1, fixture.alerts.size)
+                assertEquals(1, controller.product.history.on("2026-09-28").sessions)
+            } finally { controller.close() }
+        }
+    }
+
+    @Test fun savingLockPreferenceWhileUnavailableAppliesToOnlyAutomaticPauses() = runBlocking {
+        val fixture = Fixture()
+        val controller = fixture.controller
+        try {
+            controller.dispatchSession(SessionCommand.Start)
+            fixture.at(10_000)
+            controller.updateDesktopAvailability(false)
+            fixture.at(100_000)
+            controller.dispatchSession(SessionCommand.ChangeSettings(controller.state.settings.copy(pauseWhenLocked = false)))
+            assertEquals(SessionStatus.RUNNING, controller.state.status)
+            assertEquals(150_000L, controller.state.deadlineMonotonicMs)
+            fixture.at(110_000)
+            controller.dispatchSession(SessionCommand.ChangeSettings(controller.state.settings.copy(pauseWhenLocked = true)))
+            assertTrue(controller.state.pausedForLock)
+            assertEquals(40_000L, controller.state.remainingMs)
+            controller.dispatchSession(SessionCommand.Pause)
+            assertEquals(false, controller.state.pausedForLock)
+            controller.dispatchSession(SessionCommand.ChangeSettings(controller.state.settings.copy(pauseWhenLocked = false)))
+            controller.updateDesktopAvailability(true)
+            assertEquals(SessionStatus.PAUSED, controller.state.status)
+            assertTrue(fixture.alerts.isEmpty())
+        } finally { controller.close() }
+    }
+
+    @Test fun resetAndSkipWhileAutomaticallyPausedCannotResumeReplacementPhaseOnUnlock() = runBlocking {
+        for (command in listOf(SessionCommand.Reset, SessionCommand.Skip)) {
+            val fixture = Fixture()
+            try {
+                fixture.controller.dispatchSession(SessionCommand.Start)
+                fixture.at(20_000)
+                fixture.controller.updateDesktopAvailability(false)
+                fixture.controller.dispatchSession(command)
+                fixture.at(600_000)
+                fixture.controller.updateDesktopAvailability(true)
+                assertEquals(SessionStatus.IDLE, fixture.controller.state.status)
+                assertEquals(false, fixture.controller.state.pausedForLock)
+                assertEquals(0, fixture.controller.state.completedFocus)
+                assertTrue(fixture.alerts.isEmpty())
+            } finally { fixture.controller.close() }
+        }
+    }
+
+    @Test fun savedAutomaticPauseWaitsForConfirmedDesktopAfterRestartAndPreservesTaskCredit() = runBlocking {
+        val directory = Files.createTempDirectory("pomodoro-lock-pause-test")
+        try {
+            val store = AppStore(directory.resolve("session.properties"))
+            val first = Fixture(store = store)
+            first.controller.dispatchTask(TaskCommand.Add("Keep this task", 2))
+            first.controller.dispatchSession(SessionCommand.Start)
+            first.at(20_000)
+            first.controller.updateDesktopAvailability(false)
+            first.controller.close()
+            val saved = store.load()
+            assertTrue(saved.session.pausedForLock)
+            val reopened = Fixture(saved = saved, store = store, initialDesktopAvailable = false)
+            try {
+                reopened.tick(600_000)
+                assertEquals(SessionStatus.PAUSED, reopened.controller.state.status)
+                assertEquals(40_000L, reopened.controller.state.remainingMs)
+                assertTrue(reopened.alerts.isEmpty())
+                reopened.controller.updateDesktopAvailability(true)
+                assertEquals(saved.activeTaskId, reopened.controller.product.activeTaskId)
+                assertEquals(640_000L, reopened.controller.state.deadlineMonotonicMs)
+                reopened.tick(640_000)
+                assertEquals(1, reopened.controller.product.board.tasks.single().completed)
+                assertEquals(1, reopened.alerts.size)
+            } finally { reopened.controller.close() }
+        } finally { directory.toFile().deleteRecursively() }
+    }
+
+    @Test fun restoredPendingStaysSilentUntilFirstConfirmedAvailableDesktop() = runBlocking {
+        val event = Completion(1, Phase.FOCUS)
+        val saved = ProductState(session = newSession().copy(phase = Phase.SHORT_BREAK, phaseId = 2,
+            status = SessionStatus.WAITING, pending = listOf(event)))
+        val fixture = Fixture(saved = saved, initialDesktopAvailable = false)
+        try {
+            assertTrue(fixture.alerts.isEmpty())
+            fixture.tick(50_000)
+            assertTrue(fixture.alerts.isEmpty())
+            assertTrue(fixture.controller.updateDesktopAvailability(true))
+            assertEquals(listOf(event), fixture.alerts.map { it.first })
+        } finally { fixture.controller.close() }
+    }
+
+    @Test fun acknowledgedPendingIsNotResurrectedOnReturnAndClosedControllerIgnoresReturn() = runBlocking {
+        val fixture = Fixture(settings = TimerSettings(focusMinutes = 1, automaticTransitions = false))
+        val controller = fixture.controller
+        try {
+            controller.dispatchSession(SessionCommand.Start)
+            fixture.tick(60_000)
+            controller.updateDesktopAvailability(false)
+            controller.dispatchSession(SessionCommand.Acknowledge)
+            assertEquals(false, controller.updateDesktopAvailability(true))
+            assertEquals(1, fixture.alerts.size)
+            controller.updateDesktopAvailability(false)
+        } finally { controller.close() }
+        assertEquals(false, controller.updateDesktopAvailability(true))
+        assertEquals(false, controller.desktopAvailable)
     }
 
     @Test fun savedRulesAndResetSurviveRealStorageAndRelaunch() = runBlocking {

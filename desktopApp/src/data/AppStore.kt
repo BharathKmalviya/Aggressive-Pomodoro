@@ -40,6 +40,7 @@ class AppStore(private val file: Path) : SnapshotStore {
                 focusAlarm = AlarmSound.fromId(values.getProperty("focusAlarm")),
                 breakAlarm = AlarmSound.fromId(values.getProperty("breakAlarm")),
                 closeBehavior = CloseBehavior.fromId(values.getProperty("closeBehavior")),
+                pauseWhenLocked = values.getProperty("pauseWhenLocked")?.toBooleanStrictOrNull() ?: true,
             )
             require(settings.isValid())
             val phase = enumValueOf<Phase>(values.required("phase"))
@@ -67,7 +68,8 @@ class AppStore(private val file: Path) : SnapshotStore {
             require(status != SessionStatus.RUNNING || pending.size < 2)
             require(status == SessionStatus.RUNNING || deadline == null)
             val session = SessionState(phase, status, id, completed, inCycle, duration, remaining,
-                deadlineWallMs = deadline, pending = pending, settings = settings)
+                deadlineWallMs = deadline, pending = pending, settings = settings,
+                pausedForLock = status == SessionStatus.PAUSED && values.getProperty("pausedForLock") == "true")
             val board = if (version == "1") TaskBoard() else values.readBoard()
             val history = if (version == "1") FocusHistory() else values.readHistory()
             // An empty value means this block started without a task. Never substitute
@@ -95,6 +97,7 @@ class AppStore(private val file: Path) : SnapshotStore {
             setProperty("focusInCycle", state.focusInCycle.toString())
             setProperty("durationMs", state.durationMs.toString())
             setProperty("remainingMs", state.remainingMs.toString())
+            setProperty("pausedForLock", state.pausedForLock.toString())
             state.deadlineWallMs?.let { setProperty("deadlineWallMs", it.toString()) }
             setProperty("pending", state.pending.joinToString(";") { "${it.phaseId}:${it.phase.name}" })
             setProperty("focusMinutes", state.settings.focusMinutes.toString())
@@ -109,6 +112,7 @@ class AppStore(private val file: Path) : SnapshotStore {
             setProperty("focusAlarm", state.settings.focusAlarm.id)
             setProperty("breakAlarm", state.settings.breakAlarm.id)
             setProperty("closeBehavior", state.settings.closeBehavior.id)
+            setProperty("pauseWhenLocked", state.settings.pauseWhenLocked.toString())
             setProperty("taskIds", snapshot.board.tasks.joinToString(",") { it.id.toString() })
             setProperty("selectedTaskId", snapshot.board.selectedId?.toString() ?: "")
             setProperty("nextTaskId", snapshot.board.nextId.toString())

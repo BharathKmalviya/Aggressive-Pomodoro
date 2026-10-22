@@ -11,6 +11,8 @@ The release destination is `https://github.com/BharathKmalviya/Aggressive-Pomodo
 
 ## Reproduce the package
 
+Version 0.3.7 adds optional format-3 `pauseWhenLocked` (default true) and `pausedForLock` provenance. Older builds ignore/drop them and retain a paused phase for manual resume; back up the profile before rollback. JNA 5.17.0 performs read-only Windows session/desktop queries. Its Apache 2.0 license option, upstream license and native libffi notice must be bundled under `licenses/` with the existing dependency notices.
+
 Version 0.3.2 adds two optional sound IDs to snapshot format 3; back up the profile before rollback, because older builds ignore and can drop those choices on save. Nine adapted WAVs and sound credits must be present in the executable JAR; original source recordings remain local in `sounds/`, with hashes/provenance in its tracked manifest. Regeneration needs Python/FFmpeg, but normal CI/package builds use checked-in cues and need neither. Keep third-party recording licenses distinct from the MIT code license. Selectable-alarm Windows scenarios remain pending in [TESTING.md](TESTING.md#selectable-alarm-checks--2026-10-09), under the owner-authorized release scope below.
 
 Version 0.3.2 keeps the app running until explicit Exit. For the upgraded build, the release upgrade harness requests a normal window close, locates the `Close Aggressive Pomodoro` dialog belonging to its tracked process/descendants, verifies foreground ownership, and uses the documented E shortcut to save and exit. The immutable v0.1.0 baseline still uses its original direct-close path. Forced termination is cleanup only and cannot pass the gate. Tray/keyboard/scaling/notification checks remain pending in [TESTING.md](TESTING.md#close-choice-and-background-checks--2026-10-09), under the release scope below.
@@ -20,14 +22,15 @@ Install JDK 21 and WiX 3.14.1 build tools on Windows. Add `candle.exe` and `ligh
 ```powershell
 .\scripts\package-windows.ps1 -Msi
 Get-Content .\build\distribution\artifacts\SHA256SUMS.txt
-Get-FileHash .\build\distribution\artifacts\AggressivePomodoro-0.3.6.msi -Algorithm SHA256
+Get-FileHash .\build\distribution\artifacts\AggressivePomodoro-0.3.7.msi -Algorithm SHA256
 ```
 
-The script uses the checked-in Kotlin Toolchain wrapper, runs build and tests, builds the executable JAR, creates a runtime-bundled app image and MSI with `jpackage`, smoke-checks the app-image process, and writes a SHA-256 checksum for the exact MSI. It places the MIT License alongside the artifacts and passes it to the MSI packager. The versioned filename follows `desktopApp/resources/version.properties`; replace `0.3.6` in the example after a version change.
+The script uses the checked-in Kotlin Toolchain wrapper, runs build and tests, builds the executable JAR, creates a runtime-bundled app image and MSI with `jpackage`, smoke-checks the app-image process, and writes a SHA-256 checksum for the exact MSI. It places the MIT License alongside the artifacts and passes it to the MSI packager. The versioned filename follows `desktopApp/resources/version.properties`; replace `0.3.7` in the example after a version change.
 
 CI and releases also run `./scripts/verify-update-download.ps1` after packaging. This network-only gate compiles `UpdateDownloadProbe.java` against the executable JAR's bundled libraries, checks GitHub and downloads/reverifies the latest published stable MSI through the production updater service. Its isolated files stay under `build/updater-verification`; it opens no app/installer and touches no user profile. The gate needs JDK 21 and reachable GitHub/CDN servers. It is not proof of native dialog, UAC or installed-runtime interaction.
 
 ## v0.3.6 published verification
+
 
 Immutable stable [v0.3.6](https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases/tag/v0.3.6) was published at `2026-10-09T18:34:30Z` (2026-10-10 00:04:30 IST) from `0b29e913ad0f5b63088a1f52b1271c946bd351c1`. [Windows CI](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/37973272632) and [release attempt 2](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/37973272658/attempts/2) passed all 144 tests (40 shared, 104 desktop), bundled-runtime packaging, complete packaged-updater download/reverification, clean MSI install/launch, second-launch acknowledgement, baseline upgrade/data preservation, checksum and MIT License gates. Attempt 1 blocked publication on a runner's GitHub request limit; retrying the unchanged commit on a fresh runner passed the same full validation, without weakening any gate.
 
@@ -186,3 +189,9 @@ The [immutable stable v0.3.5 release](https://github.com/BharathKmalviya/Aggress
 - `LICENSE`: 1,072 bytes; SHA-256 `cc9829233de2b0ba9f107178cf4da58612848a70f07b2344eab1f1ec6df1f3fc`.
 
 Read-only Windows Installer metadata confirms ProductName AggressivePomodoro, ProductVersion 0.3.5 and unchanged UpgradeCode `{8B4BB341-127A-3A18-945B-B92F5C0CD1FD}`. Local executable JAR SHA-256 is `8bf1acfc82563b250daeb6879a2853013b71cf4ec032dca9d13865aba953d053`; inspection verified version, OkHttp/Okio dependencies and bundled Apache license/attribution. The full updater probe also passed twice on the development machine's affected route. No native app or installer was run there. For a failing v0.3.3/v0.3.4 updater, [download this MSI directly](https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases/download/v0.3.5/AggressivePomodoro-0.3.5.msi), explicitly Exit, back up the profile and install once. Native updater/keyboard/scaling/UAC and earlier acceptance remain pending in [TESTING.md](TESTING.md#updater-connection-correction-checks--2026-10-09); snapshot format remains 3 and the OpenSpec change stays active.
+
+## v0.3.7 release scope
+
+On 2026-10-22 the owner requested publication after lock-aware completion handling and the optional default-on lock pause. Include Settings → Pause timer when Windows is locked, automatic resume only for lock-paused phases, manual/clock-safety pause preservation, the opt-out continue mode, persistent pause provenance and deferred audio/attention/notifications until return. New and existing profiles default to pause; captured tasks and remaining time survive automatic pause/restart. Preserve snapshot format 3, installer identity and explicit update installation.
+
+This request authorizes publication while the documented native acceptance gaps remain pending. It does not mark Win+L/unlock, secure desktop, sleep/wake, RDP/user switching, keyboard/scaling or audible behavior passed. Require all 166 tests, build, bundled runtime packaging, clean MSI installation/launch, packaged second-launch acknowledgement, v0.1.0 upgrade/manual-pause/task/history preservation, full packaged updater download/reverification, checksum and pinned MIT License gates for the exact source commit. Independently verify the immutable tag/latest release, public asset sizes/hashes, MSI version and unchanged UpgradeCode after publication. Keep the active OpenSpec change open. Do not run the local native app/installer against the owner's profile; use hosted Windows validation for installation gates.

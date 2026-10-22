@@ -86,6 +86,10 @@ Obtain the MSI, checksum file, and MIT License from [GitHub Releases](https://gi
 
 ## Data and recovery
 
+Version 0.3.7 adds **Settings → Pause timer when Windows is locked**, enabled by default for new and existing profiles. Focus and break timers pause when Windows locks or the desktop becomes unavailable, then resume from the same remaining time when you return. Timers paused manually stay paused. Turn this option off and **Save Rules** to keep counting while locked with the existing transition limits. **Cancel** discards an unsaved choice. Lock pause and its automatic-resume reason survive restart; older builds may drop these optional fields and leave that timer paused until manually resumed.
+
+Lock handling also covers user switching, secure screens (such as Ctrl+Alt+Delete or secure UAC), and disconnected Remote Desktop sessions. Alarms, previews, click sounds and desktop notifications wait until the desktop is available in either timer mode. On return, a pending completion restores the same window and alerts once; enabled reminders resume after ten seconds. Muted sound stays muted. Returning without a pending completion leaves a background window hidden. Sleep uses existing elapsed-time recovery unless the timer was already paused; the app cannot play while the computer is asleep or after Exit. Turning only the display off does not count as a lock. Session-detection failure shows a warning and retries, pausing the timer when the saved lock option is enabled. These changes require the pending Windows checks in [Testing](docs/TESTING.md).
+
 On Windows, the application stores its timer state, settings, tasks, and daily totals in `%APPDATA%\AggressivePomodoro\session.properties`. Changes are saved without blocking the UI. After a restart, an expired phase is completed once; missed cycles are not backfilled. If the saved file cannot be read, the application starts a fresh focus session and shows a recovery message. See [Architecture](docs/ARCHITECTURE.md) for the persistence and clock rules.
 
 Version 0.2.0 migrates older snapshots to format 3. Close the app and back up the saved file before upgrading if you may downgrade: v0.1.0 cannot read the new format, so restore the pre-upgrade backup before launching it again.
@@ -118,4 +122,4 @@ Aggressive Pomodoro is open source under the [MIT License](LICENSE). Copyright (
 
 Third-party sound recordings retain their applicable licenses; see the bundled [sound credits](desktopApp/resources/sounds/README.md).
 
-The updater's OkHttp/Okio libraries retain their Apache 2.0 license and [attribution](desktopApp/resources/licenses/NOTICE.txt), bundled in the app.
+The updater's OkHttp/Okio libraries and the current source's JNA Windows integration retain their Apache 2.0 license and [attribution](desktopApp/resources/licenses/NOTICE.txt), bundled in the app. JNA's native libffi license is included separately.

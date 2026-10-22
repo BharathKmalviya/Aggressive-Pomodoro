@@ -26,6 +26,7 @@ The repository began as a Compose desktop starter. A first Windows release needs
 - Correct the reproduced updater connection failure: try alternate system-resolved server addresses, retain HTTPS/redirect/checksum protections, cancel blocked connections, show checksum/connection/transfer/verification stages and specific failures, and release the correction for a one-time manual upgrade from affected versions.
 - Bundle the nine owner-supplied sounds as bounded offline alarm cues, with separate saved focus/break selections and previews of unsaved choices in Settings. Retain original phase alarms as defaults and recover from missing or unknown selections without losing user data.
 - Establish open-source project documentation: setup, architecture, manual verification, release process, contribution guidance, code of conduct, security reporting, and the MIT License.
+- Handle locked/disconnected Windows sessions and secure desktops: pause running timers by default and resume only automatically paused timers on return, with a saved option to keep counting instead. Retain pending completions, suspend sound/attention/notifications while unavailable, and restore pending review with one alert on return. Treat unknown session state as silent with visible feedback and retry automatically.
 
 ## Capabilities
 
@@ -43,6 +44,8 @@ The repository began as a Compose desktop starter. A first Windows release needs
 None; the repository has no existing OpenSpec capability specs.
 
 ## Impact
+
+- Owner-requested v0.3.7 publication includes Windows lock/session-aware alerts and the saved default-on pause/resume option after the exact source passes the established automated Windows release gates. Keep native lock/secure-screen/sleep/RDP/audio/keyboard acceptance pending and the active change open.
 
 - `shared` will own timer state, transition rules, settings, and Compose UI; `desktopApp` will provide Windows desktop integration and the application entry point.
 - The starter greeting and tests will be replaced with product behavior and focused unit/integration coverage.

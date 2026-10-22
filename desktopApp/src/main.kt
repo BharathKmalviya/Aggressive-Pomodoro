@@ -22,6 +22,8 @@ import com.pomodoro.domain.Phase
 import com.pomodoro.domain.AlarmSound
 import com.pomodoro.domain.CloseBehavior
 import com.pomodoro.platform.DesktopAlert
+import com.pomodoro.platform.DesktopSessionMonitor
+import com.pomodoro.platform.DesktopAvailability
 import com.pomodoro.platform.DesktopTray
 import com.pomodoro.platform.AppVersion
 import com.pomodoro.platform.InstanceLock
@@ -77,6 +79,8 @@ fun main() {
     val saved = store.load()
     application {
         val scope = rememberCoroutineScope()
+        val desktopMonitor = remember { DesktopSessionMonitor() }
+        var desktopAvailability by remember { mutableStateOf(desktopMonitor.availability) }
         var controller by remember { mutableStateOf<DesktopSessionController?>(null) }
         var confirmExit by remember { mutableStateOf(false) }
         var exitError by remember { mutableStateOf(false) }
@@ -168,11 +172,12 @@ fun main() {
             activeAlert = alert
             fun playAlarm(phase: Phase, selection: AlarmSound = controller?.state?.settings?.alarmFor(phase)
                 ?: saved.session.settings.alarmFor(phase), preview: Boolean = false) {
+                if (desktopAvailability != DesktopAvailability.AVAILABLE) return
                 previewing = preview
                 completionPlayback?.cancel()
                 completionPlayback = scope.launch(Dispatchers.IO) {
                     ensureActive()
-                    alert.playCompletion(phase, selection) { isActive }
+                    alert.playCompletion(phase, selection) { isActive && desktopMonitor.canPlay() }
                 }
             }
             fun stopAlarm() {
@@ -183,11 +188,12 @@ fun main() {
             }
             fun stopPreview() { if (previewing) stopAlarm() }
             fun playClick() {
-                if (closing || controller?.state?.settings?.clickSoundEnabled != true) return
+                if (closing || desktopAvailability != DesktopAvailability.AVAILABLE ||
+                    controller?.state?.settings?.clickSoundEnabled != true) return
                 clickPlayback?.cancel()
                 clickPlayback = scope.launch(Dispatchers.IO) {
                     ensureActive()
-                    alert.playClick { isActive }
+                    alert.playClick { isActive && desktopMonitor.canPlay() }
                 }
             }
             fun stopClick() {
@@ -202,7 +208,8 @@ fun main() {
                         if (!windowVisible) tray?.notifyCompletion(event.phase)
                         alert.requestAttention()
                         if (soundEnabled) playAlarm(event.phase)
-                    }, scope = scope)
+                    }, scope = scope,
+                    initialDesktopAvailable = desktopAvailability == DesktopAvailability.AVAILABLE)
             }
             controller = session
             fun dispatchSession(command: SessionCommand) {
@@ -300,17 +307,35 @@ fun main() {
             DisposableEffect(window) { onDispose { tray?.close() } }
             LaunchedEffect(session) {
                 while (true) {
-                    if (!closing) session.tick()
+                    val availability = withContext(Dispatchers.IO) { desktopMonitor.refresh() }
+                    desktopAvailability = availability
+                    if (!closing) {
+                        if (availability != DesktopAvailability.AVAILABLE && session.desktopAvailable) {
+                            stopAlarm()
+                            stopClick()
+                        }
+                        val reviewPending = session.updateDesktopAvailability(availability == DesktopAvailability.AVAILABLE)
+                        if (reviewPending) {
+                            if (!exitError) confirmExit = false
+                            showWindow()
+                        }
+                        session.tick()
+                    }
                     delay(250.milliseconds)
                 }
             }
             App(session.product, remainingMs, todayDate, AppVersion.value,
-                if (closing) "Saving session before closing…" else session.persistenceWarning,
+                if (closing) "Saving session before closing…" else listOfNotNull(session.persistenceWarning,
+                    if (desktopAvailability == DesktopAvailability.UNKNOWN)
+                        if (session.state.settings.pauseWhenLocked)
+                            "Windows session status is unavailable. The timer pauses automatically; sound and desktop alerts wait until detection recovers."
+                        else "Windows session status is unavailable. The timer keeps counting; sound and desktop alerts wait until detection recovers."
+                    else null).takeIf { it.isNotEmpty() }?.joinToString(" "),
                 audioWarning = audioWarning,
                 updateState = updates.state,
                 browserWarning = browserWarning,
                 closeRequested = confirmExit || exitError,
-                dialogsVisible = windowVisible && !windowState.isMinimized,
+                dialogsVisible = desktopAvailability != DesktopAvailability.UNAVAILABLE && windowVisible && !windowState.isMinimized,
                 appRequest = appRequest,
                 onAppRequestHandled = { request -> if (appRequest == request) appRequest = null },
                 onCheckUpdates = { if (!closing) updates.check() },

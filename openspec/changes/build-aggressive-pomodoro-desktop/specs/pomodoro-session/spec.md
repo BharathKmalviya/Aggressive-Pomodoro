@@ -6,6 +6,25 @@ Defines the observable focus and break timer lifecycle so sessions advance predi
 
 ## ADDED Requirements
 
+### Requirement: Saved lock pause preference
+Settings SHALL provide a saved `Pause timer when Windows is locked` option enabled by default, including for older snapshots without the preference. While enabled, an unavailable or unverified desktop SHALL automatically pause a running focus or either break at its reconciled remaining time. Return to an available desktop SHALL resume only a phase paused by this policy. User-paused, clock-safety-paused, idle and waiting phases SHALL NOT start because of unlock. Disabling the preference SHALL keep running timers counting while locked; alert delivery SHALL still wait for availability. Save SHALL apply the preference; Cancel SHALL discard unsaved edits.
+
+#### Scenario: Default lock and unlock
+- **WHEN** Windows becomes unavailable during a running phase with the default setting
+- **THEN** the phase pauses with its remaining time and captured task intact, earns no completion during the pause, and resumes from that time when the desktop returns
+
+#### Scenario: Manual pause and state replacement
+- **WHEN** a user-paused or clock-safety-paused timer is unlocked, or an automatically paused phase is reset or skipped
+- **THEN** unlock cannot resume that manual pause or start a replacement idle phase
+
+#### Scenario: Continue mode
+- **WHEN** the user disables the lock pause option and saves
+- **THEN** the app resumes only its own automatic pause if present, keeps countdown and existing unattended limits while locked, and defers completion effects until return
+
+#### Scenario: Old profile and automatic-pause recovery
+- **WHEN** an older profile omits the lock preference or a profile with an automatic lock pause is reopened
+- **THEN** missing or malformed preferences default to pause without losing other data, and a saved automatic pause resumes only when availability is confirmed while a saved manual pause remains paused
+
 ### Requirement: Optional state-driven motion
 The app SHALL animate phase accents, progress, and status/directive changes using short bounded transitions while keeping countdown and control targets immediate. Phase changes SHALL reset progress without sweeping backward across phases. Pause and waiting SHALL show exact progress immediately. A saved reduce-motion preference SHALL bypass custom motion without changing timer behavior or alert visibility.
 

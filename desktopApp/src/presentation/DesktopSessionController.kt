@@ -9,6 +9,7 @@ import com.pomodoro.domain.ProductCommand
 import com.pomodoro.domain.ProductEngine
 import com.pomodoro.domain.ProductState
 import com.pomodoro.domain.SessionCommand
+import com.pomodoro.domain.SessionStatus
 import com.pomodoro.domain.TaskCommand
 import com.pomodoro.domain.TimeMark
 import kotlinx.coroutines.CoroutineScope
@@ -27,10 +28,13 @@ class DesktopSessionController(
     private val localDate: () -> String,
     private val onCompletion: (Completion, Boolean) -> Unit,
     scope: CoroutineScope,
+    initialDesktopAvailable: Boolean = true,
 ) {
+    var desktopAvailable = initialDesktopAvailable
+        private set
     var now by mutableStateOf(clock())
         private set
-    var product by mutableStateOf(ProductEngine.recover(saved, now, localDate()))
+    var product by mutableStateOf(applyDesktopPolicy(ProductEngine.recover(saved, now, localDate())))
         private set
     var persistenceWarning by mutableStateOf<String?>(null)
         private set
@@ -67,6 +71,18 @@ class DesktopSessionController(
 
     fun tick() = dispatch(ProductCommand.Session(SessionCommand.Tick))
 
+    /** Reconcile while silent, then deliver at most one retained event when the desktop returns. */
+    fun updateDesktopAvailability(available: Boolean): Boolean {
+        if (closed || closing || available == desktopAvailable) return false
+        desktopAvailable = false
+        tick()
+        desktopAvailable = available
+        if (available) tick()
+        if (!available || state.pending.isEmpty()) return false
+        alert(state.pending.first())
+        return true
+    }
+
     fun dispatchSession(command: SessionCommand) = dispatch(ProductCommand.Session(command))
     fun dispatchTask(command: TaskCommand) = dispatch(ProductCommand.Task(command))
 
@@ -74,7 +90,7 @@ class DesktopSessionController(
         if (closed || closing) return
         now = clock()
         val before = product
-        val updated = ProductEngine.reduce(before, command, now, localDate())
+        val updated = applyDesktopPolicy(ProductEngine.reduce(before, command, now, localDate()))
         if (updated != before) {
             product = updated
             val important = command != ProductCommand.Session(SessionCommand.Tick) ||
@@ -100,9 +116,22 @@ class DesktopSessionController(
         }
     }
 
+    private fun applyDesktopPolicy(snapshot: ProductState): ProductState {
+        val session = snapshot.session
+        val command = when {
+            !desktopAvailable && session.settings.pauseWhenLocked && session.status == SessionStatus.RUNNING ->
+                SessionCommand.PauseForLock
+            (desktopAvailable || !session.settings.pauseWhenLocked) && session.pausedForLock ->
+                SessionCommand.ResumeAfterLock
+            else -> return snapshot
+        }
+        return ProductEngine.reduce(snapshot, ProductCommand.Session(command), now, localDate())
+    }
+
     private fun alert(completion: Completion) {
         // Each attempt resets the interval, even if delivery fails. Never replay missed intervals.
         lastAlertMs = now.monotonicMs
+        if (!desktopAvailable) return
         try {
             onCompletion(completion, product.session.settings.soundEnabled)
         } catch (error: Exception) {

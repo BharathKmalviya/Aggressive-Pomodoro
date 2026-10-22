@@ -20,6 +20,52 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class AppStoreTest {
+    @Test fun lockPreferenceAndPauseProvenanceRoundTripWithTasksAndProgress() = withStore { store, file ->
+        for (pauseWhenLocked in listOf(true, false)) {
+            var snapshot = ProductState(session = newSession(TimerSettings(focusMinutes = 1,
+                pauseWhenLocked = pauseWhenLocked)))
+            snapshot = ProductEngine.reduce(snapshot, ProductCommand.Task(TaskCommand.Add("Keep task ownership", 2)), TimeMark(0, 0), date)
+            snapshot = ProductEngine.reduce(snapshot, ProductCommand.Session(SessionCommand.Start), TimeMark(0, 0), date)
+            for (command in listOf(SessionCommand.PauseForLock, SessionCommand.Pause)) {
+                val paused = ProductEngine.reduce(snapshot, ProductCommand.Session(command), TimeMark(15_000, 15_000), date)
+                store.save(paused)
+                assertEquals(paused, store.load())
+                assertEquals(command == SessionCommand.PauseForLock, store.load().session.pausedForLock)
+            }
+        }
+        val paused = store.load()
+        for (unknown in listOf(null, "", "TRUE", "future-value")) {
+            store.save(paused)
+            editProperties(file) {
+                if (unknown == null) remove("pausedForLock") else setProperty("pausedForLock", unknown)
+            }
+            assertEquals(paused.copy(session = paused.session.copy(pausedForLock = false)), store.load())
+        }
+    }
+
+    @Test fun missingOrMalformedLockPreferencesDefaultToPauseWithoutDiscardingLegacyData() = withStore { store, file ->
+        for (version in listOf("1", "2", "3")) {
+            for (unknown in listOf(null, "", "TRUE", "future-value")) {
+                var snapshot = ProductState(session = newSession(TimerSettings(focusMinutes = 7,
+                    soundEnabled = false, pauseWhenLocked = false)))
+                snapshot = ProductEngine.reduce(snapshot, ProductCommand.Task(TaskCommand.Add("Keep old work", 2)), TimeMark(0, 0), date)
+                store.save(snapshot)
+                editProperties(file) {
+                    setProperty("version", version)
+                    remove("pausedForLock")
+                    if (unknown == null) remove("pauseWhenLocked") else setProperty("pauseWhenLocked", unknown)
+                }
+                val restored = store.load()
+                assertTrue(restored.session.settings.pauseWhenLocked)
+                assertEquals(false, restored.session.pausedForLock)
+                assertEquals(snapshot.session.remainingMs, restored.session.remainingMs)
+                assertEquals(false, restored.session.settings.soundEnabled)
+                assertEquals(null, restored.session.message)
+                if (version != "1") assertEquals(snapshot.board, restored.board)
+            }
+        }
+    }
+
     @Test fun closePreferencesRoundTripAndUnknownChoicesPreserveData() = withStore { store, file ->
         var snapshot = ProductState(session = newSession(TimerSettings(focusMinutes = 1,
             soundEnabled = false, reduceMotion = true)))

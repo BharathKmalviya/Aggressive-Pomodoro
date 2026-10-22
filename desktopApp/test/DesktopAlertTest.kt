@@ -16,6 +16,27 @@ import kotlin.test.assertTrue
 import kotlin.test.assertFalse
 
 class DesktopAlertTest {
+    @Test fun desktopLockDuringDeviceOpenPreventsCompletionAndClickPlayback() {
+        for (completion in listOf(true, false)) {
+            var availability = DesktopAvailability.AVAILABLE
+            val monitor = DesktopSessionMonitor(probe = { availability }, initial = DesktopAvailability.UNKNOWN)
+            monitor.refresh()
+            val clip = FakeClip()
+            val reports = mutableListOf<String?>()
+            val audio = AlertAudio(openClip = {
+                availability = DesktopAvailability.UNAVAILABLE
+                clip
+            }, onPlaybackResult = reports::add)
+            try {
+                if (completion) audio.playCompletion(shouldPlay = monitor::canPlay)
+                else audio.playClick(shouldPlay = monitor::canPlay)
+                assertEquals(0, clip.starts)
+                assertEquals(1, clip.closes)
+                assertTrue(reports.isEmpty())
+            } finally { audio.close() }
+        }
+    }
+
     @Test fun allSuppliedAlarmsAreDistinctBoundedOfflinePcm() {
         val sounds = AlarmSound.entries.filter { it != AlarmSound.ORIGINAL }.map(::bundledAlarmSound)
         assertEquals(9, sounds.size)

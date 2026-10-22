@@ -102,7 +102,7 @@ internal fun TimerPanel(
     val status = when (state.status) {
         SessionStatus.IDLE -> "READY TO COMMIT"
         SessionStatus.RUNNING -> if (finalMinute) "FINAL MINUTE" else "CLOCK IS RUNNING"
-        SessionStatus.PAUSED -> "PAUSED · CLOCK STOPPED"
+        SessionStatus.PAUSED -> if (state.pausedForLock) "PAUSED · WAITING FOR DESKTOP" else "PAUSED · CLOCK STOPPED"
         SessionStatus.WAITING -> "YOUR ACKNOWLEDGEMENT REQUIRED"
     }
     val directive = when {
@@ -117,6 +117,8 @@ internal fun TimerPanel(
         else -> "HANDS OFF. BREATHE."
     }
     val instruction = when {
+        state.status == SessionStatus.PAUSED && state.pausedForLock ->
+            "Your progress is held while Windows is locked or the desktop is unavailable. The timer resumes automatically when you return."
         state.status == SessionStatus.PAUSED -> "Your progress is held. Resume when you can give it your attention."
         state.status == SessionStatus.WAITING -> "Review the completed phase to release the next block."
         finalMinute && focus -> "Close the loop. One minute left to move this task forward."

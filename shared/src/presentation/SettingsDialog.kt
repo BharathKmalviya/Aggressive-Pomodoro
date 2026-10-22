@@ -50,6 +50,7 @@ internal fun SettingsDialog(
     var long by remember(settings.longBreakMinutes) { mutableStateOf(settings.longBreakMinutes.toString()) }
     var interval by remember(settings.longBreakEvery) { mutableStateOf(settings.longBreakEvery.toString()) }
     var automatic by remember(settings.automaticTransitions) { mutableStateOf(settings.automaticTransitions) }
+    var pauseWhenLocked by remember(settings.pauseWhenLocked) { mutableStateOf(settings.pauseWhenLocked) }
     var sound by remember(settings.soundEnabled) { mutableStateOf(settings.soundEnabled) }
     var clicks by remember(settings.clickSoundEnabled) { mutableStateOf(settings.clickSoundEnabled) }
     var reminders by remember(settings.aggressiveAlertsEnabled) { mutableStateOf(settings.aggressiveAlertsEnabled) }
@@ -64,6 +65,7 @@ internal fun SettingsDialog(
         longBreakMinutes = long.toIntOrNull() ?: 0,
         longBreakEvery = interval.toIntOrNull() ?: 0,
         automaticTransitions = automatic,
+        pauseWhenLocked = pauseWhenLocked,
         soundEnabled = sound,
         clickSoundEnabled = clicks,
         aggressiveAlertsEnabled = reminders,
@@ -88,6 +90,11 @@ internal fun SettingsDialog(
                 OutlinedTextField(interval, { interval = it }, label = { Text("Focus blocks per cycle (2–12)") }, singleLine = true,
                     modifier = Modifier.fillMaxWidth(), isError = candidate.longBreakEvery !in 2..12)
                 SettingToggle("Start next phase automatically", automatic, { automatic = it })
+                SettingToggle("Pause timer when Windows is locked", pauseWhenLocked, { pauseWhenLocked = it })
+                Text(if (pauseWhenLocked)
+                    "Pause focus and breaks while Windows is locked or the desktop is unavailable. Resume automatically when you return. Timers you pause yourself stay paused."
+                    else "Keep counting while Windows is locked. Completion alerts wait until you return.",
+                    color = UiColor.muted, fontSize = 12.sp)
                 SettingToggle("Relentless completion reminders", reminders, { reminders = it })
                 Text("Demand attention every 10 seconds until the completion alert is acknowledged. Works independently of sound.",
                     color = UiColor.muted, fontSize = 12.sp)

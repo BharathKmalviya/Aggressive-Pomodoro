@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.3.7
+
+- Add **Pause timer when Windows is locked** in Settings, enabled by default for new and existing profiles. Automatically resume only timers paused by lock detection; manually paused timers remain paused. Disable and save the option to keep counting while locked.
+- Persist the lock preference and automatic-pause reason without changing snapshot format 3; preserve captured tasks, remaining time and restart behavior. Show automatic lock pauses distinctly from manual pauses.
+
+- Keep completed timers pending while Windows is locked, switched to another user or a secure desktop, or disconnected from Remote Desktop. Suspend sound, reminders and desktop notifications until return, including cancellation of active/opening previews and clicks.
+- On return, restore pending completion review with one alert and a fresh reminder interval. Preserve timer progress, bounded unattended transitions, earned task credit, muted sound and saved settings; retry failed session detection with visible feedback.
+- All 166 automated tests and the Windows build/package/install/launcher/upgrade/download/checksum/license gates are required before publication. Native lock/unlock, sleep/wake, secure-screen, Remote Desktop, keyboard/scaling and audible behavior checks remain manual; the installer remains unsigned.
+
 ## 0.3.6
 
 - Find updates automatically at startup and every six hours while the app runs, with a quiet 15-minute retry after discovery fails. The main window shows **Update available → View Update**, without visiting Settings. Downloads and **Install & Exit** remain under your control.
