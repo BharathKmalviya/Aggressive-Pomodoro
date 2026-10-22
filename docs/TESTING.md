@@ -1,5 +1,11 @@
 # Windows acceptance checks
 
+## v0.3.7 published verification — 2026-10-22
+
+Stable [v0.3.7](https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases/tag/v0.3.7) was published at `2026-10-22T12:51:51Z` (18:21:51 IST) from `e3635d1ea26350449c4663108757f14de3f2e7b9`. [Windows CI](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/39781326390) and the [release workflow](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/39781326281) passed all 166 tests (43 shared, 123 desktop), runtime packaging, full packaged updater download/reverification, clean MSI install/launch, second-launch acknowledgement, baseline upgrade/manual-pause/task/history preservation, checksum and MIT License gates. Fresh public asset downloads verified API sizes/digests, the exact checksum manifest and license; read-only MSI metadata confirmed version and unchanged upgrade identity. See [Release evidence](RELEASING.md#v037-published-verification) for hashes.
+
+The owner authorized publication with native acceptance still pending. The lock pause option defaults on for new and existing profiles; opting out retains counting with deferred alerts. Deterministic regressions cover automatic versus manual pause/restart, all phase types, locked credit/progression, late audio cancellation, unknown session detection, legacy/malformed fields and saved preference changes. No local native app or installer was run. Run the v0.3.7 lock/continue scenarios near the end of this document; Win+L/unlock, secure desktop, RDP/user switching, sleep/wake, audio, keyboard/scaling and earlier native acceptance remain open.
+
 ## v0.3.6 published verification — 2026-10-10
 
 The owner requested v0.3.6 with direct tray Exit and automatic visible update discovery alongside the stalled-first-connection safeguard. The app checks at startup/every six hours, retries discovery quietly after 15 minutes and shows Update available/View Update in the main window. Downloads and installation remain explicit. Transient activation-write failures retry within the original ownership deadline. New and earlier native acceptance remains pending.

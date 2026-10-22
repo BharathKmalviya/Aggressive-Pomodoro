@@ -29,6 +29,20 @@ The script uses the checked-in Kotlin Toolchain wrapper, runs build and tests, b
 
 CI and releases also run `./scripts/verify-update-download.ps1` after packaging. This network-only gate compiles `UpdateDownloadProbe.java` against the executable JAR's bundled libraries, checks GitHub and downloads/reverifies the latest published stable MSI through the production updater service. Its isolated files stay under `build/updater-verification`; it opens no app/installer and touches no user profile. The gate needs JDK 21 and reachable GitHub/CDN servers. It is not proof of native dialog, UAC or installed-runtime interaction.
 
+## v0.3.7 published verification
+
+Immutable stable [v0.3.7](https://github.com/BharathKmalviya/Aggressive-Pomodoro/releases/tag/v0.3.7) was published at `2026-10-22T12:51:51Z` (2026-10-22 18:21:51 IST) from `e3635d1ea26350449c4663108757f14de3f2e7b9`. [Windows CI](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/39781326390) and the [release workflow](https://github.com/BharathKmalviya/Aggressive-Pomodoro/actions/runs/39781326281) passed all 166 tests (43 shared, 123 desktop; no failures), runtime packaging, full packaged-updater download/reverification, clean MSI installation/launch, second-launch acknowledgement, v0.1.0 baseline upgrade/manual-pause/task/history preservation, checksum and pinned MIT License gates. Both packaged updater probes downloaded and reverified the complete public v0.3.6 MSI.
+
+Fresh release/latest API and tag readback verified the exact source commit and stable/latest release, including lock-option notes. Independent downloads verified all three public asset sizes/digests, the exact MSI checksum manifest entry and pinned MIT License:
+
+| Asset | Bytes | SHA-256 |
+| --- | ---: | --- |
+| AggressivePomodoro-0.3.7.msi | 105,042,840 | `f9b8a06680b78069734e5e5d811be9961ebf2cc2b0925a8bee83500599efcdc1` |
+| SHA256SUMS.txt | 96 | `b4b3bf75500a53da49d06023a09c0948954b6acbbb63150594b0c814cc93cbf4` |
+| LICENSE | 1,072 | `cc9829233de2b0ba9f107178cf4da58612848a70f07b2344eab1f1ec6df1f3fc` |
+
+Read-only MSI inspection confirmed ProductVersion `0.3.7`, ProductName `AggressivePomodoro` and unchanged UpgradeCode `{8B4BB341-127A-3A18-945B-B92F5C0CD1FD}`. No native app/installer was run locally and the installed owner's profile was not changed. Default pause/continue choice, Win+L/unlock, secure desktop, RDP/user switching, sleep/wake, audible playback and keyboard/scaling remain manual acceptance alongside earlier checks. Snapshot format remains 3, the installer remains unsigned, and the active OpenSpec change stays open.
+
 ## v0.3.6 published verification
 
 
